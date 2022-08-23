@@ -1,0 +1,145 @@
+// Copyright 2019 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
+package jrpc
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"time"
+)
+
+func newTestServer() *Server {
+	server := NewServer()
+	if err := server.RegisterName("test", new(testService)); err != nil {
+		panic(err)
+	}
+	if err := server.RegisterName("nftest", new(notificationTestService)); err != nil {
+		panic(err)
+	}
+	return server
+}
+
+type testService struct{}
+
+type echoArgs struct {
+	S string
+}
+
+type echoResult struct {
+	String string
+	Int    int
+	Args   *echoArgs
+}
+
+type testError struct{}
+
+func (testError) Error() string  { return "testError" }
+func (testError) ErrorCode() int { return 444 }
+func (testError) ErrorData() any { return "testError data" }
+
+func (s *testService) NoArgsRets() {}
+
+func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
+	return echoResult{str, i, args}
+}
+
+func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *echoArgs) echoResult {
+	return echoResult{str, i, args}
+}
+
+func (s *testService) PeerInfo(ctx context.Context) PeerInfo {
+	return PeerInfoFromContext(ctx)
+}
+
+func (s *testService) Sleep(ctx context.Context, duration time.Duration) {
+	time.Sleep(duration)
+}
+
+func (s *testService) Block(ctx context.Context) error {
+	<-ctx.Done()
+	return errors.New("context canceled in testservice_block")
+}
+
+func (s *testService) Rets() (string, error) {
+	return "", nil
+}
+
+//lint:ignore ST1008 returns error first on purpose.
+func (s *testService) InvalidRets1() (error, string) {
+	return nil, ""
+}
+
+func (s *testService) InvalidRets2() (string, string) {
+	return "", ""
+}
+
+func (s *testService) InvalidRets3() (string, string, error) {
+	return "", "", nil
+}
+
+func (s *testService) ReturnError() error {
+	return testError{}
+}
+
+func (s *testService) CallMeBack(ctx context.Context, method string, args []any) (any, error) {
+	c, ok := ClientFromContext(ctx)
+	if !ok {
+		return nil, errors.New("no client")
+	}
+	var result any
+	err := c.Call(&result, method, args...)
+	return result, err
+}
+
+func (s *testService) CallMeBackLater(ctx context.Context, method string, args []any) error {
+	c, ok := ClientFromContext(ctx)
+	if !ok {
+		return errors.New("no client")
+	}
+	go func() {
+		<-ctx.Done()
+		var result any
+		c.Call(&result, method, args...)
+	}()
+	return nil
+}
+
+type notificationTestService struct {
+	unsubscribed            chan string
+	gotHangSubscriptionReq  chan struct{}
+	unblockHangSubscription chan struct{}
+}
+
+func (s *notificationTestService) Echo(i int) int {
+	return i
+}
+
+func (s *notificationTestService) Unsubscribe(subid string) {
+	if s.unsubscribed != nil {
+		s.unsubscribed <- subid
+	}
+}
+
+// largeRespService generates arbitrary-size JSON responses.
+type largeRespService struct {
+	length int
+}
+
+func (x largeRespService) LargeResp() string {
+	return strings.Repeat("x", x.length)
+}
