@@ -33,9 +33,8 @@ var (
 	stringType  = reflect.TypeOf("")
 )
 
-// TODO: this entire thing is a fucking mess
-// TODO: we need to redo this router style, basically it's like URLs, but "_" instead of "/". Maybe look at the chi code and see how they did it
-// TODO: also we need to add support for things like default handlers, prefix handlers, etc
+// Supported for legacy reasons.
+//TODO: we should redo our tests such that we no longer need this function.
 func registerStruct(r Router, name string, rcvr any) error {
 	rcvrVal := reflect.ValueOf(rcvr)
 	if name == "" {
@@ -124,7 +123,6 @@ func (c *callback) makeArgTypes() {
 }
 
 // call invokes the callback.
-// NOTE: this is done with some sorta awkward reflection. I wonder if there is a neater way to do this.
 func (c *callback) call(ctx context.Context, method string, args []reflect.Value) (res any, errRes error) {
 	// Create the argument slice.
 	fullargs := make([]reflect.Value, 0, 2+len(args))
@@ -158,14 +156,6 @@ func (c *callback) call(ctx context.Context, method string, args []reflect.Value
 		return reflect.Value{}, err
 	}
 	return results[0].Interface(), nil
-}
-
-// Is t context.Context or *context.Context?
-func isContextType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	return t == contextType
 }
 
 // Does t satisfy the error interface?

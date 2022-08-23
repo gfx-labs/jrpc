@@ -19,16 +19,12 @@ package jrpc
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
 	"git.tuxpa.in/a/zlog/log"
-	mapset "github.com/deckarep/golang-set"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -64,50 +60,6 @@ func (s *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 	})
 }
 
-// wsHandshakeValidator returns a handler that verifies the origin during the
-// websocket upgrade process. When a '*' is specified as an allowed origins all
-// connections are accepted.
-func wsHandshakeValidator(allowedOrigins []string) func(*http.Request) bool {
-	origins := mapset.NewSet()
-	allowAllOrigins := false
-
-	for _, origin := range allowedOrigins {
-		if origin == "*" {
-			allowAllOrigins = true
-		}
-		if origin != "" {
-			origins.Add(origin)
-		}
-	}
-	// allow localhost if no allowedOrigins are specified.
-	if len(origins.ToSlice()) == 0 {
-		origins.Add("http://localhost*")
-		if hostname, err := os.Hostname(); err == nil {
-			origins.Add("http://" + hostname + "*")
-		}
-	}
-	log.Debug().Msg(fmt.Sprintf("Allowed origin(s) for WS RPC interface %v", origins.ToSlice()))
-
-	f := func(req *http.Request) bool {
-		// Skip origin verification if no Origin header is present. The origin check
-		// is supposed to protect against browser based attacks. Browsers always set
-		// Origin. Non-browser software can put anything in origin and checking it doesn't
-		// provide additional security.
-		if _, ok := req.Header["Origin"]; !ok {
-			return true
-		}
-		// Verify origin against allow list.
-		origin := strings.ToLower(req.Header.Get("Origin"))
-		if allowAllOrigins || originIsAllowed(origins, origin) {
-			return true
-		}
-		log.Warn().Str("origin", origin).Msg("Rejected WebSocket connection")
-		return false
-	}
-
-	return f
-}
-
 type wsHandshakeError struct {
 	err    error
 	status string
@@ -121,66 +73,6 @@ func (e wsHandshakeError) Error() string {
 	return s
 }
 
-func originIsAllowed(allowedOrigins mapset.Set, browserOrigin string) bool {
-	it := allowedOrigins.Iterator()
-	for origin := range it.C {
-		if ruleAllowsOrigin(origin.(string), browserOrigin) {
-			return true
-		}
-	}
-	return false
-}
-
-func ruleAllowsOrigin(allowedOrigin string, browserOrigin string) bool {
-	var (
-		allowedScheme, allowedHostname, allowedPort string
-		browserScheme, browserHostname, browserPort string
-		err                                         error
-	)
-	allowedScheme, allowedHostname, allowedPort, err = parseOriginURL(allowedOrigin)
-	if err != nil {
-		log.Warn().Str("spec", allowedOrigin).Err(err).Msg("Error parsing allowed origin specification")
-		return false
-	}
-	browserScheme, browserHostname, browserPort, err = parseOriginURL(browserOrigin)
-	if err != nil {
-		log.Warn().Str("Origin", browserOrigin).Err(err).Msg("Error parsing browser 'Origin' field")
-		return false
-	}
-	if allowedScheme != "" && allowedScheme != browserScheme {
-		return false
-	}
-	if allowedHostname != "" && allowedHostname != browserHostname {
-		return false
-	}
-	if allowedPort != "" && allowedPort != browserPort {
-		return false
-	}
-	return true
-}
-
-func parseOriginURL(origin string) (string, string, string, error) {
-	parsedURL, err := url.Parse(strings.ToLower(origin))
-	if err != nil {
-		return "", "", "", err
-	}
-	var scheme, hostname, port string
-	if strings.Contains(origin, "://") {
-		scheme = parsedURL.Scheme
-		hostname = parsedURL.Hostname()
-		port = parsedURL.Port()
-	} else {
-		scheme = ""
-		hostname = parsedURL.Scheme
-		port = parsedURL.Opaque
-		if hostname == "" {
-			hostname = origin
-		}
-	}
-	return scheme, hostname, port, nil
-}
-
-// DialWebsocketWithDialer creates a new RPC client that communicates with a JSON-RPC server
 // that is listening on the given endpoint using the provided dialer.
 func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts *websocket.DialOptions) (*Client, error) {
 	endpoint, header, err := wsClientHeaders(endpoint, origin)
