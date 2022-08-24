@@ -24,16 +24,28 @@ type Handler interface {
 type Request struct {
 	ctx context.Context
 	msg jsonrpcMessage
+
+	peer PeerInfo
 }
 
 func (r *Request) Method() string {
 	return r.msg.Method
 }
+
 func (r *Request) Params() json.RawMessage {
 	return r.msg.Params
 }
+
 func (r *Request) Context() context.Context {
 	return r.ctx
+}
+
+func (r *Request) Remote() string {
+	return r.peer.RemoteAddr
+}
+
+func (r *Request) Peer() PeerInfo {
+	return r.peer
 }
 
 func (r *Request) WithContext(ctx context.Context) *Request {
@@ -47,6 +59,7 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.msg = r.msg
 	return r2
 }
+
 func (r *Request) Msg() jsonrpcMessage {
 	return r.msg
 }

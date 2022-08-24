@@ -55,6 +55,8 @@ type handler struct {
 	cancelRoot func()                // cancel function for rootCtx
 	conn       jsonWriter            // where responses will be sent
 	log        *zlog.Logger
+
+	peer PeerInfo
 }
 
 type callProc struct {
@@ -64,6 +66,7 @@ type callProc struct {
 func newHandler(connCtx context.Context, conn jsonWriter, reg Router) *handler {
 	rootCtx, cancelRoot := context.WithCancel(connCtx)
 	h := &handler{
+		peer:       PeerInfoFromContext(connCtx),
 		reg:        reg,
 		conn:       conn,
 		respWait:   make(map[string]*requestOp),
@@ -71,9 +74,12 @@ func newHandler(connCtx context.Context, conn jsonWriter, reg Router) *handler {
 		cancelRoot: cancelRoot,
 		log:        zlog.Ctx(connCtx),
 	}
-	if conn.remoteAddr() != "" {
+	if h.peer.RemoteAddr != "" {
 		cl := h.log.With().Str("conn", conn.remoteAddr()).Logger()
 		h.log = &cl
+	}
+	if h.peer.RemoteAddr == "" {
+		h.log.Error().Msg("CONNECTION WITHOUT REMOTE IP DETECTED. PLEASE MAKE SURE YOU KNOW WHAT YOU ARE DOING, OTHERWISE, THIS COULD BE A SECURITY ISSUE")
 	}
 	return h
 }
@@ -204,28 +210,29 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 }
 
 // handleCallMsg executes a call message and returns the answer.
+// TODO: export prometheus metrics maybe?
 func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
-	start := NewTimer()
+	// start := NewTimer()
 	switch {
 	case msg.isNotification():
 		h.handleCall(ctx, msg)
-		h.log.Debug().Str("method", msg.Method).Dur("duration", start.Since()).Msg("Served")
+		//	h.log.Debug().Str("method", msg.Method).Dur("duration", start.Since()).Msg("Served")
 		return nil
 	case msg.isCall():
 		resp := h.handleCall(ctx, msg)
-		var ctx []any
-		log2 := h.log.With()
-		log2.Str("reqid", string(msg.ID)).Dur("duration", start.Since())
+		// var ctx []any
+		//		log2 := h.log.With()
+		//		log2.Str("reqid", string(msg.ID)).Dur("duration", start.Since())
 		if resp.Error != nil {
-			log2.Str("err", resp.Error.Message)
-			if resp.Error.Data != nil {
-				log2.Interface("errdata", resp.Error.Data)
-			}
-			sl := log2.Logger()
-			sl.Warn().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
+			//			log2.Str("err", resp.Error.Message)
+			//			if resp.Error.Data != nil {
+			//				log2.Interface("errdata", resp.Error.Data)
+			//			}
+			//		sl := log2.Logger()
+			//		sl.Warn().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
 		} else {
-			sl := log2.Logger()
-			sl.Debug().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
+			//			sl := log2.Logger()
+			//			sl.Debug().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
 		}
 		return resp
 	case msg.hasValidID():
@@ -241,29 +248,25 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 	if !callb {
 		return msg.errorResponse(&methodNotFoundError{method: msg.Method})
 	}
-	start := time.Now()
-	//TODO:  there's a copy here
-	req := &Request{msg: *msg}
-	req.WithContext(cp.ctx)
-	answer := h.runHandler(req)
-	// Collect the statistics for RPC calls if metrics is enabled.
-	// We only care about pure rpc call. Filter out subscription.
-	rpcRequestGauge.Inc(1)
-	if answer.Error != nil {
-		failedRequestGauge.Inc(1)
-	} else {
-		successfulRequestGauge.Inc(1)
-	}
-	rpcServingTimer.UpdateSince(start)
-	updateServeTimeHistogram(msg.Method, answer.Error == nil, time.Since(start))
-	return answer
-}
 
-//TODO: add buffer pool here
-func (h *handler) runHandler(r *Request) *jsonrpcMessage {
-	// NOTE: this is where the callback is invoked
-	mw := NewReaderResponseWriterMsg(r)
-	h.reg.ServeRPC(mw, r)
+	start := time.Now()
+	// TODO:  there's a copy here
+	// TODO: add buffer pool here
+	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
+	mw := NewReaderResponseWriterMsg(req)
+	h.reg.ServeRPC(mw, req)
+	{
+		// Collect the statistics for RPC calls if metrics is enabled.
+		// We only care about pure rpc call. Filter out subscription.
+		rpcRequestGauge.Inc(1)
+		if mw.msg.Error != nil {
+			failedRequestGauge.Inc(1)
+		} else {
+			successfulRequestGauge.Inc(1)
+		}
+		rpcServingTimer.UpdateSince(start)
+		updateServeTimeHistogram(msg.Method, mw.msg.Error == nil, time.Since(start))
+	}
 	return mw.msg
 }
 

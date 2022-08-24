@@ -33,9 +33,9 @@ var (
 	stringType  = reflect.TypeOf("")
 )
 
-// Supported for legacy reasons.
-//TODO: we should redo our tests such that we no longer need this function.
-func registerStruct(r Router, name string, rcvr any) error {
+// A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
+// if you don't know how to use this, just use the chi-like interface instead.
+func RegisterStruct(r Router, name string, rcvr any) error {
 	rcvrVal := reflect.ValueOf(rcvr)
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
