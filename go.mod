@@ -16,7 +16,7 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
