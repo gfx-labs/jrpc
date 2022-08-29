@@ -36,6 +36,16 @@ func (r *Request) Params() json.RawMessage {
 	return r.msg.Params
 }
 
+func (r *Request) ParamSlice() []any {
+	var params []any
+	jsoniter.Unmarshal(r.msg.Params, &params)
+	return params
+}
+
+func (r *Request) ParamInto(v any) error {
+	return jsoniter.Unmarshal(r.msg.Params, &v)
+}
+
 func (r *Request) Context() context.Context {
 	return r.ctx
 }

@@ -19,6 +19,7 @@ package jrpc
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,7 +37,12 @@ const (
 )
 
 // https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
-var acceptedContentTypes = []string{contentType, "application/json-rpc", "application/jsonrequest"}
+var acceptedContentTypes = []string{
+	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
+	contentType, "application/json-rpc", "application/jsonrequest",
+	// these are added because they make sense
+	"application/jsonrpc2", "application/json-rpc2", "application/jrpc",
+}
 
 type httpConn struct {
 	client    *http.Client
@@ -216,8 +222,36 @@ type httpServerConn struct {
 }
 
 func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
-	body := io.LimitReader(r.Body, maxRequestContentLength)
-	conn := &httpServerConn{Reader: body, Writer: w, r: r}
+	conn := &httpServerConn{Writer: w, r: r}
+	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
+	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters
+	// we however allow for non base64 encoded parameters to be passed
+	if r.Method == http.MethodGet {
+		// default id 1
+		id := `1`
+		id_up := r.URL.Query().Get("id")
+		if id_up != "" {
+			id = id_up
+		}
+		method_up := r.URL.Query().Get("method")
+		params, _ := url.QueryUnescape(r.URL.Query().Get("params"))
+		param := []byte(params)
+		if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
+			param = pb
+		}
+		buf := new(bytes.Buffer)
+		buf.Grow(64)
+		json.NewEncoder(buf).Encode(jsonrpcMessage{
+			Version: "2.0",
+			ID:      []byte(id),
+			Method:  method_up,
+			Params:  param,
+		})
+		conn.Reader = buf
+	} else {
+		// it's a post request or whatever, so just process it like normal
+		conn.Reader = io.LimitReader(r.Body, maxRequestContentLength)
+	}
 	return NewCodec(conn)
 }
 
@@ -284,7 +318,8 @@ func validateRequest(r *http.Request) (int, error) {
 			}
 		}
 	}
-	// Invalid content-type
-	err := fmt.Errorf("invalid content type, only %s is supported", contentType)
-	return http.StatusUnsupportedMediaType, err
+	// Invalid content-type ignored for now
+	return 0, nil
+	//err := fmt.Errorf("invalid content type, only %s is supported", contentType)
+	//return http.StatusUnsupportedMediaType, err
 }
