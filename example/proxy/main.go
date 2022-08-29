@@ -6,13 +6,13 @@ import (
 	"net/http"
 
 	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/middleware"
 )
 
 func main() {
 
 	r := jrpc.NewRouter()
-	srv := jrpc.NewServer(r)
-
+	r.Use(middleware.Logger)
 	c, err := jrpc.Dial("wss://mainnet.rpc.gfx.xyz")
 	if err != nil {
 		panic(err)
@@ -25,7 +25,9 @@ func main() {
 	})
 
 	log.Println("running on 8855")
+
+	srv := jrpc.NewServer(r)
 	log.Println(http.ListenAndServe(":8855", srv))
 }
 
-// http://localhost:8855/?method=echo&params=[1,2,3]
+// http://localhost:8855/?method=eth_blockNumber
