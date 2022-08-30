@@ -5,11 +5,18 @@ func NewRouter() *Mux {
 	return NewMux()
 }
 
+type StructReflector interface {
+	// mimics the behavior of the handlers in the go-ethereum rpc package
+	// if you don't know how to use this, just use the chi-like interface instead.
+	RegisterStruct(pattern string, rcvr any) error
+}
+
 // Router consisting of the core routing methods used by chi's Mux,
-// using only the standard net/
+// adapted to fit json-rpc.
 type Router interface {
 	Handler
 	Routes
+	StructReflector
 
 	// Use appends one or more middlewares onto the Router stack.
 	Use(middlewares ...func(Handler) Handler)

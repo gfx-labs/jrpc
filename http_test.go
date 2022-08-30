@@ -67,9 +67,11 @@ func TestHTTPErrorResponseWithMaxContentLength(t *testing.T) {
 		http.MethodPost, contentType, string(body), http.StatusRequestEntityTooLarge)
 }
 
-func TestHTTPErrorResponseWithEmptyContentType(t *testing.T) {
-	confirmRequestValidationCode(t, http.MethodPost, "", "", http.StatusUnsupportedMediaType)
-}
+//NOTE: this test is not needed since we no longer check this
+//
+//func TestHTTPErrorResponseWithEmptyContentType(t *testing.T) {
+//	confirmRequestValidationCode(t, http.MethodPost, "", "", http.StatusUnsupportedMediaType)
+//}
 
 func TestHTTPErrorResponseWithValidRequest(t *testing.T) {
 	confirmRequestValidationCode(t, http.MethodPost, contentType, "", 0)
@@ -105,7 +107,7 @@ func TestHTTPRespBodyUnlimited(t *testing.T) {
 
 	s := NewServer()
 	defer s.Stop()
-	s.RegisterName("test", largeRespService{respLength})
+	s.Router().RegisterStruct("test", largeRespService{respLength})
 	ts := httptest.NewServer(s)
 	defer ts.Close()
 

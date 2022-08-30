@@ -19,7 +19,6 @@ package jrpc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"runtime"
 	"unicode"
@@ -35,22 +34,22 @@ var (
 
 // A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
 // if you don't know how to use this, just use the chi-like interface instead.
-func RegisterStruct(r Router, name string, rcvr any) error {
-	rcvrVal := reflect.ValueOf(rcvr)
-	if name == "" {
-		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
-	}
-	callbacks := suitableCallbacks(rcvrVal)
-	if len(callbacks) == 0 {
-		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
-	}
-	r.Route(name, func(r Router) {
-		for nm, cb := range callbacks {
-			r.Handle(nm, cb)
-		}
-	})
-	return nil
-}
+//func RegisterStruct(r Router, name string, rcvr any) error {
+//	rcvrVal := reflect.ValueOf(rcvr)
+//	if name == "" {
+//		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
+//	}
+//	callbacks := suitableCallbacks(rcvrVal)
+//	if len(callbacks) == 0 {
+//		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
+//	}
+//	r.Route(name, func(r Router) {
+//		for nm, cb := range callbacks {
+//			r.Handle(nm, cb)
+//		}
+//	})
+//	return nil
+//}
 
 // suitableCallbacks iterates over the methods of the given type. It determines if a method
 // satisfies the criteria for a RPC callback or a subscription callback and adds it to the
@@ -71,6 +70,56 @@ func suitableCallbacks(receiver reflect.Value) map[string]Handler {
 		callbacks[name] = cb
 	}
 	return callbacks
+}
+
+// callback is a method callback which was registered in the server
+type callback struct {
+	fn       reflect.Value  // the function
+	rcvr     reflect.Value  // receiver object of method, set if fn is method
+	argTypes []reflect.Type // input argument types
+	hasCtx   bool           // method's first argument is a context (not included in argTypes)
+	errPos   int            // err return idx, of -1 when method cannot return error
+}
+
+// callback handler implements handler for the original receiver style that geth used
+func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
+	argTypes := append([]reflect.Type{}, e.argTypes...)
+	args, err := parsePositionalArguments(r.msg.Params, argTypes)
+	if err != nil {
+		w.Send(nil, &invalidParamsError{err.Error()})
+		return
+	}
+	// Create the argument slice.
+	fullargs := make([]reflect.Value, 0, 2+len(args))
+	if e.rcvr.IsValid() {
+		fullargs = append(fullargs, e.rcvr)
+	}
+	if e.hasCtx {
+		fullargs = append(fullargs, reflect.ValueOf(r.ctx))
+	}
+	fullargs = append(fullargs, args...)
+	// Catch panic while running the callback.
+	defer func() {
+		if err := recover(); err != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
+			w.Send(nil, nil)
+			return
+		}
+	}()
+	// Run the callback.
+	results := e.fn.Call(fullargs)
+	if e.errPos >= 0 && !results[e.errPos].IsNil() {
+		// Method has returned non-nil error value.
+		err := results[e.errPos].Interface().(error)
+		w.Send(nil, err)
+		return
+	}
+	w.Send(results[0].Interface(), nil)
+	return
 }
 
 // newCallback turns fn (a function) into a callback object. It returns nil if the function

@@ -26,7 +26,6 @@ import (
 	"os"
 	"reflect"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -280,14 +279,15 @@ func TestClientSetHeader(t *testing.T) {
 		t.Fatal("client did not set custom header")
 	}
 
+	//NOTE: this test is removed because we accept invalid content types
 	// Check that Content-Type can be replaced.
-	client.SetHeader("content-type", "application/x-garbage")
-	_, err = client.SupportedModules()
-	if err == nil {
-		t.Fatal("no error for invalid content-type header")
-	} else if !strings.Contains(err.Error(), "Unsupported Media Type") {
-		t.Fatalf("error is not related to content-type: %q", err)
-	}
+	//client.SetHeader("content-type", "application/x-garbage")
+	//_, err = client.SupportedModules()
+	//if err == nil {
+	//	t.Fatal("no error for invalid content-type header")
+	//} else if !strings.Contains(err.Error(), "Unsupported Media Type") {
+	//	t.Fatalf("error is not related to content-type: %q", err)
+	//}
 }
 
 func TestClientHTTP(t *testing.T) {

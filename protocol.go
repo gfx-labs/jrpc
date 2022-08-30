@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"reflect"
-	"runtime"
 
-	"git.tuxpa.in/a/zlog/log"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -117,54 +114,4 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	}
 	w.msg = cm.response(args)
 	return nil
-}
-
-// callback is a method callback which was registered in the server
-type callback struct {
-	fn       reflect.Value  // the function
-	rcvr     reflect.Value  // receiver object of method, set if fn is method
-	argTypes []reflect.Type // input argument types
-	hasCtx   bool           // method's first argument is a context (not included in argTypes)
-	errPos   int            // err return idx, of -1 when method cannot return error
-}
-
-// callback handler implements handler for the original receiver style that geth used
-func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
-	argTypes := append([]reflect.Type{}, e.argTypes...)
-	args, err := parsePositionalArguments(r.msg.Params, argTypes)
-	if err != nil {
-		w.Send(nil, &invalidParamsError{err.Error()})
-		return
-	}
-	// Create the argument slice.
-	fullargs := make([]reflect.Value, 0, 2+len(args))
-	if e.rcvr.IsValid() {
-		fullargs = append(fullargs, e.rcvr)
-	}
-	if e.hasCtx {
-		fullargs = append(fullargs, reflect.ValueOf(r.ctx))
-	}
-	fullargs = append(fullargs, args...)
-	// Catch panic while running the callback.
-	defer func() {
-		if err := recover(); err != nil {
-			const size = 64 << 10
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
-			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-			w.Send(nil, nil)
-			return
-		}
-	}()
-	// Run the callback.
-	results := e.fn.Call(fullargs)
-	if e.errPos >= 0 && !results[e.errPos].IsNil() {
-		// Method has returned non-nil error value.
-		err := results[e.errPos].Interface().(error)
-		w.Send(nil, err)
-		return
-	}
-	w.Send(results[0].Interface(), nil)
-	return
 }
