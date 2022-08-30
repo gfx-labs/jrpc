@@ -25,6 +25,18 @@ type Request struct {
 	peer PeerInfo
 }
 
+func NewRequest(ctx context.Context, id string, method string, params any) *Request {
+	r := &Request{ctx: ctx}
+	pms, _ := json.Marshal(params)
+	r.msg = jsonrpcMessage{
+		Version: "2.0",
+		ID:      []byte(id),
+		Method:  method,
+		Params:  pms,
+	}
+	return r
+}
+
 func (r *Request) Method() string {
 	return r.msg.Method
 }
@@ -37,6 +49,22 @@ func (r *Request) ParamSlice() []any {
 	var params []any
 	jsoniter.Unmarshal(r.msg.Params, &params)
 	return params
+}
+
+func (r *Request) ParamArray(a ...any) error {
+	var params []json.RawMessage
+	jsoniter.Unmarshal(r.msg.Params, &params)
+	for idx, v := range params {
+		if len(v) > idx {
+			err := jsoniter.Unmarshal(v, &a[idx])
+			if err != nil {
+				return err
+			}
+		} else {
+			break
+		}
+	}
+	return nil
 }
 
 func (r *Request) ParamInto(v any) error {
