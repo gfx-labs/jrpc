@@ -143,3 +143,7 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	w.msg = cm.response(args)
 	return nil
 }
+
+func (w *ResponseWriterMsg) Result() *jsonrpcMessage {
+	return w.msg
+}
