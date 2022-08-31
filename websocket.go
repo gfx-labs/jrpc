@@ -120,6 +120,7 @@ func wsClientHeaders(endpoint, origin string) (string, http.Header, error) {
 	header := make(http.Header)
 	if origin != "" {
 		header.Add("origin", origin)
+		header.Add("X-Forwarded-For", origin)
 	}
 	if endpointURL.User != nil {
 		b64auth := base64.StdEncoding.EncodeToString([]byte(endpointURL.User.String()))
@@ -171,14 +172,17 @@ func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req 
 		conn:      c,
 		pingReset: make(chan struct{}, 1),
 		info: PeerInfo{
-			Transport:  "ws",
-			RemoteAddr: conn.RemoteAddr().String(),
+			Transport: "ws",
 		},
 	}
 	// Fill in connection details.
 	wc.info.HTTP.Host = host
-	wc.info.HTTP.Origin = req.Get("Origin")
+	wc.info.HTTP.Origin = req.Get("X-Real-Ip")
+	if wc.info.HTTP.Origin == "" {
+		wc.info.HTTP.Origin = req.Get("X-Forwarded-For")
+	}
 	wc.info.HTTP.UserAgent = req.Get("User-Agent")
+	wc.info.HTTP.Headers = req
 	// Start pinger.
 	go heartbeat(ctx, c, wsPingInterval)
 	return wc

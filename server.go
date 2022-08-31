@@ -3,6 +3,7 @@ package jrpc
 import (
 	"context"
 	"io"
+	"net/http"
 	"sync/atomic"
 
 	"git.tuxpa.in/a/zlog/log"
@@ -141,6 +142,8 @@ type PeerInfo struct {
 		UserAgent string
 		Origin    string
 		Host      string
+
+		Headers http.Header
 	}
 }
 

@@ -282,8 +282,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	connInfo := PeerInfo{Transport: "http", RemoteAddr: r.RemoteAddr}
 	connInfo.HTTP.Version = r.Proto
 	connInfo.HTTP.Host = r.Host
-	connInfo.HTTP.Origin = r.Header.Get("Origin")
+	connInfo.HTTP.Origin = r.Header.Get("X-Real-Ip")
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = r.Header.Get("X-Forwarded-For")
+	}
 	connInfo.HTTP.UserAgent = r.Header.Get("User-Agent")
+	// the headers used
+	connInfo.HTTP.Headers = r.Header
+
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, peerInfoContextKey{}, connInfo)
 
