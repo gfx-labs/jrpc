@@ -176,7 +176,7 @@ func TestHTTPPeerInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.SetHeader("user-agent", "ua-testing")
-	c.SetHeader("origin", "origin.example.com")
+	c.SetHeader("x-forwarded-for", "origin.example.com")
 
 	// Request peer information.
 	var info PeerInfo

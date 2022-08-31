@@ -120,7 +120,6 @@ func wsClientHeaders(endpoint, origin string) (string, http.Header, error) {
 	header := make(http.Header)
 	if origin != "" {
 		header.Add("origin", origin)
-		header.Add("X-Forwarded-For", origin)
 	}
 	if endpointURL.User != nil {
 		b64auth := base64.StdEncoding.EncodeToString([]byte(endpointURL.User.String()))
@@ -177,10 +176,16 @@ func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req 
 	}
 	// Fill in connection details.
 	wc.info.HTTP.Host = host
+	// traefik proxy protocol headers
 	wc.info.HTTP.Origin = req.Get("X-Real-Ip")
 	if wc.info.HTTP.Origin == "" {
 		wc.info.HTTP.Origin = req.Get("X-Forwarded-For")
 	}
+	// origin header fallback
+	if wc.info.HTTP.Origin == "" {
+		wc.info.HTTP.Origin = req.Get("origin")
+	}
+	wc.info.RemoteAddr = wc.info.HTTP.Origin
 	wc.info.HTTP.UserAgent = req.Get("User-Agent")
 	wc.info.HTTP.Headers = req
 	// Start pinger.
