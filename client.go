@@ -262,29 +262,8 @@ func (c *Client) SetHeader(key, value string) {
 	conn.mu.Unlock()
 }
 
-// Call performs a JSON-RPC call with the given arguments and unmarshals into
-// result if no error occurred.
-//
-// The result must be a pointer so that package json can unmarshal into it. You
-// can also pass nil, in which case the result is ignored.
-func (c *Client) Call(result any, method string, args ...any) error {
-	ctx := context.Background()
-	return c.CallContext(ctx, result, method, args...)
-}
-
-// CallContext performs a JSON-RPC call with the given arguments. If the context is
-// canceled before the call has successfully returned, CallContext returns immediately.
-//
-// The result must be a pointer so that package json can unmarshal into it. You
-// can also pass nil, in which case the result is ignored.
-func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
-	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
-		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
-	}
-	msg, err := c.newMessage(method, args...)
-	if err != nil {
-		return err
-	}
+func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) error {
+	var err error
 	op := &requestOp{ids: []json.RawMessage{msg.ID.RawMessage()}, resp: make(chan *jsonrpcMessage, 1)}
 
 	if c.isHTTP {
@@ -308,6 +287,53 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 	default:
 		return json.Unmarshal(resp.Result, &result)
 	}
+}
+
+func (c *Client) CallP(result any, method string, param any) error {
+	ctx := context.Background()
+	return c.CallPContext(ctx, result, method, param)
+}
+
+// CallPContext is call except it uh uses a param instead of the variadic args
+// TODO: we should probably rewrite Call and CallContext to just call CallP and CallPContext
+//
+//	i havent done this because i want to make sure that callp and callpcontext work
+func (c *Client) CallPContext(ctx context.Context, result any, method string, param any) error {
+	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
+		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
+	}
+	msg, err := c.newMessageP(method, param)
+	if err != nil {
+		return err
+	}
+	return c.call(ctx, result, msg)
+}
+
+// Call performs a JSON-RPC call with the given arguments and unmarshals into
+// result if no error occurred.
+//
+// The result must be a pointer so that package json can unmarshal into it. You
+// can also pass nil, in which case the result is ignored.
+func (c *Client) Call(result any, method string, args ...any) error {
+	ctx := context.Background()
+	return c.CallContext(ctx, result, method, args...)
+}
+
+// CallContext performs a JSON-RPC call with the given arguments. If the context is
+// canceled before the call has successfully returned, CallContext returns immediately.
+//
+// The result must be a pointer so that package json can unmarshal into it. You
+// can also pass nil, in which case the result is ignored.
+func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
+	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
+		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
+	}
+	msg, err := c.newMessage(method, args...)
+	if err != nil {
+		return err
+	}
+
+	return c.call(ctx, result, msg)
 }
 
 // BatchCall sends all given requests as a single batch and waits for the server
@@ -402,6 +428,16 @@ func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, er
 	if paramsIn != nil { // prevent sending "params":null
 		var err error
 		if msg.Params, err = json.Marshal(paramsIn); err != nil {
+			return nil, err
+		}
+	}
+	return msg, nil
+}
+func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error) {
+	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
+	if paramIn != nil { // prevent sending "params":null
+		var err error
+		if msg.Params, err = json.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}
