@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -223,9 +222,9 @@ func initClient(conn ServerCodec, r Router) *Client {
 	return c
 }
 
-func (c *Client) nextID() json.RawMessage {
+func (c *Client) nextID() *ID {
 	id := atomic.AddUint32(&c.idCounter, 1)
-	return strconv.AppendUint(nil, uint64(id), 10)
+	return NewNumberIDPtr(int32(id))
 }
 
 // SupportedModules calls the rpc_modules method, retrieving the list of
@@ -286,7 +285,7 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 	if err != nil {
 		return err
 	}
-	op := &requestOp{ids: []json.RawMessage{msg.ID}, resp: make(chan *jsonrpcMessage, 1)}
+	op := &requestOp{ids: []json.RawMessage{msg.ID.RawMessage()}, resp: make(chan *jsonrpcMessage, 1)}
 
 	if c.isHTTP {
 		err = c.sendHTTP(ctx, op, msg)
@@ -347,8 +346,8 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 			return err
 		}
 		msgs[i] = msg
-		op.ids[i] = msg.ID
-		byID[string(msg.ID)] = i
+		op.ids[i] = msg.ID.RawMessage()
+		byID[string(msg.ID.RawMessage())] = i
 	}
 
 	var err error
@@ -368,7 +367,7 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 		// Find the element corresponding to this response.
 		// The element is guaranteed to be present because dispatch
 		// only sends valid IDs to our channel.
-		elem := &b[byID[string(resp.ID)]]
+		elem := &b[byID[string(resp.ID.RawMessage())]]
 		if resp.Error != nil {
 			elem.Error = resp.Error
 			continue
@@ -399,7 +398,7 @@ func (c *Client) Notify(ctx context.Context, method string, args ...any) error {
 }
 
 func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, error) {
-	msg := &jsonrpcMessage{Version: vsn, ID: c.nextID(), Method: method}
+	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramsIn != nil { // prevent sending "params":null
 		var err error
 		if msg.Params, err = json.Marshal(paramsIn); err != nil {

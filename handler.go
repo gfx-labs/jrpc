@@ -32,21 +32,20 @@ import (
 //
 // The entry points for incoming messages are:
 //
-//    h.handleMsg(message)
-//    h.handleBatch(message)
+//	h.handleMsg(message)
+//	h.handleBatch(message)
 //
 // Outgoing calls use the requestOp struct. Register the request before sending it
 // on the connection:
 //
-//    op := &requestOp{ids: ...}
-//    h.addRequestOp(op)
+//	op := &requestOp{ids: ...}
+//	h.addRequestOp(op)
 //
 // Now send the request, then wait for the reply to be delivered through handleMsg:
 //
-//    if err := op.wait(...); err != nil {
-//        h.removeRequestOp(op) // timeout, etc.
-//    }
-//
+//	if err := op.wait(...); err != nil {
+//	    h.removeRequestOp(op) // timeout, etc.
+//	}
 type handler struct {
 	reg        Router
 	respWait   map[string]*requestOp // active client requests
@@ -191,7 +190,7 @@ func (h *handler) handleImmediate(msg *jsonrpcMessage) bool {
 		return true
 	case msg.isResponse():
 		h.handleResponse(msg)
-		h.log.Trace().Str("reqid", string(msg.ID)).Dur("duration", start.Since(start)).Msg("Handled RPC response")
+		h.log.Trace().Str("reqid", string(msg.ID.RawMessage())).Dur("duration", start.Since(start)).Msg("Handled RPC response")
 		return true
 	default:
 		return false
@@ -200,17 +199,17 @@ func (h *handler) handleImmediate(msg *jsonrpcMessage) bool {
 
 // handleResponse processes method call responses.
 func (h *handler) handleResponse(msg *jsonrpcMessage) {
-	op := h.respWait[string(msg.ID)]
+	op := h.respWait[string(msg.ID.RawMessage())]
 	if op == nil {
-		h.log.Debug().Str("reqid", string(msg.ID)).Msg("Unsolicited RPC response")
+		h.log.Debug().Str("reqid", string(msg.ID.RawMessage())).Msg("Unsolicited RPC response")
 		return
 	}
-	delete(h.respWait, string(msg.ID))
+	delete(h.respWait, string(msg.ID.RawMessage()))
 	op.resp <- msg
 }
 
 // handleCallMsg executes a call message and returns the answer.
-// TODO: export prometheus metrics maybe?
+// TODO: export prometheus metrics maybe? also fix logging
 func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
 	// start := NewTimer()
 	switch {

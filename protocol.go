@@ -10,12 +10,16 @@ import (
 
 type HandlerFunc func(w ResponseWriter, r *Request)
 
-func (fn HandlerFunc) ServeRPC(w ResponseWriter, r *Request) {
-	(fn)(w, r)
-}
-
 type Handler interface {
 	ServeRPC(w ResponseWriter, r *Request)
+}
+
+type ResponseWriter interface {
+	Send(v any, err error) error
+}
+
+func (fn HandlerFunc) ServeRPC(w ResponseWriter, r *Request) {
+	(fn)(w, r)
 }
 
 type Request struct {
@@ -29,10 +33,9 @@ func NewRequest(ctx context.Context, id string, method string, params any) *Requ
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
 	r.msg = jsonrpcMessage{
-		Version: "2.0",
-		ID:      []byte(id),
-		Method:  method,
-		Params:  pms,
+		ID:     NewStringIDPtr(id),
+		Method: method,
+		Params: pms,
 	}
 	return r
 }
@@ -97,10 +100,6 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 
 func (r *Request) Msg() jsonrpcMessage {
 	return r.msg
-}
-
-type ResponseWriter interface {
-	Send(v any, err error) error
 }
 
 type ResponseWriterIo struct {
