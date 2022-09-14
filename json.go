@@ -92,7 +92,7 @@ func (msg *jsonrpcMessage) namespace() string {
 }
 
 func (msg *jsonrpcMessage) String() string {
-	b, _ := json.Marshal(msg)
+	b, _ := jsoniter.Marshal(msg)
 	return string(b)
 }
 
@@ -267,7 +267,7 @@ func (c *jsonCodec) closed() <-chan any {
 func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 	if !isBatch(raw) {
 		msgs := []*jsonrpcMessage{{}}
-		json.Unmarshal(raw, &msgs[0])
+		jsoniter.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))

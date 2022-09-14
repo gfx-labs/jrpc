@@ -29,6 +29,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -177,7 +179,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 }
 
 func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
-	body, err := json.Marshal(msg)
+	body, err := jsoniter.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}

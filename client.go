@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"git.tuxpa.in/a/zlog/log"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -285,7 +286,7 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 	case len(resp.Result) == 0:
 		return ErrNoResult
 	default:
-		return json.Unmarshal(resp.Result, &result)
+		return jsoniter.Unmarshal(resp.Result, &result)
 	}
 }
 
@@ -402,7 +403,7 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 			elem.Error = ErrNoResult
 			continue
 		}
-		elem.Error = json.Unmarshal(resp.Result, elem.Result)
+		elem.Error = jsoniter.Unmarshal(resp.Result, elem.Result)
 	}
 
 	return err
@@ -427,7 +428,7 @@ func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, er
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramsIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = json.Marshal(paramsIn); err != nil {
+		if msg.Params, err = jsoniter.Marshal(paramsIn); err != nil {
 			return nil, err
 		}
 	}
@@ -437,7 +438,7 @@ func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = json.Marshal(paramIn); err != nil {
+		if msg.Params, err = jsoniter.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}

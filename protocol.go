@@ -31,7 +31,7 @@ type Request struct {
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
 	r := &Request{ctx: ctx}
-	pms, _ := json.Marshal(params)
+	pms, _ := jsoniter.Marshal(params)
 	r.msg = jsonrpcMessage{
 		ID:     NewStringIDPtr(id),
 		Method: method,
