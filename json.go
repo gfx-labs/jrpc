@@ -31,6 +31,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+var jzon = jsoniter.ConfigCompatibleWithStandardLibrary
+
 const (
 	vsn                      = "2.0"
 	serviceMethodSeparator   = "_"
@@ -92,7 +94,7 @@ func (msg *jsonrpcMessage) namespace() string {
 }
 
 func (msg *jsonrpcMessage) String() string {
-	b, _ := jsoniter.Marshal(msg)
+	b, _ := jzon.Marshal(msg)
 	return string(b)
 }
 
@@ -106,7 +108,7 @@ func (msg *jsonrpcMessage) errorResponse(err error) *jsonrpcMessage {
 
 func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	// do a funny marshaling
-	enc, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(result)
+	enc, err := jzon.Marshal(result)
 	if err != nil {
 		return msg.errorResponse(err)
 	}
@@ -203,8 +205,8 @@ func NewFuncCodec(conn deadlineCloser, encode, decode func(v any) error) ServerC
 // NewCodec creates a codec on the given connection. If conn implements ConnRemoteAddr, log
 // messages will use it to include the remote address of the connection.
 func NewCodec(conn Conn) ServerCodec {
-	enc := json.NewEncoder(conn)
-	dec := json.NewDecoder(conn)
+	enc := jzon.NewEncoder(conn)
+	dec := jzon.NewDecoder(conn)
 	dec.UseNumber()
 	return NewFuncCodec(conn, enc.Encode, dec.Decode)
 }

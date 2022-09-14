@@ -242,8 +242,8 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 			param = pb
 		}
 		buf := new(bytes.Buffer)
-		buf.Grow(64)
-		json.NewEncoder(buf).Encode(jsonrpcMessage{
+		buf.Grow(128)
+		jzon.NewEncoder(buf).Encode(jsonrpcMessage{
 			ID:     NewStringIDPtr(id),
 			Method: method_up,
 			Params: param,
