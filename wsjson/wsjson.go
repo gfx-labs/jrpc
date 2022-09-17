@@ -18,7 +18,7 @@ var jzon = jsoniter.Config{
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
 	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        false,
+	ValidateJsonRawMessage:        true,
 	ObjectFieldMustBeSimpleString: false,
 	CaseSensitive:                 false,
 }.Froze()
