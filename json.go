@@ -28,22 +28,10 @@ import (
 	"sync"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"gfx.cafe/open/jrpc/wsjson"
 )
 
-var jzon = jsoniter.Config{
-	IndentionStep:                 0,
-	MarshalFloatWith6Digits:       false,
-	EscapeHTML:                    true,
-	SortMapKeys:                   false,
-	UseNumber:                     false,
-	DisallowUnknownFields:         false,
-	TagKey:                        "",
-	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        false,
-	ObjectFieldMustBeSimpleString: false,
-	CaseSensitive:                 false,
-}.Froze()
+var jzon = wsjson.JZON
 
 const (
 	vsn                      = "2.0"

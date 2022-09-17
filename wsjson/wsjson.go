@@ -18,10 +18,12 @@ var jzon = jsoniter.Config{
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
 	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        true,
+	ValidateJsonRawMessage:        false,
 	ObjectFieldMustBeSimpleString: false,
 	CaseSensitive:                 false,
 }.Froze()
+
+var JZON = jzon
 
 // Read reads a JSON message from c into v.
 // It will reuse buffers in between calls to avoid allocations.
