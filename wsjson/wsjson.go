@@ -12,13 +12,13 @@ import (
 var jzon = jsoniter.Config{
 	IndentionStep:                 0,
 	MarshalFloatWith6Digits:       false,
-	EscapeHTML:                    true,
+	EscapeHTML:                    false,
 	SortMapKeys:                   false,
 	UseNumber:                     false,
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
 	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        true,
+	ValidateJsonRawMessage:        false,
 	ObjectFieldMustBeSimpleString: false,
 	CaseSensitive:                 false,
 }.Froze()
@@ -37,15 +37,12 @@ func read(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-
 	b := bufpool.GetStd()
 	defer bufpool.PutStd(b)
-
 	_, err = b.ReadFrom(r)
 	if err != nil {
 		return err
 	}
-
 	err = jzon.Unmarshal(b.Bytes(), v)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
