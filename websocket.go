@@ -80,8 +80,8 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts 
 		return nil, err
 	}
 	opts.HTTPHeader = header
-	return newClient(ctx, func(ctx context.Context) (ServerCodec, error) {
-		conn, resp, err := websocket.Dial(ctx, endpoint, opts)
+	return newClient(ctx, func(cctx context.Context) (ServerCodec, error) {
+		conn, resp, err := websocket.Dial(cctx, endpoint, opts)
 		if err != nil {
 			hErr := wsHandshakeError{err: err}
 			if resp != nil {

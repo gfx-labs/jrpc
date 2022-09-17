@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -79,6 +80,8 @@ type Client struct {
 	r Router
 	// This function, if non-nil, is called when the connection is lost.
 	reconnectFunc reconnectFunc
+
+	reconnectMu sync.Mutex
 
 	// writeConn is used for writing to the connection on the caller's goroutine. It should
 	// only be accessed outside of dispatch, with the write lock held. The write lock is
@@ -464,7 +467,9 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg any) error {
 func (c *Client) write(ctx context.Context, msg any, retry bool) error {
 	if c.writeConn == nil {
 		// The previous write failed. Try to establish a new connection.
-		if err := c.reconnect(ctx); err != nil {
+		time.Sleep(500 * time.Millisecond)
+		err := c.reconnect(ctx)
+		if err != nil {
 			return err
 		}
 	}
