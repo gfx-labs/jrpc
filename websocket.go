@@ -49,7 +49,7 @@ func (s *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			OriginPatterns:       allowedOrigins,
 			CompressionMode:      websocket.CompressionContextTakeover,
-			CompressionThreshold: 512,
+			CompressionThreshold: 4096,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("WebSocket upgrade failed")
@@ -106,7 +106,7 @@ func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error
 	}
 	dialer := &websocket.DialOptions{
 		CompressionMode:      websocket.CompressionContextTakeover,
-		CompressionThreshold: 512,
+		CompressionThreshold: 4096,
 		HTTPHeader:           header,
 	}
 	return DialWebsocketWithDialer(ctx, endpoint, origin, dialer)
