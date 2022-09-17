@@ -160,10 +160,10 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req http.Header) ServerCodec {
 	c.SetReadLimit(wsMessageSizeLimit)
 	jsonWriter := func(v any) error {
-		return wsjson.Write(ctx, c, v)
+		return wsjson.Write(context.Background(), c, v)
 	}
 	jsonReader := func(v any) error {
-		return wsjson.Read(ctx, c, v)
+		return wsjson.Read(context.Background(), c, v)
 	}
 	conn := websocket.NetConn(ctx, c, websocket.MessageText)
 	wc := &websocketCodec{
