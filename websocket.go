@@ -49,7 +49,7 @@ func (s *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			OriginPatterns:       allowedOrigins,
 			CompressionMode:      websocket.CompressionContextTakeover,
-			CompressionThreshold: 4096,
+			CompressionThreshold: 512,
 		})
 		if err != nil {
 			log.Debug().Err(err).Msg("WebSocket upgrade failed")
@@ -80,8 +80,8 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts 
 		return nil, err
 	}
 	opts.HTTPHeader = header
-	return newClient(ctx, func(cctx context.Context) (ServerCodec, error) {
-		conn, resp, err := websocket.Dial(cctx, endpoint, opts)
+	return newClient(ctx, func(ctx context.Context) (ServerCodec, error) {
+		conn, resp, err := websocket.Dial(ctx, endpoint, opts)
 		if err != nil {
 			hErr := wsHandshakeError{err: err}
 			if resp != nil {
@@ -106,7 +106,7 @@ func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error
 	}
 	dialer := &websocket.DialOptions{
 		CompressionMode:      websocket.CompressionContextTakeover,
-		CompressionThreshold: 4096,
+		CompressionThreshold: 512,
 		HTTPHeader:           header,
 	}
 	return DialWebsocketWithDialer(ctx, endpoint, origin, dialer)
@@ -160,10 +160,10 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req http.Header) ServerCodec {
 	c.SetReadLimit(wsMessageSizeLimit)
 	jsonWriter := func(v any) error {
-		return wsjson.Write(context.Background(), c, v)
+		return wsjson.Write(ctx, c, v)
 	}
 	jsonReader := func(v any) error {
-		return wsjson.Read(context.Background(), c, v)
+		return wsjson.Read(ctx, c, v)
 	}
 	conn := websocket.NetConn(ctx, c, websocket.MessageText)
 	wc := &websocketCodec{

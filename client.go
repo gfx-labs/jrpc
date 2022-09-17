@@ -467,7 +467,7 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg any) error {
 func (c *Client) write(ctx context.Context, msg any, retry bool) error {
 	if c.writeConn == nil {
 		// The previous write failed. Try to establish a new connection.
-		time.Sleep(500 * time.Millisecond)
+		//	time.Sleep(500 * time.Millisecond)
 		err := c.reconnect(ctx)
 		if err != nil {
 			return err
