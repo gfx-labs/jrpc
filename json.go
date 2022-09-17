@@ -31,7 +31,19 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-var jzon = jsoniter.ConfigCompatibleWithStandardLibrary
+var jzon = jsoniter.Config{
+	IndentionStep:                 0,
+	MarshalFloatWith6Digits:       false,
+	EscapeHTML:                    true,
+	SortMapKeys:                   true,
+	UseNumber:                     false,
+	DisallowUnknownFields:         false,
+	TagKey:                        "",
+	OnlyTaggedField:               false,
+	ValidateJsonRawMessage:        true,
+	ObjectFieldMustBeSimpleString: false,
+	CaseSensitive:                 false,
+}.Froze()
 
 const (
 	vsn                      = "2.0"
@@ -206,7 +218,7 @@ func NewFuncCodec(conn deadlineCloser, encode, decode func(v any) error) ServerC
 // messages will use it to include the remote address of the connection.
 func NewCodec(conn Conn) ServerCodec {
 	enc := jzon.NewEncoder(conn)
-	dec := jzon.NewDecoder(conn)
+	dec := json.NewDecoder(conn)
 	dec.UseNumber()
 	return NewFuncCodec(conn, enc.Encode, dec.Decode)
 }
@@ -269,7 +281,7 @@ func (c *jsonCodec) closed() <-chan any {
 func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 	if !isBatch(raw) {
 		msgs := []*jsonrpcMessage{{}}
-		jsoniter.Unmarshal(raw, &msgs[0])
+		jzon.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))

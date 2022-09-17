@@ -24,9 +24,9 @@ import (
 	"sync"
 	"time"
 
+	"gfx.cafe/open/jrpc/wsjson"
 	"git.tuxpa.in/a/zlog/log"
 	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 const (

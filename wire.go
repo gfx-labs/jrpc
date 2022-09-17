@@ -3,8 +3,6 @@ package jrpc
 import (
 	"encoding/json"
 	"fmt"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Version represents a JSON-RPC version.
@@ -23,13 +21,13 @@ var (
 
 // MarshalJSON implements json.Marshaler.
 func (version) MarshalJSON() ([]byte, error) {
-	return jsoniter.Marshal(Version)
+	return jzon.Marshal(Version)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (version) UnmarshalJSON(data []byte) error {
 	version := ""
-	if err := jsoniter.Unmarshal(data, &version); err != nil {
+	if err := jzon.Unmarshal(data, &version); err != nil {
 		return fmt.Errorf("failed to Unmarshal: %w", err)
 	}
 	if version != Version {
@@ -95,12 +93,12 @@ func (id *ID) RawMessage() json.RawMessage {
 		return null
 	}
 	if id.name != "" {
-		ans, err := jsoniter.Marshal(id.name)
+		ans, err := jzon.Marshal(id.name)
 		if err == nil {
 			return ans
 		}
 	}
-	ans, err := jsoniter.Marshal(id.number)
+	ans, err := jzon.Marshal(id.number)
 	if err == nil {
 		return ans
 	}
@@ -116,18 +114,18 @@ func (id *ID) MarshalJSON() ([]byte, error) {
 		return null, nil
 	}
 	if id.name != "" {
-		return jsoniter.Marshal(id.name)
+		return jzon.Marshal(id.name)
 	}
-	return jsoniter.Marshal(id.number)
+	return jzon.Marshal(id.number)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *ID) UnmarshalJSON(data []byte) error {
 	*id = ID{}
-	if err := jsoniter.Unmarshal(data, &id.number); err == nil {
+	if err := jzon.Unmarshal(data, &id.number); err == nil {
 		return nil
 	}
-	if err := jsoniter.Unmarshal(data, &id.name); err == nil {
+	if err := jzon.Unmarshal(data, &id.name); err == nil {
 		return nil
 	}
 	id.null = true

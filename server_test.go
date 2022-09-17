@@ -116,10 +116,9 @@ func TestServerShortLivedConn(t *testing.T) {
 		conn.Write([]byte(request))
 		conn.(*net.TCPConn).CloseWrite()
 		// Now try to get the response.
-		buf := make([]byte, 2000)
-		n, err := conn.Read(buf)
+		buf, err := io.ReadAll(conn)
+		n := len(buf)
 		conn.Close()
-
 		if err != nil {
 			t.Fatal("read error:", err)
 		}

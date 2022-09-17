@@ -1,3 +1,5 @@
+gfx.cafe/util/go/bufpool v0.0.0-20220917112702-95618babdf53 h1:j45c1YN77NyWrO0dN+e7lKJctXpC5TlVZWmww/PpFA0=
+gfx.cafe/util/go/bufpool v0.0.0-20220917112702-95618babdf53/go.mod h1:+DiyiCOBGS9O9Ce4ewHQO3Y59h66WSWAbgZZ2O2AYYw=
 git.tuxpa.in/a/zlog v1.32.0 h1:KKXbRF1x8kJDSzUoGz/pivo+4TVY6xT5sVtdFZ6traY=
 git.tuxpa.in/a/zlog v1.32.0/go.mod h1:vUa2Qhu6DLPLqmfRy99FiPqaY2eb6/KQjtMekW3UNnA=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 h1:fLjPD/aNc3UIOA6tDi6QXUemppXK3P9BI7mr2hd6gx8=

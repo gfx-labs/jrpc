@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 type HandlerFunc func(w ResponseWriter, r *Request)
@@ -31,7 +29,7 @@ type Request struct {
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
 	r := &Request{ctx: ctx}
-	pms, _ := jsoniter.Marshal(params)
+	pms, _ := jzon.Marshal(params)
 	r.msg = jsonrpcMessage{
 		ID:     NewStringIDPtr(id),
 		Method: method,
@@ -50,16 +48,16 @@ func (r *Request) Params() json.RawMessage {
 
 func (r *Request) ParamSlice() []any {
 	var params []any
-	jsoniter.Unmarshal(r.msg.Params, &params)
+	jzon.Unmarshal(r.msg.Params, &params)
 	return params
 }
 
 func (r *Request) ParamArray(a ...any) error {
 	var params []json.RawMessage
-	jsoniter.Unmarshal(r.msg.Params, &params)
+	jzon.Unmarshal(r.msg.Params, &params)
 	for idx, v := range params {
 		if len(v) > idx {
-			err := jsoniter.Unmarshal(v, &a[idx])
+			err := jzon.Unmarshal(v, &a[idx])
 			if err != nil {
 				return err
 			}
@@ -71,7 +69,7 @@ func (r *Request) ParamArray(a ...any) error {
 }
 
 func (r *Request) ParamInto(v any) error {
-	return jsoniter.Unmarshal(r.msg.Params, &v)
+	return jzon.Unmarshal(r.msg.Params, &v)
 }
 
 func (r *Request) Context() context.Context {
@@ -115,7 +113,7 @@ func NewReaderResponseWriterIo(r *Request, w io.Writer) ResponseWriter {
 }
 
 func (w *ResponseWriterIo) Send(args any, e error) (err error) {
-	enc := jsoniter.ConfigCompatibleWithStandardLibrary.NewEncoder(w.w)
+	enc := jzon.NewEncoder(w.w)
 	if e != nil {
 		return enc.Encode(errorMessage(e))
 	}

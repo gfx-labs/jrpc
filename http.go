@@ -30,8 +30,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -180,7 +178,7 @@ func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonr
 }
 
 func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
-	body, err := jsoniter.Marshal(msg)
+	body, err := jzon.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
