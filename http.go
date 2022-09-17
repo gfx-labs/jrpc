@@ -27,6 +27,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -266,6 +267,23 @@ func (t *httpServerConn) RemoteAddr() string {
 
 // SetWriteDeadline does nothing and always returns nil.
 func (t *httpServerConn) SetWriteDeadline(time.Time) error { return nil }
+
+type WebsocketServer struct {
+	s *Server
+}
+
+func (s *WebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if isWebsocket(r) {
+		s.s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
+		return
+	}
+	s.s.ServeHTTP(w, r)
+}
+
+func isWebsocket(r *http.Request) bool {
+	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket") &&
+		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
+}
 
 // ServeHTTP serves JSON-RPC requests over HTTP.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
