@@ -43,7 +43,7 @@ func read(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	err = jzon.Unmarshal(b.Bytes(), v)
+	err = jzon.NewDecoder(b).Decode(v)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
