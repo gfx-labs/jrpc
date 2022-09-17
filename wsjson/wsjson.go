@@ -12,13 +12,13 @@ import (
 var jzon = jsoniter.Config{
 	IndentionStep:                 0,
 	MarshalFloatWith6Digits:       false,
-	EscapeHTML:                    false,
+	EscapeHTML:                    true,
 	SortMapKeys:                   false,
 	UseNumber:                     false,
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
 	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        true,
+	ValidateJsonRawMessage:        false,
 	ObjectFieldMustBeSimpleString: false,
 	CaseSensitive:                 false,
 }.Froze()
