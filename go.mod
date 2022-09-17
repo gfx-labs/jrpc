@@ -3,7 +3,7 @@ module gfx.cafe/open/jrpc
 go 1.18
 
 require (
-	gfx.cafe/util/go/bufpool v0.0.0-20220917112702-95618babdf53
+	gfx.cafe/util/go/bufpool v0.0.0-20220917152604-80373e5a2c51
 	git.tuxpa.in/a/zlog v1.32.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0

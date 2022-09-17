@@ -13,7 +13,7 @@ var jzon = jsoniter.Config{
 	IndentionStep:                 0,
 	MarshalFloatWith6Digits:       false,
 	EscapeHTML:                    true,
-	SortMapKeys:                   true,
+	SortMapKeys:                   false,
 	UseNumber:                     false,
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
@@ -36,8 +36,8 @@ func read(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 		return err
 	}
 
-	b := bufpool.Get(512)
-	defer bufpool.Put(b)
+	b := bufpool.GetStd()
+	defer bufpool.PutStd(b)
 
 	_, err = b.ReadFrom(r)
 	if err != nil {
