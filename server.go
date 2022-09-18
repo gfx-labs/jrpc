@@ -106,13 +106,13 @@ func (s *Server) Stop() {
 	}
 }
 
-// RPCService gives meta information about the server.
+// Deprecated: RPCService gives meta information about the server.
 // e.g. gives information about the loaded modules.
 type RPCService struct {
 	server *Server
 }
 
-// Modules returns the list of RPC services with their version number
+// Deprecated: Modules returns the list of RPC services with their version number
 func (s *RPCService) Modules() map[string]string {
 	modules := make(map[string]string)
 	for _, route := range s.server.services.Routes() {

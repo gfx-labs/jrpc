@@ -100,6 +100,10 @@ type Client struct {
 	reqTimeout  chan *requestOp  // removes response IDs when call timeout expires
 }
 
+func (c *Client) Router() Router {
+	return c.r
+}
+
 type reconnectFunc func(ctx context.Context) (ServerCodec, error)
 
 type clientContextKey struct{}
@@ -292,16 +296,16 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 	}
 }
 
-func (c *Client) CallP(result any, method string, param any) error {
-	ctx := context.Background()
-	return c.CallPContext(ctx, result, method, param)
-}
-
-// CallPContext is call except it uh uses a param instead of the variadic args
-// TODO: we should probably rewrite Call and CallContext to just call CallP and CallPContext
+// Do performs a JSON-RPC call with the given arguments and unmarshals into
+// result if no error occurred.
 //
-//	i havent done this because i want to make sure that callp and callpcontext work
-func (c *Client) CallPContext(ctx context.Context, result any, method string, param any) error {
+// The result must be a pointer so that package json can unmarshal into it. You
+// can also pass nil, in which case the result is ignored.
+func (c *Client) Do(result any, method string, param any) error {
+	ctx := context.Background()
+	return c.DoContext(ctx, result, method, param)
+}
+func (c *Client) DoContext(ctx context.Context, result any, method string, param any) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
@@ -312,31 +316,14 @@ func (c *Client) CallPContext(ctx context.Context, result any, method string, pa
 	return c.call(ctx, result, msg)
 }
 
-// Call performs a JSON-RPC call with the given arguments and unmarshals into
-// result if no error occurred.
-//
-// The result must be a pointer so that package json can unmarshal into it. You
-// can also pass nil, in which case the result is ignored.
+// Deprecated: use Do
 func (c *Client) Call(result any, method string, args ...any) error {
-	ctx := context.Background()
-	return c.CallContext(ctx, result, method, args...)
+	return c.Do(result, method, args)
 }
 
-// CallContext performs a JSON-RPC call with the given arguments. If the context is
-// canceled before the call has successfully returned, CallContext returns immediately.
-//
-// The result must be a pointer so that package json can unmarshal into it. You
-// can also pass nil, in which case the result is ignored.
+// Deprecated: use DoContext
 func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
-	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
-		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
-	}
-	msg, err := c.newMessage(method, args...)
-	if err != nil {
-		return err
-	}
-
-	return c.call(ctx, result, msg)
+	return c.DoContext(ctx, result, method, args)
 }
 
 // BatchCall sends all given requests as a single batch and waits for the server
@@ -411,10 +398,14 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 	return err
 }
 
-// Notify sends a notification, i.e. a method call that doesn't expect a response.
 func (c *Client) Notify(ctx context.Context, method string, args ...any) error {
+	return c.DoNotify(ctx, method, args)
+}
+
+// Notify sends a notification, i.e. a method call that doesn't expect a response.
+func (c *Client) DoNotify(ctx context.Context, method string, args any) error {
 	op := new(requestOp)
-	msg, err := c.newMessage(method, args...)
+	msg, err := c.newMessageP(method, args)
 	if err != nil {
 		return err
 	}
