@@ -27,7 +27,6 @@ type ChainHandler struct {
 
 func (c *ChainHandler) ServeRPC(w ResponseWriter, r *Request) {
 	c.chain.ServeRPC(w, r)
-	return
 }
 
 // chain builds a Handler composed of an inline middleware stack and endpoint
@@ -37,12 +36,10 @@ func chain(middlewares []func(Handler) Handler, endpoint Handler) Handler {
 	if len(middlewares) == 0 {
 		return endpoint
 	}
-
 	// Wrap the end handler with the middleware chain
 	h := middlewares[len(middlewares)-1](endpoint)
 	for i := len(middlewares) - 2; i >= 0; i-- {
 		h = middlewares[i](h)
 	}
-
 	return h
 }

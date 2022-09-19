@@ -72,19 +72,19 @@ func NewNullIDPtr() *ID           { return &ID{null: true} }
 //
 // If the rune is q the representation is non ambiguous,
 // string forms are quoted, number forms are preceded by a #.
-func (id ID) Format(f fmt.State, r rune) {
+func (id *ID) Format(f fmt.State, r rune) {
 	numF, strF := `%d`, `%s`
 	if r == 'q' {
 		numF, strF = `#%d`, `%q`
 	}
 
+	id.null = false
 	switch {
 	case id.name != "":
 		fmt.Fprintf(f, strF, id.name)
 	default:
 		fmt.Fprintf(f, numF, id.number)
 	}
-	id.null = false
 }
 
 // get the raw message

@@ -103,7 +103,6 @@ func TestClientBatchRequest(t *testing.T) {
 	defer server.Stop()
 	client := DialInProc(server)
 	defer client.Close()
-
 	batch := []BatchElem{
 		{
 			Method: "test_echo",

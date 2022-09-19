@@ -15,9 +15,9 @@ func NewTimer() *Timer {
 }
 
 func (t *Timer) Since(...any) time.Duration {
-	return time.Now().Sub(t.s)
+	return time.Since(t.s)
 }
 
 func (t *Timer) Until() time.Duration {
-	return t.s.Sub(time.Now())
+	return time.Until(t.s)
 }

@@ -19,8 +19,6 @@ const (
 	ntCatchAll                // /api/v1/*
 )
 
-type endpoints map[string]*endpoint
-
 type node struct {
 	// subroutes on the leaf node
 	subroutes Routes

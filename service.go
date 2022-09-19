@@ -18,7 +18,6 @@ package jrpc
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"runtime"
 	"unicode"
@@ -29,7 +28,6 @@ import (
 var (
 	contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 	errorType   = reflect.TypeOf((*error)(nil)).Elem()
-	stringType  = reflect.TypeOf("")
 )
 
 // A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
@@ -119,7 +117,6 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 		return
 	}
 	w.Send(results[0].Interface(), nil)
-	return
 }
 
 // newCallback turns fn (a function) into a callback object. It returns nil if the function
@@ -169,42 +166,6 @@ func (c *callback) makeArgTypes() {
 	for i := firstArg; i < fntype.NumIn(); i++ {
 		c.argTypes[i-firstArg] = fntype.In(i)
 	}
-}
-
-// call invokes the callback.
-func (c *callback) call(ctx context.Context, method string, args []reflect.Value) (res any, errRes error) {
-	// Create the argument slice.
-	fullargs := make([]reflect.Value, 0, 2+len(args))
-	if c.rcvr.IsValid() {
-		fullargs = append(fullargs, c.rcvr)
-	}
-	if c.hasCtx {
-		fullargs = append(fullargs, reflect.ValueOf(ctx))
-	}
-	fullargs = append(fullargs, args...)
-
-	// Catch panic while running the callback.
-	defer func() {
-		if err := recover(); err != nil {
-			const size = 64 << 10
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			log.Error().Str("method", method).Interface("err", err).Hex("buf", buf).Msg("crashed")
-			errRes = errors.New("method handler crashed")
-		}
-	}()
-	// Run the callback.
-	// fn is a pointer to a function. I'm not sure if I like this...
-	results := c.fn.Call(fullargs)
-	if len(results) == 0 {
-		return nil, nil
-	}
-	if c.errPos >= 0 && !results[c.errPos].IsNil() {
-		// Method has returned non-nil error value.
-		err := results[c.errPos].Interface().(error)
-		return reflect.Value{}, err
-	}
-	return results[0].Interface(), nil
 }
 
 // Does t satisfy the error interface?

@@ -18,8 +18,6 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
-	"strconv"
 	"sync"
 	"time"
 
@@ -219,20 +217,6 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 		return nil
 	case msg.isCall():
 		resp := h.handleCall(ctx, msg)
-		// var ctx []any
-		//		log2 := h.log.With()
-		//		log2.Str("reqid", string(msg.ID)).Dur("duration", start.Since())
-		if resp.Error != nil {
-			//			log2.Str("err", resp.Error.Message)
-			//			if resp.Error.Data != nil {
-			//				log2.Interface("errdata", resp.Error.Data)
-			//			}
-			//		sl := log2.Logger()
-			//		sl.Warn().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
-		} else {
-			//			sl := log2.Logger()
-			//			sl.Debug().Str("method", msg.Method).Interface("ctx", ctx).Msg("Served")
-		}
 		return resp
 	case msg.hasValidID():
 		return msg.errorResponse(&invalidRequestError{"invalid request"})
@@ -267,13 +251,4 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 		updateServeTimeHistogram(msg.Method, mw.msg.Error == nil, time.Since(start))
 	}
 	return mw.msg
-}
-
-type idForLog struct{ json.RawMessage }
-
-func (id idForLog) String() string {
-	if s, err := strconv.Unquote(string(id.RawMessage)); err == nil {
-		return s
-	}
-	return string(id.RawMessage)
 }

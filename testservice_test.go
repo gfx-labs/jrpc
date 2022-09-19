@@ -124,9 +124,7 @@ func (s *testService) CallMeBackLater(ctx context.Context, method string, args [
 }
 
 type notificationTestService struct {
-	unsubscribed            chan string
-	gotHangSubscriptionReq  chan struct{}
-	unblockHangSubscription chan struct{}
+	unsubscribed chan string
 }
 
 func (s *notificationTestService) Echo(i int) int {

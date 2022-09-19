@@ -21,7 +21,6 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"gfx.cafe/open/jrpc/wsjson"
@@ -37,8 +36,6 @@ const (
 	wsPongTimeout      = 30 * time.Second
 	wsMessageSizeLimit = 32 * 1024 * 1024
 )
-
-var wsBufferPool = new(sync.Pool)
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
 //
@@ -134,7 +131,6 @@ type websocketCodec struct {
 	conn *websocket.Conn
 	info PeerInfo
 
-	wg        sync.WaitGroup
 	pingReset chan struct{}
 }
 

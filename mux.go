@@ -106,7 +106,6 @@ func (mx *Mux) ServeRPC(w ResponseWriter, r *Request) {
 	// Serve the request and once its done, put the request context back in the sync pool
 	mx.handler.ServeRPC(w, r)
 	mx.pool.Put(rctx)
-	return
 }
 
 // Use appends a middleware handler to the Mux middleware stack.
@@ -405,11 +404,9 @@ func (mx *Mux) updateRouteHandler() {
 // methodNotAllowedHandler is a helper function to respond with a 405,
 // method not allowed.
 func methodNotAllowedHandler(w ResponseWriter, r *Request) {
-	w.Send(nil, errors.New("Forbidden"))
-	return
+	w.Send(nil, errors.New("forbidden"))
 }
 
 func NotFound(w ResponseWriter, r *Request) {
-	w.Send(nil, errors.New("Not Found"))
-	return
+	w.Send(nil, errors.New("not found"))
 }
