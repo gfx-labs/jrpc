@@ -322,9 +322,11 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	return args, nil
 }
 
+var jzpool = jsoniter.NewIterator(jzon).Pool()
+
 func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := jsoniter.NewIterator(jzon)
-	dec.ResetBytes(p)
+	dec := jzpool.BorrowIterator(p)
+	defer jzpool.ReturnIterator(dec)
 	args := make([]reflect.Value, 0, len(types))
 	for i := 0; dec.ReadArray(); i++ {
 		if i >= len(types) {
