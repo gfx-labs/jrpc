@@ -8,6 +8,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -183,6 +184,9 @@ type object struct {
 
 func funcMap(openrpc *types.OpenRPCSpec1) template.FuncMap {
 	return template.FuncMap{
+		"fixName": func(s string) string {
+			return "Type" + strings.ReplaceAll(s, " ", "")
+		},
 		"programName":             getProgramName,
 		"derefSchema":             derefSchemaRecurse,
 		"schemaHasRef":            schemaHazRef,
@@ -237,6 +241,7 @@ func WriteFile(box *packr.Box, name, pkg string, openrpc *types.OpenRPCSpec1) er
 		return err
 	}
 
+	log.Println(tmpl.String())
 	fset := new(token.FileSet)
 	root, err := parser.ParseFile(fset, "", tmpl.Bytes(), parser.ParseComments)
 	if err != nil {
