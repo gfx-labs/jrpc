@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
+	"gfx.cafe/open/jrpc/openrpc/generate"
+	"gfx.cafe/open/jrpc/openrpc/parse"
 	packr "github.com/gobuffalo/packr/v2"
-	"github.com/gregdhill/go-openrpc/generate"
-	"github.com/gregdhill/go-openrpc/parse"
 )
 
 func generateExampleProxyServer() error {

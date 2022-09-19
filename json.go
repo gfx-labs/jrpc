@@ -47,8 +47,9 @@ type jsonrpcMessage struct {
 	ID      *ID             `json:"id,omitempty"`
 	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
-	Error   *jsonError      `json:"error,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
+
+	Error *jsonError `json:"error,omitempty"`
 }
 
 func MakeCall(id int, method string, params []any) *JsonRpcMessage {

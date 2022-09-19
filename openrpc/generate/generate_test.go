@@ -7,8 +7,8 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/gregdhill/go-openrpc/parse"
-	"github.com/gregdhill/go-openrpc/types"
+	"gfx.cafe/open/jrpc/openrpc/parse"
+	"gfx.cafe/open/jrpc/openrpc/types"
 	"github.com/test-go/testify/require"
 )
 

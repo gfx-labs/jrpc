@@ -10,7 +10,6 @@ require (
 	github.com/ethereum/go-ethereum v1.10.22
 	github.com/go-openapi/spec v0.20.7
 	github.com/gobuffalo/packr/v2 v2.8.3
-	github.com/gregdhill/go-openrpc v0.0.0-20220114144539-ae6f44720487
 	github.com/imdario/mergo v0.3.13
 	github.com/json-iterator/go v1.1.12
 	github.com/test-go/testify v1.1.4
@@ -22,6 +21,7 @@ require (
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
+	github.com/alecthomas/kong v0.6.1 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
