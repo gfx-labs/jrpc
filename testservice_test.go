@@ -54,6 +54,10 @@ func (testError) ErrorData() any { return "testError data" }
 
 func (s *testService) NoArgsRets() {}
 
+func (s *testService) EchoAny(n any) any {
+	return n
+}
+
 func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
 	return echoResult{str, i, args}
 }
