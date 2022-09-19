@@ -14,6 +14,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/json-iterator/go v1.1.12
 	github.com/test-go/testify v1.1.4
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	nhooyr.io/websocket v1.8.7
 	sigs.k8s.io/yaml v1.3.0

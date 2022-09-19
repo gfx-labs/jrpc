@@ -24,11 +24,13 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"gfx.cafe/open/jrpc/wsjson"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var jzon = wsjson.JZON
@@ -143,7 +145,7 @@ type JsonError = jsonError
 
 func (err *jsonError) Error() string {
 	if err.Message == "" {
-		return fmt.Sprintf("json-rpc error %d", err.Code)
+		return "json-rpc error " + strconv.Itoa(err.Code)
 	}
 	return err.Message
 }
@@ -298,18 +300,13 @@ func isBatch(raw json.RawMessage) bool {
 // given types. It returns the parsed values or an error when the args could not be
 // parsed. Missing optional arguments are returned as reflect.Zero values.
 func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := json.NewDecoder(bytes.NewReader(rawArgs))
 	var args []reflect.Value
-	tok, err := dec.Token()
 	switch {
-	case err == io.EOF || tok == nil && err == nil:
-		// "params" is optional and may be empty. Also allow "params":null even though it's
-		// not in the spec because our own client used to send it.
-	case err != nil:
-		return nil, err
-	case tok == json.Delim('['):
+	case len(rawArgs) == 0:
+	case rawArgs[0] == '[':
 		// Read argument array.
-		if args, err = parseArgumentArray(dec, types); err != nil {
+		var err error
+		if args, err = parseArgumentArray(rawArgs, types); err != nil {
 			return nil, err
 		}
 	default:
@@ -325,14 +322,17 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	return args, nil
 }
 
-func parseArgumentArray(dec *json.Decoder, types []reflect.Type) ([]reflect.Value, error) {
+func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
+	dec := jsoniter.NewIterator(jzon)
+	dec.ResetBytes(p)
 	args := make([]reflect.Value, 0, len(types))
-	for i := 0; dec.More(); i++ {
+	for i := 0; dec.ReadArray(); i++ {
 		if i >= len(types) {
 			return args, fmt.Errorf("too many arguments, want at most %d", len(types))
 		}
 		argval := reflect.New(types[i])
-		if err := dec.Decode(argval.Interface()); err != nil {
+		dec.ReadVal(argval.Interface())
+		if err := dec.Error; err != nil {
 			return args, fmt.Errorf("invalid argument %d: %v", i, err)
 		}
 		if argval.IsNil() && types[i].Kind() != reflect.Ptr {
@@ -340,9 +340,7 @@ func parseArgumentArray(dec *json.Decoder, types []reflect.Type) ([]reflect.Valu
 		}
 		args = append(args, argval.Elem())
 	}
-	// Read end of args array.
-	_, err := dec.Token()
-	return args, err
+	return args, nil
 }
 
 // parseSubscriptionName extracts the subscription name from an encoded argument array.

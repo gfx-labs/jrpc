@@ -18,7 +18,6 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
@@ -331,86 +330,6 @@ func TestClientHTTP(t *testing.T) {
 	for i := range results {
 		if !reflect.DeepEqual(results[i], wantResult) {
 			t.Errorf("result %d mismatch: got %#v, want %#v", i, results[i], wantResult)
-		}
-	}
-}
-
-func BenchmarkClientHTTPEcho(b *testing.B) {
-	server := newTestServer()
-	defer server.Stop()
-	client, hs := httpTestClient(server, "http", nil)
-	defer hs.Close()
-	defer client.Close()
-
-	// Launch concurrent requests.
-	b.StartTimer()
-	wantBack := map[string]any{
-		"one": map[string]any{"two": "three"},
-		"e":   map[string]any{"two": "three"},
-		"oe":  map[string]any{"two": "three"},
-		"on":  map[string]any{"two": "three"},
-	}
-	var res json.RawMessage
-	for n := 0; n < b.N; n++ {
-		for i := 0; i < 100; i++ {
-			err := client.Call(&res, "test_echoAny", []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack})
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-}
-func BenchmarkClientHTTPEchoEmpty(b *testing.B) {
-	server := newTestServer()
-	defer server.Stop()
-	client, hs := httpTestClient(server, "http", nil)
-	defer hs.Close()
-	defer client.Close()
-
-	// Launch concurrent requests.
-	b.StartTimer()
-	var res json.RawMessage
-	for n := 0; n < b.N; n++ {
-		for i := 0; i < 100; i++ {
-			client.Call(&res, "test_echoAny", 0)
-		}
-	}
-}
-func BenchmarkClientWebsocketEcho(b *testing.B) {
-	server := newTestServer()
-	defer server.Stop()
-	client, hs := httpTestClient(server, "ws", nil)
-	defer hs.Close()
-	defer client.Close()
-
-	// Launch concurrent requests.
-	b.StartTimer()
-	wantBack := map[string]any{
-		"one": map[string]any{"two": "three"},
-		"e":   map[string]any{"two": "three"},
-		"oe":  map[string]any{"two": "three"},
-		"on":  map[string]any{"two": "three"},
-	}
-	var res json.RawMessage
-	for n := 0; n < b.N; n++ {
-		for i := 0; i < 100; i++ {
-			client.Call(&res, "test_echoAny", []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack})
-		}
-	}
-}
-func BenchmarkClientWebsocketEchoEmpty(b *testing.B) {
-	server := newTestServer()
-	defer server.Stop()
-	client, hs := httpTestClient(server, "ws", nil)
-	defer hs.Close()
-	defer client.Close()
-
-	// Launch concurrent requests.
-	b.StartTimer()
-	var res json.RawMessage
-	for n := 0; n < b.N; n++ {
-		for i := 0; i < 100; i++ {
-			client.Call(&res, "test_echoAny", 0)
 		}
 	}
 }
