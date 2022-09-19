@@ -495,3 +495,25 @@ func WriteData(w http.ResponseWriter, id interface{}, result interface{}) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+nil {
+		panic(err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func WriteData(w http.ResponseWriter, id interface{}, result interface{}) {
+	resp := &RPCResultResponse{
+		JSONRPC: JSONRPC,
+		ID:      id,
+		Result:  StructToResult(result),
+	}
+	data, err := json.Marshal(resp)
+	if err != nil {
+		WriteError(w, id, ErrInternal.RPCError())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}

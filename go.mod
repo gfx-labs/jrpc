@@ -5,6 +5,7 @@ go 1.18
 require (
 	gfx.cafe/util/go/bufpool v0.0.0-20220917152604-80373e5a2c51
 	git.tuxpa.in/a/zlog v1.32.0
+	github.com/alecthomas/kong v0.6.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/ethereum/go-ethereum v1.10.22
@@ -21,7 +22,6 @@ require (
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
-	github.com/alecthomas/kong v0.6.1 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect

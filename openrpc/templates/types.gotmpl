@@ -24,13 +24,13 @@ type GoOpenRPCService interface {
 }
 
 {{- range (getObjects .Objects) }}
-{{ printf "type %s struct {" (fixName .Name) }}
+{{ printf "type %s struct {" .Name }}
 {{- range (getFields .Fields) }}
 {{ maybeFieldComment .Desc }}
 {{- if (eq .Name .Type) }}
-{{ printf "%s" (fixName .Name) }}
+{{ printf "%s" .Name }}
 {{- else }}
-{{ printf "%s %s `json:\"%s\"`" (fixName .Name) .Type (fixName (lowerFirst .Name)) }}
+{{ printf "Field%s %s `json:\"%s\"`" .Name .Type (lowerFirst .Name) }}
 {{- end }}
 {{- end }}
 {{ printf "}" }}

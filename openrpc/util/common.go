@@ -26,7 +26,12 @@ func Inpect(val interface{}) string {
 }
 
 func CamelCase(name string) string {
-	in := strings.Split(name, "_")
+	var in []string
+	if strings.Contains(name, " ") {
+		in = strings.Split(name, " ")
+	} else {
+		in = strings.Split(name, "_")
+	}
 	if len(in) == 0 {
 		return strings.Title(name)
 	}

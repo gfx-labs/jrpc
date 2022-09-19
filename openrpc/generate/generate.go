@@ -184,9 +184,6 @@ type object struct {
 
 func funcMap(openrpc *types.OpenRPCSpec1) template.FuncMap {
 	return template.FuncMap{
-		"fixName": func(s string) string {
-			return "Type" + strings.ReplaceAll(s, " ", "")
-		},
 		"programName":             getProgramName,
 		"derefSchema":             derefSchemaRecurse,
 		"schemaHasRef":            schemaHazRef,
