@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/printer"
-	"go/token"
-	"log"
+	"go/format"
 	"os"
 	"path"
 	"path/filepath"
@@ -238,26 +234,10 @@ func WriteFile(box *packr.Box, name, pkg string, openrpc *types.OpenRPCSpec1) er
 		return err
 	}
 
-	log.Println(tmpl.String())
-	fset := new(token.FileSet)
-	root, err := parser.ParseFile(fset, "", tmpl.Bytes(), parser.ParseComments)
+	fmtd, err := format.Source(tmpl.Bytes())
 	if err != nil {
 		return err
 	}
-	ast.SortImports(fset, root)
-	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
 
-	root.Name.Name = path.Base(pkg)
-
-	err = os.MkdirAll(pkg, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	file, err := os.OpenFile(path.Join(pkg, fmt.Sprintf("%s.%s", name, goExt)), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	return cfg.Fprint(file, fset, root)
+	return os.WriteFile(path.Join(pkg, fmt.Sprintf("%s.%s", name, goExt)), fmtd, 0644)
 }
