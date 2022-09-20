@@ -8,13 +8,18 @@ import (
 	"github.com/go-openapi/spec"
 )
 
+type GoGlobal struct {
+	Structs map[string]*GoStruct
+	Types   map[string]*GoType
+	Methods map[string]*GoMethod
+}
+
 type GoStruct struct {
 	Name        string
 	Description string
 
 	Fields map[string]string
 }
-
 type GoField struct {
 	Name     string
 	Type     *GoType
@@ -28,12 +33,6 @@ type GoType struct {
 	Type string
 
 	Description string
-}
-
-type GoGlobal struct {
-	Structs map[string]*GoStruct
-	Types   map[string]*GoType
-	Methods map[string]*GoMethod
 }
 
 type GoMethod struct {
