@@ -99,41 +99,45 @@ type GoOpenRPCService interface {
 	EthGetTransactionReceipt(*EthGetTransactionReceiptParams) (*EthGetTransactionReceiptResult, error)
 }
 type BlockNumberOrTag struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type DebugGetRawHeaderParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type DebugGetRawHeaderResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type DebugGetRawBlockParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type DebugGetRawBlockResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type DebugGetRawTransactionParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type DebugGetRawTransactionResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type DebugGetRawReceiptsParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type ReceiptArray struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type DebugGetRawReceiptsResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 
 	FieldReceiptArray []string `json:"receiptArray"`
 }
-type BadBlock struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
-
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+type Block struct {
+	FieldBytes string `json:"bytes"`
+}
+type Hash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type Rlp struct {
+	FieldBytes string `json:"bytes"`
 }
 type BadBlockArray struct {
 	BadBlock
@@ -144,27 +148,76 @@ type DebugGetBadBlocksResult struct {
 	FieldBadBlockArray []BadBlock `json:"badBlockArray"`
 }
 type EthGetBlockByHashParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 
 	FieldHydrated bool `json:"hydrated"`
 }
-type BlockObject struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-
-	Field256HexEncodedBytes string `json:"256HexEncodedBytes"`
-
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
-
-	Field8HexEncodedBytes string `json:"8HexEncodedBytes"`
-
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+type TotalDifficulty struct {
+	FieldUint string `json:"uint"`
+}
+type TransactionsRoot struct {
+	FieldHash32 string `json:"hash32"`
+}
+type Uncles struct {
+	FieldHash32 string `json:"hash32"`
 
 	FieldUncles []string `json:"uncles"`
 }
-type Uncles struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+type ExtraData struct {
+	FieldBytes string `json:"bytes"`
+}
+type Miner struct {
+	FieldAddress string `json:"address"`
+}
+type ParentHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type Nonce struct {
+	FieldBytes8 string `json:"bytes8"`
+
+	FieldUint string `json:"uint"`
+
+	FieldUint64 string `json:"uint64"`
+}
+type ReceiptsRoot struct {
+	FieldHash32 string `json:"hash32"`
+}
+type BaseFeePerGas struct {
+	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
+	FieldUint string `json:"uint"`
+	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
+	FieldBaseFeePerGas []string `json:"baseFeePerGas"`
+}
+type LogsBloom struct {
+	FieldBytes256 string `json:"bytes256"`
+}
+type MixHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type GasUsed struct {
+	// The amount of gas used for this specific transaction alone.
+	FieldUint string `json:"uint"`
+}
+type Number struct {
+	FieldUint string `json:"uint"`
+}
+type StateRoot struct {
+	FieldHash32 string `json:"hash32"`
+}
+type Size struct {
+	FieldUint string `json:"uint"`
+}
+type Timestamp struct {
+	FieldUint string `json:"uint"`
+}
+type Difficulty struct {
+	FieldBytes string `json:"bytes"`
+}
+type GasLimit struct {
+	FieldUint string `json:"uint"`
+}
+type Sha3Uncles struct {
+	FieldHash32 string `json:"hash32"`
 }
 type EthGetBlockByHashResult struct {
 	BlockObject
@@ -178,34 +231,40 @@ type EthGetBlockByNumberResult struct {
 	BlockObject
 }
 type EthGetBlockTransactionCountByHashParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type EthGetBlockTransactionCountByHashResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetBlockTransactionCountByNumberParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetBlockTransactionCountByNumberResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetUncleCountByBlockHashParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type EthGetUncleCountByBlockHashResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetUncleCountByBlockNumberParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetUncleCountByBlockNumberResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthChainIdResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
-type SyncingProgress struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+type StartingBlock struct {
+	FieldUint string `json:"uint"`
+}
+type CurrentBlock struct {
+	FieldUint string `json:"uint"`
+}
+type HighestBlock struct {
+	FieldUint string `json:"uint"`
 }
 type SyncingStatus struct {
 	SyncingProgress
@@ -214,44 +273,69 @@ type EthSyncingResult struct {
 	FieldSyncingStatus SyncingProgress `json:"syncingStatus"`
 }
 type EthCoinbaseResult struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 }
 type Accounts struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 }
 type EthAccountsResult struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
 	FieldAccounts []string `json:"accounts"`
 }
 type EthBlockNumberResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
-type TransactionObjectGenericToAllTypes struct {
-	FieldHexEncodedByte string `json:"hexEncodedByte"`
+type ChainId struct {
+	// Chain ID that this transaction is valid on.
+	FieldUint string `json:"uint"`
+}
+type Type struct {
+	FieldByte string `json:"byte"`
+}
+type Value struct {
+	FieldUint string `json:"uint"`
 
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint256 string `json:"uint256"`
+}
+type Input struct {
+	FieldBytes string `json:"bytes"`
+}
+type MaxFeePerGas struct {
+	// The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei
+	FieldUint string `json:"uint"`
+}
+type MaxPriorityFeePerGas struct {
+	// Maximum fee per gas the sender is willing to pay to miners in wei
+	FieldUint string `json:"uint"`
+}
+type To struct {
+	// Address of the receiver or null in a contract creation transaction.
+	FieldAddress string `json:"address"`
+}
+type Address struct {
+	FieldAddress string `json:"address"`
+}
+type StorageKeys struct {
+	FieldHash32 string `json:"hash32"`
 
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
-
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldStorageKeys []string `json:"storageKeys"`
+}
+type AccessList struct {
 	// EIP-2930 access list
 	AccessListEntry
 	// EIP-2930 access list
 	FieldAccessList []AccessListEntry `json:"accessList"`
 }
-type AccessListEntry struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
-
-	Field32ByteHexValue string `json:"32ByteHexValue"`
-
-	FieldStorageKeys []string `json:"storageKeys"`
+type From struct {
+	FieldAddress string `json:"address"`
 }
-type StorageKeys struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+type Gas struct {
+	FieldUint string `json:"uint"`
 }
-type AccessList struct {
-	AccessListEntry
+type GasPrice struct {
+	// The gas price willing to be paid by the sender in wei
+	FieldUint string `json:"uint"`
 }
 type EthCallParams struct {
 	TransactionObjectGenericToAllTypes
@@ -259,7 +343,7 @@ type EthCallParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthCallResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthEstimateGasParams struct {
 	TransactionObjectGenericToAllTypes
@@ -267,83 +351,64 @@ type EthEstimateGasParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthEstimateGasResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthCreateAccessListParams struct {
 	TransactionObjectGenericToAllTypes
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
-type AccessListResult struct {
-	AccessListEntry
-
-	FieldAccessList []AccessListEntry `json:"accessList"`
-
+type Error struct {
 	FieldError string `json:"error"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
 }
 type EthCreateAccessListResult struct {
 	AccessListResult
 }
 type EthGasPriceResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthMaxPriorityFeePerGasResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthFeeHistoryParams struct {
 	// Requested range of blocks. Clients will return less than the requested range if not all blocks are available.
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 	// Highest block of the requested range.
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 	// Floating point value between 0 and 100.
-	FieldRewardPercentile number `json:"rewardPercentile"`
+	FieldRewardPercentile float64 `json:"rewardPercentile"`
 	// A monotonically increasing list of percentile values. For each block in the requested range, the transactions will be sorted in ascending order by effective tip per gas and the coresponding effective tip for the percentile will be determined, accounting for gas consumed.
-	FieldRewardPercentiles []number `json:"rewardPercentiles"`
+	FieldRewardPercentiles []float64 `json:"rewardPercentiles"`
 }
 type RewardPercentiles struct {
 	// Floating point value between 0 and 100.
-	FieldRewardPercentile number `json:"rewardPercentile"`
+	FieldRewardPercentile float64 `json:"rewardPercentile"`
 }
-type BaseFeePerGas struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+type OldestBlock struct {
+	// Lowest number block of returned range.
+	FieldUint string `json:"uint"`
 }
-type FeeHistoryResults struct {
+type RewardPercentile struct {
 	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
-	FieldBaseFeePerGas []string `json:"baseFeePerGas"`
+	FieldUint string `json:"uint"`
+}
+type Reward struct {
+	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
+	FieldUint string `json:"uint"`
 	// An array of effective priority fee per gas data points from a single block. All zeroes are returned if the block is empty.
 	FieldRewardPercentile []string `json:"rewardPercentile"`
 	// A two-dimensional array of effective priority fees per gas at the requested block percentiles.
 	FieldReward []array `json:"reward"`
 }
-type RewardPercentile struct {
-	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-}
-type Reward struct {
-	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-	// An array of effective priority fee per gas data points from a single block. All zeroes are returned if the block is empty.
-	FieldRewardPercentile []string `json:"rewardPercentile"`
-}
 type EthFeeHistoryResult struct {
 	// Fee history results.
 	FeeHistoryResults
 }
-type Address struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+type FromBlock struct {
+	FieldUint string `json:"uint"`
 }
-type Filter struct {
-	FieldAddress string `json:"address"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-
-	FieldFilterTopicListEntry null `json:"filterTopicListEntry"`
-
-	FieldFilterTopics []FilterTopicListEntry `json:"filterTopics"`
+type ToBlock struct {
+	FieldUint string `json:"uint"`
 }
 type FilterTopicListEntry struct {
 	FieldAnyTopicMatch null `json:"anyTopicMatch"`
@@ -351,32 +416,41 @@ type FilterTopicListEntry struct {
 type FilterTopics struct {
 	FieldFilterTopicListEntry null `json:"filterTopicListEntry"`
 }
+type Topics struct {
+	FieldFilterTopicListEntry null `json:"filterTopicListEntry"`
+
+	FieldFilterTopics []FilterTopicListEntry `json:"filterTopics"`
+
+	FieldBytes32 string `json:"bytes32"`
+
+	FieldTopics []string `json:"topics"`
+}
 type EthNewFilterParams struct {
 	Filter
 }
 type EthNewFilterResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthNewBlockFilterResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthNewPendingTransactionFilterResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthUninstallFilterParams struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthUninstallFilterResult struct {
 	FieldSuccess bool `json:"success"`
 }
 type EthGetFilterChangesParams struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type NewBlockHashes struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type FilterResults struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 
 	FieldNewBlockHashes []string `json:"newBlockHashes"`
 }
@@ -384,7 +458,7 @@ type EthGetFilterChangesResult struct {
 	FieldFilterResults array `json:"filterResults"`
 }
 type EthGetFilterLogsParams struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetFilterLogsResult struct {
 	FieldFilterResults array `json:"filterResults"`
@@ -399,106 +473,106 @@ type EthMiningResult struct {
 	FieldMiningStatus bool `json:"miningStatus"`
 }
 type EthHashrateResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetWorkResult struct {
 	FieldCurrentWork []string `json:"currentWork"`
 }
 type EthSubmitWorkParams struct {
-	Field8HexEncodedBytes string `json:"8HexEncodedBytes"`
+	FieldBytes8 string `json:"bytes8"`
 
-	Field32HexEncodedBytes string `json:"32HexEncodedBytes"`
+	FieldBytes32 string `json:"bytes32"`
 }
 type EthSubmitWorkResult struct {
 	FieldSuccess bool `json:"success"`
 }
 type EthSubmitHashrateParams struct {
-	Field32HexEncodedBytes string `json:"32HexEncodedBytes"`
+	FieldBytes32 string `json:"bytes32"`
 }
 type EthSubmitHashrateResult struct {
 	FieldSuccess bool `json:"success"`
 }
 type EthSignParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthSignResult struct {
-	Field65HexEncodedBytes string `json:"65HexEncodedBytes"`
+	FieldBytes645 string `json:"bytes645"`
 }
 type EthSignTransactionParams struct {
 	TransactionObjectGenericToAllTypes
 }
 type EthSignTransactionResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthGetBalanceParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetBalanceResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetStorageAtParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint256 string `json:"uint256"`
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetStorageAtResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthGetTransactionCountParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetTransactionCountResult struct {
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetCodeParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type EthGetCodeResult struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthGetProofParams struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+	FieldAddress string `json:"address"`
 
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 
 	FieldStorageKeys []string `json:"storageKeys"`
 
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 }
 type AccountProof struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 
 	FieldAccountProof []string `json:"accountProof"`
-
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-
-	Field32ByteHexValue string `json:"32ByteHexValue"`
-
-	FieldStorageProof []StorageProof `json:"storageProof"`
 }
-type StorageProof struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
-
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
-
-	FieldProof []string `json:"proof"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+type Balance struct {
+	FieldUint256 string `json:"uint256"`
+}
+type CodeHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type StorageHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type Key struct {
+	FieldHash32 string `json:"hash32"`
 }
 type Proof struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
+
+	FieldProof []string `json:"proof"`
+}
+type StorageProof struct {
+	FieldStorageProof []StorageProof `json:"storageProof"`
 }
 type EthGetProofResult struct {
 	AccountProof
@@ -507,24 +581,24 @@ type EthSendTransactionParams struct {
 	TransactionObjectGenericToAllTypes
 }
 type EthSendTransactionResult struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type EthSendRawTransactionParams struct {
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
+	FieldBytes string `json:"bytes"`
 }
 type EthSendRawTransactionResult struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type EthGetTransactionByHashParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
 type EthGetTransactionByHashResult struct {
 	FieldTransactionInformation object `json:"transactionInformation"`
 }
 type EthGetTransactionByBlockHashAndIndexParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetTransactionByBlockHashAndIndexResult struct {
 	FieldTransactionInformation object `json:"transactionInformation"`
@@ -532,55 +606,60 @@ type EthGetTransactionByBlockHashAndIndexResult struct {
 type EthGetTransactionByBlockNumberAndIndexParams struct {
 	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
 
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
+	FieldUint string `json:"uint"`
 }
 type EthGetTransactionByBlockNumberAndIndexResult struct {
 	FieldTransactionInformation object `json:"transactionInformation"`
 }
 type EthGetTransactionReceiptParams struct {
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+	FieldHash32 string `json:"hash32"`
 }
-type ReceiptInfo struct {
-	// The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-	// The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.
-	Field32HexEncodedBytes string `json:"32HexEncodedBytes"`
-
-	Log
-
-	FieldLogs []Log `json:"logs"`
-
-	Field32ByteHexValue string `json:"32ByteHexValue"`
+type ContractAddress struct {
+	FieldAddress string `json:"address"`
 	// The contract address created, if the transaction was a contract creation, otherwise null.
 	FieldContractAddress string `json:"contractAddress"`
-	// Address of the receiver or null in a contract creation transaction.
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
-
-	Field256HexEncodedBytes string `json:"256HexEncodedBytes"`
 }
-type Log struct {
+type Root struct {
+	// The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.
+	FieldBytes32 string `json:"bytes32"`
+}
+type TransactionIndex struct {
+	FieldUint string `json:"uint"`
+}
+type CumulativeGasUsed struct {
+	// The sum of gas used by this transaction and all preceding transactions in the same block.
+	FieldUint string `json:"uint"`
+}
+type TransactionHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type LogIndex struct {
+	FieldUint string `json:"uint"`
+}
+type Removed struct {
 	FieldRemoved bool `json:"removed"`
-
-	Field32ByteHexValue string `json:"32ByteHexValue"`
-
-	FieldHexEncodedUnsignedInteger string `json:"hexEncodedUnsignedInteger"`
-
-	FieldHexEncodedBytes string `json:"hexEncodedBytes"`
-
-	Field32HexEncodedBytes string `json:"32HexEncodedBytes"`
-
-	FieldTopics []string `json:"topics"`
-
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
 }
-type Topics struct {
-	Field32HexEncodedBytes string `json:"32HexEncodedBytes"`
+type BlockHash struct {
+	FieldHash32 string `json:"hash32"`
+}
+type BlockNumber struct {
+	FieldUint string `json:"uint"`
+}
+type Data struct {
+	FieldBytes string `json:"bytes"`
 }
 type Logs struct {
 	Log
+
+	FieldLogs []Log `json:"logs"`
 }
-type ContractAddress struct {
-	FieldHexEncodedAddress string `json:"hexEncodedAddress"`
+type Status struct {
+	// Either 1 (success) or 0 (failure). Only specified for transactions included after the Byzantium upgrade.
+	FieldUint string `json:"uint"`
+}
+type EffectiveGasPrice struct {
+	// The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).
+	FieldUint string `json:"uint"`
 }
 type EthGetTransactionReceiptResult struct {
 	ReceiptInfo

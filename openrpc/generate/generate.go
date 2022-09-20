@@ -91,7 +91,7 @@ func derefSchemaRecurse(cts *types.Components, sch spec.Schema) spec.Schema {
 		got.Schema = ""
 		sch.AllOf[i] = got
 	}
-	for k, _ := range sch.Properties {
+	for k := range sch.Properties {
 		got := derefSchemaRecurse(cts, sch.Properties[k])
 		if err := mergo.Merge(&got, sch.Properties[k]); err != nil {
 			panic(err.Error())
@@ -99,7 +99,7 @@ func derefSchemaRecurse(cts *types.Components, sch spec.Schema) spec.Schema {
 		got.Schema = ""
 		sch.Properties[k] = got
 	}
-	for k, _ := range sch.PatternProperties {
+	for k := range sch.PatternProperties {
 		got := derefSchemaRecurse(cts, sch.PatternProperties[k])
 		if err := mergo.Merge(&got, sch.PatternProperties[k]); err != nil {
 			panic(err.Error())
@@ -198,7 +198,7 @@ func funcMap(openrpc *types.OpenRPCSpec1) template.FuncMap {
 			keys := om.GetKeys()
 			objects := make([]object, 0, len(keys))
 			for _, k := range keys {
-				objects = append(objects, object{k, om.Get(k)})
+				objects = append(objects, object{Name: k, Fields: om.Get(k)})
 			}
 			return objects
 		},

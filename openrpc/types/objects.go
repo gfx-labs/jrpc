@@ -31,7 +31,8 @@ func (fm *FieldMap) Set(key string, value BasicType) {
 }
 
 func (fm *FieldMap) Get(key string) BasicType {
-	return fm.fields[key]
+	a := fm.fields[key]
+	return a
 }
 
 func (fm *FieldMap) GetKeys() []string {

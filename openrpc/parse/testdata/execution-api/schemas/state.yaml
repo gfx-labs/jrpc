@@ -1,5 +1,5 @@
 AccountProof:
-  title: Account proof
+  title: AccountProof
   type: object
   required:
     - address
@@ -36,7 +36,7 @@ AccountProof:
       items:
         $ref: '#/components/schemas/StorageProof'
 StorageProof:
-  title: Storage proof
+  title: StorageProof
   type: object
   required:
     - key

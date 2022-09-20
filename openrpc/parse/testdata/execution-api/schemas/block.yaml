@@ -1,4 +1,5 @@
 Block:
+  id: Block
   title: Block object
   type: object
   required:

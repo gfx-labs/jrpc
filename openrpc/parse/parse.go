@@ -31,8 +31,8 @@ func persistFields(prev, next spec.Schema) spec.Schema {
 }
 
 func resolveSchema(openrpc *types.OpenRPCSpec1, sch spec.Schema) spec.Schema {
-	doc, _, _ := sch.Ref.GetPointer().Get(openrpc)
-
+	pt := sch.Ref.GetPointer()
+	doc, _, _ := pt.Get(openrpc)
 	if s, ok := doc.(spec.Schema); ok {
 		sch = persistFields(sch, s)
 	} else if cd, ok := doc.(*types.ContentDescriptor); ok {
@@ -49,6 +49,8 @@ func getConcreteType(in string) string {
 	switch in {
 	case reflect.Bool.String(), "boolean":
 		return reflect.Bool.String()
+	case "number":
+		return "float64"
 	default:
 		return in
 	}
@@ -71,31 +73,30 @@ func dereference(openrpc *types.OpenRPCSpec1, name string, sch spec.Schema, om *
 	if len(sch.Properties) > 0 {
 		for key, value := range sch.Properties {
 			value.Title = key
-			dereference(openrpc, sch.Title, value, om)
+			dereference(openrpc, key, value, om)
 		}
-		om.Set(name, types.BasicType{sch.Description, sch.Title, util.CamelCase(sch.Title)})
+		om.Set(name, types.BasicType{
+			Desc: sch.Description, Name: sch.Title, Type: util.CamelCase(sch.Title)})
 		return
 	} else if len(sch.OneOf) > 0 {
 		next := sch.OneOf[0]
 		dereference(openrpc, sch.Title, next, om)
-		om.Set(name, types.BasicType{sch.Description, sch.Title, getObjectType(openrpc, resolveSchema(openrpc, next))})
+		om.Set(name, types.BasicType{Desc: sch.Description, Name: sch.Title, Type: getObjectType(openrpc, resolveSchema(openrpc, next))})
 		return
 	} else if sch.Items != nil {
 		if sch.Items.Schema != nil {
 			dereference(openrpc, sch.Title, *sch.Items.Schema, om)
 			dereference(openrpc, name, persistTitleAndDesc(sch, *sch.Items.Schema), om)
-			om.Set(name, types.BasicType{sch.Description, sch.Title, fmt.Sprintf("[]%s", getObjectType(openrpc, persistTitleAndDesc(sch, *sch.Items.Schema)))})
+			om.Set(name, types.BasicType{Desc: sch.Description, Name: sch.Title, Type: fmt.Sprintf("[]%s", getObjectType(openrpc, persistTitleAndDesc(sch, *sch.Items.Schema)))})
 		} else if len(sch.Items.Schemas) > 0 {
-			om.Set(name, types.BasicType{sch.Description, sch.Title, "[]string"})
+			om.Set(name, types.BasicType{Desc: sch.Description, Name: sch.Title, Type: "[]string"})
 		}
 		return
 	}
-
 	if len(sch.Type) == 0 {
 		return
 	}
-
-	om.Set(name, types.BasicType{sch.Description, sch.Title, getConcreteType(sch.Type[0])})
+	om.Set(name, types.BasicType{Desc: sch.Description, Name: sch.Title, Type: getConcreteType(sch.Type[0])})
 	return
 }
 
