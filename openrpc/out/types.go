@@ -152,24 +152,16 @@ type EthGetBlockByHashParams struct {
 
 	FieldHydrated bool `json:"hydrated"`
 }
-type TotalDifficulty struct {
-	FieldUint string `json:"uint"`
+type StateRoot struct {
+	FieldHash32 string `json:"hash32"`
 }
 type TransactionsRoot struct {
 	FieldHash32 string `json:"hash32"`
 }
-type Uncles struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldUncles []string `json:"uncles"`
+type GasLimit struct {
+	FieldUint string `json:"uint"`
 }
-type ExtraData struct {
-	FieldBytes string `json:"bytes"`
-}
-type Miner struct {
-	FieldAddress string `json:"address"`
-}
-type ParentHash struct {
+type MixHash struct {
 	FieldHash32 string `json:"hash32"`
 }
 type Nonce struct {
@@ -179,8 +171,26 @@ type Nonce struct {
 
 	FieldUint64 string `json:"uint64"`
 }
-type ReceiptsRoot struct {
+type Number struct {
+	FieldUint string `json:"uint"`
+}
+type Size struct {
+	FieldUint string `json:"uint"`
+}
+type Difficulty struct {
+	FieldBytes string `json:"bytes"`
+}
+type ExtraData struct {
+	FieldBytes string `json:"bytes"`
+}
+type LogsBloom struct {
+	FieldBytes256 string `json:"bytes256"`
+}
+type Sha3Uncles struct {
 	FieldHash32 string `json:"hash32"`
+}
+type Timestamp struct {
+	FieldUint string `json:"uint"`
 }
 type BaseFeePerGas struct {
 	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
@@ -188,36 +198,26 @@ type BaseFeePerGas struct {
 	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
 	FieldBaseFeePerGas []string `json:"baseFeePerGas"`
 }
-type LogsBloom struct {
-	FieldBytes256 string `json:"bytes256"`
-}
-type MixHash struct {
-	FieldHash32 string `json:"hash32"`
-}
 type GasUsed struct {
 	// The amount of gas used for this specific transaction alone.
 	FieldUint string `json:"uint"`
 }
-type Number struct {
-	FieldUint string `json:"uint"`
+type Miner struct {
+	FieldAddress string `json:"address"`
 }
-type StateRoot struct {
+type Uncles struct {
+	FieldHash32 string `json:"hash32"`
+
+	FieldUncles []string `json:"uncles"`
+}
+type ParentHash struct {
 	FieldHash32 string `json:"hash32"`
 }
-type Size struct {
-	FieldUint string `json:"uint"`
-}
-type Timestamp struct {
-	FieldUint string `json:"uint"`
-}
-type Difficulty struct {
-	FieldBytes string `json:"bytes"`
-}
-type GasLimit struct {
-	FieldUint string `json:"uint"`
-}
-type Sha3Uncles struct {
+type ReceiptsRoot struct {
 	FieldHash32 string `json:"hash32"`
+}
+type TotalDifficulty struct {
+	FieldUint string `json:"uint"`
 }
 type EthGetBlockByHashResult struct {
 	BlockObject
@@ -257,13 +257,13 @@ type EthGetUncleCountByBlockNumberResult struct {
 type EthChainIdResult struct {
 	FieldUint string `json:"uint"`
 }
-type StartingBlock struct {
-	FieldUint string `json:"uint"`
-}
 type CurrentBlock struct {
 	FieldUint string `json:"uint"`
 }
 type HighestBlock struct {
+	FieldUint string `json:"uint"`
+}
+type StartingBlock struct {
 	FieldUint string `json:"uint"`
 }
 type SyncingStatus struct {
@@ -286,33 +286,6 @@ type EthAccountsResult struct {
 type EthBlockNumberResult struct {
 	FieldUint string `json:"uint"`
 }
-type ChainId struct {
-	// Chain ID that this transaction is valid on.
-	FieldUint string `json:"uint"`
-}
-type Type struct {
-	FieldByte string `json:"byte"`
-}
-type Value struct {
-	FieldUint string `json:"uint"`
-
-	FieldUint256 string `json:"uint256"`
-}
-type Input struct {
-	FieldBytes string `json:"bytes"`
-}
-type MaxFeePerGas struct {
-	// The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei
-	FieldUint string `json:"uint"`
-}
-type MaxPriorityFeePerGas struct {
-	// Maximum fee per gas the sender is willing to pay to miners in wei
-	FieldUint string `json:"uint"`
-}
-type To struct {
-	// Address of the receiver or null in a contract creation transaction.
-	FieldAddress string `json:"address"`
-}
 type Address struct {
 	FieldAddress string `json:"address"`
 }
@@ -327,6 +300,21 @@ type AccessList struct {
 	// EIP-2930 access list
 	FieldAccessList []AccessListEntry `json:"accessList"`
 }
+type MaxFeePerGas struct {
+	// The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei
+	FieldUint string `json:"uint"`
+}
+type Type struct {
+	FieldByte string `json:"byte"`
+}
+type To struct {
+	// Address of the receiver or null in a contract creation transaction.
+	FieldAddress string `json:"address"`
+}
+type ChainId struct {
+	// Chain ID that this transaction is valid on.
+	FieldUint string `json:"uint"`
+}
 type From struct {
 	FieldAddress string `json:"address"`
 }
@@ -336,6 +324,18 @@ type Gas struct {
 type GasPrice struct {
 	// The gas price willing to be paid by the sender in wei
 	FieldUint string `json:"uint"`
+}
+type Input struct {
+	FieldBytes string `json:"bytes"`
+}
+type MaxPriorityFeePerGas struct {
+	// Maximum fee per gas the sender is willing to pay to miners in wei
+	FieldUint string `json:"uint"`
+}
+type Value struct {
+	FieldUint string `json:"uint"`
+
+	FieldUint256 string `json:"uint256"`
 }
 type EthCallParams struct {
 	TransactionObjectGenericToAllTypes
@@ -614,24 +614,41 @@ type EthGetTransactionByBlockNumberAndIndexResult struct {
 type EthGetTransactionReceiptParams struct {
 	FieldHash32 string `json:"hash32"`
 }
+type EffectiveGasPrice struct {
+	// The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).
+	FieldUint string `json:"uint"`
+}
+type Status struct {
+	// Either 1 (success) or 0 (failure). Only specified for transactions included after the Byzantium upgrade.
+	FieldUint string `json:"uint"`
+}
+type BlockNumber struct {
+	FieldUint string `json:"uint"`
+}
 type ContractAddress struct {
 	FieldAddress string `json:"address"`
 	// The contract address created, if the transaction was a contract creation, otherwise null.
 	FieldContractAddress string `json:"contractAddress"`
 }
-type Root struct {
-	// The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.
-	FieldBytes32 string `json:"bytes32"`
-}
-type TransactionIndex struct {
-	FieldUint string `json:"uint"`
+type BlockHash struct {
+	FieldHash32 string `json:"hash32"`
 }
 type CumulativeGasUsed struct {
 	// The sum of gas used by this transaction and all preceding transactions in the same block.
 	FieldUint string `json:"uint"`
 }
+type Root struct {
+	// The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.
+	FieldBytes32 string `json:"bytes32"`
+}
 type TransactionHash struct {
 	FieldHash32 string `json:"hash32"`
+}
+type TransactionIndex struct {
+	FieldUint string `json:"uint"`
+}
+type Data struct {
+	FieldBytes string `json:"bytes"`
 }
 type LogIndex struct {
 	FieldUint string `json:"uint"`
@@ -639,27 +656,10 @@ type LogIndex struct {
 type Removed struct {
 	FieldRemoved bool `json:"removed"`
 }
-type BlockHash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type BlockNumber struct {
-	FieldUint string `json:"uint"`
-}
-type Data struct {
-	FieldBytes string `json:"bytes"`
-}
 type Logs struct {
 	Log
 
 	FieldLogs []Log `json:"logs"`
-}
-type Status struct {
-	// Either 1 (success) or 0 (failure). Only specified for transactions included after the Byzantium upgrade.
-	FieldUint string `json:"uint"`
-}
-type EffectiveGasPrice struct {
-	// The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).
-	FieldUint string `json:"uint"`
 }
 type EthGetTransactionReceiptResult struct {
 	ReceiptInfo
