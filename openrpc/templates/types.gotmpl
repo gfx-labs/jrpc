@@ -2,6 +2,8 @@
 
 package {{ .Package }}
 
+import "context"
+
 {{define "schemaType" -}}
     {{if not (eq .Ref "") -}}
         {{camelCase (refName .Ref)}}
@@ -38,10 +40,11 @@ type GoOpenRPCService interface {
     {{range .Methods -}}
         // {{.Summary}}
         {{camelCase .Name}}(
+            ctx context.Context,
             {{range .Params -}}
-                {{camelCase .Name}} {{template "schemaType" .Schema}},
+                {{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
             {{end -}}
-        ) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}})
+        ) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
     {{end -}}
 }
 
