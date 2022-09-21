@@ -4,8 +4,9 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
-	"gfx.cafe/open/jrpc/openrpc/generate"
 	"os"
+
+	"gfx.cafe/open/jrpc/openrpc/generate"
 
 	"gfx.cafe/open/jrpc/openrpc/types"
 	"github.com/alecthomas/kong"
@@ -28,9 +29,10 @@ func (c *CompileCommand) Run() error {
 }
 
 type GenerateCommand struct {
-	Spec      string   `name:"spec" short:"s" help:"path to jopenrpc spec"`
-	Output    string   `name:"output" short:"o" help:"output directory and package"`
-	Templates []string `name:"templates" short:"t" help:"list of template types to generate for"`
+	Spec      string `name:"spec" short:"s" help:"path to jopenrpc spec"`
+	Output    string `name:"output" short:"o" help:"output directory and package"`
+	Templates string `name:"templates" short:"t" help:"template to generate with"`
+	Package   string `name:"package" short:"p" default:"api" help:"package name"`
 }
 
 func (c *GenerateCommand) Run() error {
@@ -41,6 +43,7 @@ func (c *GenerateCommand) Run() error {
 	if err != nil {
 		return err
 	}
+	openrpc.Package = c.Package
 
 	if err = generate.Generate(openrpc, c.Templates, c.Output); err != nil {
 		return err

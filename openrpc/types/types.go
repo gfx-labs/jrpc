@@ -62,6 +62,7 @@ type Method struct {
 }
 
 type OpenRPC struct {
+	Package    string   `json:"package"`
 	Version    string   `json:"openrpc"`
 	Info       Info     `json:"info"`
 	Methods    []Method `json:"methods"`
