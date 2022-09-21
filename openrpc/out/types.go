@@ -321,6 +321,12 @@ type SyncingStatus struct {
 	Option1 bool
 }
 type Transaction1559Signed struct {
+	Field0 Transaction1559Unsigned
+	Field1 struct {
+		R       Uint `json:"r"`
+		S       Uint `json:"s"`
+		YParity Uint `json:"yParity"`
+	}
 }
 type Transaction1559Unsigned struct {
 	AccessList           AccessList `json:"accessList"`
@@ -335,6 +341,12 @@ type Transaction1559Unsigned struct {
 	Value                Uint       `json:"value"`
 }
 type Transaction2930Signed struct {
+	Field0 Transaction2930Unsigned
+	Field1 struct {
+		R       Uint `json:"r"`
+		S       Uint `json:"s"`
+		YParity Uint `json:"yParity"`
+	}
 }
 type Transaction2930Unsigned struct {
 	AccessList AccessList `json:"accessList"`
@@ -348,8 +360,22 @@ type Transaction2930Unsigned struct {
 	Value      Uint       `json:"value"`
 }
 type TransactionInfo struct {
+	Field0 struct {
+		BlockHash        Hash32  `json:"blockHash"`
+		BlockNumber      Uint    `json:"blockNumber"`
+		From             Address `json:"from"`
+		Hash             Hash32  `json:"hash"`
+		TransactionIndex Uint    `json:"transactionIndex"`
+	}
+	Field1 TransactionSigned
 }
 type TransactionLegacySigned struct {
+	Field0 TransactionLegacyUnsigned
+	Field1 struct {
+		R Uint `json:"r"`
+		S Uint `json:"s"`
+		V Uint `json:"v"`
+	}
 }
 type TransactionLegacyUnsigned struct {
 	ChainId  Uint    `json:"chainId"`

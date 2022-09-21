@@ -5,32 +5,28 @@ package main
 {{define "schemaType" -}}
     {{if not (eq .Ref "") -}}
         {{camelCase (refName .Ref)}}
-    {{- else if eq .Type "object" -}}
+    {{- else if or
+        (not (eq (len .Properties) 0))
+        (not (eq (len .OneOf) 0))
+        (not (eq (len .AnyOf) 0))
+        (not (eq (len .AllOf) 0))
+    -}}
         struct {
             {{range $name, $property := .Properties -}}
                 {{camelCase $name}} {{template "schemaType" $property}} `json:"{{$name}}"`
             {{end -}}
+            {{range $idx, $property := .OneOf -}}
+                Option{{$idx}} {{template "schemaType" $property}}
+            {{end -}}
+            {{range $idx, $property := .AnyOf -}}
+                Option{{$idx}} {{template "schemaType" $property}}
+            {{end -}}
+            {{range $idx, $property := .AllOf -}}
+                Field{{$idx}} {{template "schemaType" $property}}
+            {{end -}}
         }
     {{- else if eq .Type "array" -}}
         []{{template "schemaType" (index .Items 0)}}
-    {{- else if not (eq (len .OneOf) 0) -}}
-        struct{
-            {{range $idx, $v := .OneOf -}}
-                Option{{$idx}} {{template "schemaType" $v}}
-            {{end -}}
-        }
-    {{- else if not (eq (len .AnyOf) 0) -}}
-        struct{
-            {{range $idx, $v := .AnyOf -}}
-                Option{{$idx}} {{template "schemaType" $v}}
-            {{end -}}
-        }
-    {{- else if not (eq (len .AllOf) 0) -}}
-        struct{
-            {{range $idx, $v := .AllOf -}}
-                Field{{$idx}} {{template "schemaType" $v}}
-            {{end -}}
-        }
     {{- else if not (eq (len .Enum) 0) -}}
         string
     {{- else -}}
