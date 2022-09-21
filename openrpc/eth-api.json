@@ -1959,7 +1959,7 @@
    },
    "bytes65": {
     "type": "string",
-    "title": "bytes645",
+    "title": "bytes65",
     "pattern": "^0x[0-9a-f]{512}$"
    },
    "bytes8": {

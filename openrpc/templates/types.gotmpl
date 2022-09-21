@@ -2,34 +2,54 @@
 
 package main
 
+{{define "schemaType" -}}
+    {{if not (eq .Ref "") -}}
+        {{camelCase (refName .Ref)}}
+    {{- else if eq .Type "object" -}}
+        struct {
+            {{range $name, $property := .Properties -}}
+                {{camelCase $name}} {{template "schemaType" $property}}
+            {{end -}}
+        }
+    {{- else if eq .Type "array" -}}
+        []{{template "schemaType" (index .Items 0)}}
+    {{- else if not (eq (len .OneOf) 0) -}}
+        struct{
+            {{range $idx, $v := .OneOf -}}
+                Option{{$idx}} {{template "schemaType" $v}}
+            {{end -}}
+        }
+    {{- else if not (eq (len .AnyOf) 0) -}}
+        struct{
+            {{range $idx, $v := .AnyOf -}}
+                Option{{$idx}} {{template "schemaType" $v}}
+            {{end -}}
+        }
+    {{- else if not (eq (len .AllOf) 0) -}}
+        struct{
+            {{range $idx, $v := .AllOf -}}
+                Field{{$idx}} {{template "schemaType" $v}}
+            {{end -}}
+        }
+    {{- else if not (eq (len .Enum) 0) -}}
+        string
+    {{- else -}}
+        {{goType .Type}}
+    {{- end}}
+{{- end -}}
+
 type GoOpenRPCService interface {
-    {{- range .Methods }}
-        {{- $name := .Name | camelCase }}
-        {{- $params := (maybeMethodParams .) }}
-        {{- $result := (maybeMethodResult .) }}
-        {{ maybeMethodComment . }}
-        {{$name}}
-        {{- if $params -}}
-            (*{{$params}})
-        {{- else -}}
-            ()
-        {{- end }}
-        {{- if $result }} (*{{$result}}, error)
-        {{- else }} error
-        {{- end }}
-    {{- end }}
+    {{range .Methods -}}
+        // {{.Summary}}
+        {{camelCase .Name}}(
+            {{range .Params -}}
+                {{camelCase .Name}} {{template "schemaType" .Schema}},
+            {{end -}}
+        ) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}})
+    {{end -}}
 }
 
-{{- range (getObjects .Objects) }}
-type {{.Name}} struct {
-    {{- range (getFields .Fields) }}
-        {{ maybeFieldComment .Desc }}
-        {{- if (eq .Name .Type) }}
-            {{ .Name }}
-        {{- else }}
-            Field{{camelCase .Name}} {{.Type}} `json:"{{lowerFirst .Name}}"`
-        {{- end }}
-    {{- end }}
-}
+{{- range $name, $component := .Components.Schemas }}
+    type {{camelCase $name}} {{template "schemaType" $component}}
 {{- end }}
 

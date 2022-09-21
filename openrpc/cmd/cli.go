@@ -1,16 +1,14 @@
 package main
 
+import "C"
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"gfx.cafe/open/jrpc/openrpc/generate"
 	"os"
 
-	"gfx.cafe/open/jrpc/openrpc/generate"
-	"gfx.cafe/open/jrpc/openrpc/parse"
 	"gfx.cafe/open/jrpc/openrpc/types"
 	"github.com/alecthomas/kong"
-	"github.com/gobuffalo/packr/v2"
 )
 
 var CLI struct {
@@ -25,28 +23,7 @@ type CompileCommand struct {
 }
 
 func (c *CompileCommand) Run() error {
-	openrpc := types.NewOpenRPCSpec1()
-	var err error
-	for _, v := range c.Methods {
-		err = openrpc.AddMethods(v)
-		if err != nil {
-			return err
-		}
-	}
-	for _, v := range c.Schemas {
-		err = openrpc.AddSchemas(v)
-		if err != nil {
-			return err
-		}
-	}
-	jzn, err := json.MarshalIndent(openrpc, "", " ")
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(c.Output, jzn, 0644)
-	if err != nil {
-		return err
-	}
+	// TODO
 	return nil
 }
 
@@ -64,31 +41,24 @@ func (c *GenerateCommand) Run() error {
 	if err != nil {
 		return err
 	}
-	parse.GetTypes(openrpc, openrpc.Objects)
-	box := packr.New("template", "./templates")
 
-	if err = generate.WriteFile(box, "server", c.Output, openrpc); err != nil {
+	if err = generate.Generate(openrpc, c.Templates, c.Output); err != nil {
 		return err
 	}
-	if err = generate.WriteFile(box, "types", c.Output, openrpc); err != nil {
-		return err
-	}
+
 	return nil
 }
 
-func readSpec(file string) (*types.OpenRPCSpec1, error) {
-	data, err := ioutil.ReadFile(file)
+func readSpec(file string) (out *types.OpenRPC, err error) {
+	var data []byte
+	data, err = os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	spec := types.NewOpenRPCSpec1()
-	err = json.Unmarshal(data, spec)
-	if err != nil {
-		return nil, err
-	}
-
-	return spec, nil
+	out = new(types.OpenRPC)
+	err = json.Unmarshal(data, out)
+	return
 }
 
 func NewCLI() *kong.Context {

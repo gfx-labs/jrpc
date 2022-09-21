@@ -4,663 +4,382 @@ package main
 
 type GoOpenRPCService interface {
 	// Returns an RLP-encoded header.
-	DebugGetRawHeader(*DebugGetRawHeaderParams) (*DebugGetRawHeaderResult, error)
+	DebugGetRawHeader(
+		Block BlockNumberOrTag,
+	) (HeaderRLP Bytes)
 	// Returns an RLP-encoded block.
-	DebugGetRawBlock(*DebugGetRawBlockParams) (*DebugGetRawBlockResult, error)
+	DebugGetRawBlock(
+		Block BlockNumberOrTag,
+	) (BlockRLP Bytes)
 	// Returns an array of EIP-2718 binary-encoded transactions.
-	DebugGetRawTransaction(*DebugGetRawTransactionParams) (*DebugGetRawTransactionResult, error)
+	DebugGetRawTransaction(
+		TransactionHash Hash32,
+	) (EIP2718BinaryEncodedTransaction Bytes)
 	// Returns an array of EIP-2718 binary-encoded receipts.
-	DebugGetRawReceipts(*DebugGetRawReceiptsParams) (*DebugGetRawReceiptsResult, error)
+	DebugGetRawReceipts(
+		Block BlockNumberOrTag,
+	) (Receipts []Bytes)
 	// Returns an array of recent bad blocks that the client has seen on the network.
-	DebugGetBadBlocks() (*DebugGetBadBlocksResult, error)
+	DebugGetBadBlocks() (Blocks []BadBlock)
 	// Returns information about a block by hash.
-	EthGetBlockByHash(*EthGetBlockByHashParams) (*EthGetBlockByHashResult, error)
+	EthGetBlockByHash(
+		BlockHash Hash32,
+		HydratedTransactions bool,
+	) (BlockInformation Block)
 	// Returns information about a block by number.
-	EthGetBlockByNumber(*EthGetBlockByNumberParams) (*EthGetBlockByNumberResult, error)
+	EthGetBlockByNumber(
+		Block BlockNumberOrTag,
+		HydratedTransactions bool,
+	) (BlockInformation Block)
 	// Returns the number of transactions in a block from a block matching the given block hash.
-	EthGetBlockTransactionCountByHash(*EthGetBlockTransactionCountByHashParams) (*EthGetBlockTransactionCountByHashResult, error)
+	EthGetBlockTransactionCountByHash(
+		BlockHash Hash32,
+	) (TransactionCount Uint)
 	// Returns the number of transactions in a block matching the given block number.
-	EthGetBlockTransactionCountByNumber(*EthGetBlockTransactionCountByNumberParams) (*EthGetBlockTransactionCountByNumberResult, error)
+	EthGetBlockTransactionCountByNumber(
+		Block BlockNumberOrTag,
+	) (TransactionCount Uint)
 	// Returns the number of uncles in a block from a block matching the given block hash.
-	EthGetUncleCountByBlockHash(*EthGetUncleCountByBlockHashParams) (*EthGetUncleCountByBlockHashResult, error)
+	EthGetUncleCountByBlockHash(
+		BlockHash Hash32,
+	) (UncleCount Uint)
 	// Returns the number of transactions in a block matching the given block number.
-	EthGetUncleCountByBlockNumber(*EthGetUncleCountByBlockNumberParams) (*EthGetUncleCountByBlockNumberResult, error)
+	EthGetUncleCountByBlockNumber(
+		Block BlockNumberOrTag,
+	) (UncleCount Uint)
 	// Returns the chain ID of the current network.
-	EthChainId() (*EthChainIdResult, error)
+	EthChainId() (ChainID Uint)
 	// Returns an object with data about the sync status or false.
-	EthSyncing() (*EthSyncingResult, error)
+	EthSyncing() (SyncingStatus SyncingStatus)
 	// Returns the client coinbase address.
-	EthCoinbase() (*EthCoinbaseResult, error)
+	EthCoinbase() (CoinbaseAddress Address)
 	// Returns a list of addresses owned by client.
-	EthAccounts() (*EthAccountsResult, error)
+	EthAccounts() (Accounts []Address)
 	// Returns the number of most recent block.
-	EthBlockNumber() (*EthBlockNumberResult, error)
+	EthBlockNumber() (BlockNumber Uint)
 	// Executes a new message call immediately without creating a transaction on the block chain.
-	EthCall(*EthCallParams) (*EthCallResult, error)
+	EthCall(
+		Transaction GenericTransaction,
+		Block BlockNumberOrTag,
+	) (ReturnData Bytes)
 	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
-	EthEstimateGas(*EthEstimateGasParams) (*EthEstimateGasResult, error)
+	EthEstimateGas(
+		Transaction GenericTransaction,
+		Block BlockNumberOrTag,
+	) (GasUsed Uint)
 	// Generates an access list for a transaction.
-	EthCreateAccessList(*EthCreateAccessListParams) (*EthCreateAccessListResult, error)
+	EthCreateAccessList(
+		Transaction GenericTransaction,
+		Block BlockNumberOrTag,
+	) (GasUsed struct {
+		AccessList AccessList
+		Error      string
+		GasUsed    Uint
+	})
 	// Returns the current price per gas in wei.
-	EthGasPrice() (*EthGasPriceResult, error)
+	EthGasPrice() (GasPrice Uint)
 	// Returns the current maxPriorityFeePerGas per gas in wei.
-	EthMaxPriorityFeePerGas() (*EthMaxPriorityFeePerGasResult, error)
-	// Returns transaction base fee per gas and effective priority fee per gas for the requested/supported block range.
-	EthFeeHistory(*EthFeeHistoryParams) (*EthFeeHistoryResult, error)
+	EthMaxPriorityFeePerGas() (MaxPriorityFeePerGas Uint)
+	// Transaction fee history
+	EthFeeHistory(
+		BlockCount Uint,
+		NewestBlock BlockNumberOrTag,
+		RewardPercentiles []float64,
+	) (FeeHistoryResult struct {
+		BaseFeePerGas []Uint
+		OldestBlock   Uint
+		Reward        [][]Uint
+	})
 	// Creates a filter object, based on filter options, to notify when the state changes (logs).
-	EthNewFilter(*EthNewFilterParams) (*EthNewFilterResult, error)
+	EthNewFilter(
+		Filter Filter,
+	) (FilterIdentifier Uint)
 	// Creates a filter in the node, to notify when a new block arrives.
-	EthNewBlockFilter() (*EthNewBlockFilterResult, error)
+	EthNewBlockFilter() (FilterIdentifier Uint)
 	// Creates a filter in the node, to notify when new pending transactions arrive.
-	EthNewPendingTransactionFilter() (*EthNewPendingTransactionFilterResult, error)
+	EthNewPendingTransactionFilter() (FilterIdentifier Uint)
 	// Uninstalls a filter with given id.
-	EthUninstallFilter(*EthUninstallFilterParams) (*EthUninstallFilterResult, error)
+	EthUninstallFilter(
+		FilterIdentifier Uint,
+	) (Success bool)
 	// Polling method for a filter, which returns an array of logs which occurred since last poll.
-	EthGetFilterChanges(*EthGetFilterChangesParams) (*EthGetFilterChangesResult, error)
+	EthGetFilterChanges(
+		FilterIdentifier Uint,
+	) (LogObjects FilterResults)
 	// Returns an array of all logs matching filter with given id.
-	EthGetFilterLogs(*EthGetFilterLogsParams) (*EthGetFilterLogsResult, error)
+	EthGetFilterLogs(
+		FilterIdentifier Uint,
+	) (LogObjects FilterResults)
 	// Returns an array of all logs matching filter with given id.
-	EthGetLogs(*EthGetLogsParams) (*EthGetLogsResult, error)
+	EthGetLogs(
+		Filter Filter,
+	) (LogObjects FilterResults)
 	// Returns whether the client is actively mining new blocks.
-	EthMining() (*EthMiningResult, error)
+	EthMining() (MiningStatus bool)
 	// Returns the number of hashes per second that the node is mining with.
-	EthHashrate() (*EthHashrateResult, error)
+	EthHashrate() (MiningStatus Uint)
 	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
-	EthGetWork() (*EthGetWorkResult, error)
+	EthGetWork() (CurrentWork []Bytes32)
 	// Used for submitting a proof-of-work solution.
-	EthSubmitWork(*EthSubmitWorkParams) (*EthSubmitWorkResult, error)
+	EthSubmitWork(
+		Nonce Bytes8,
+		Hash Bytes32,
+		Digest Bytes32,
+	) (Success bool)
 	// Used for submitting mining hashrate.
-	EthSubmitHashrate(*EthSubmitHashrateParams) (*EthSubmitHashrateResult, error)
+	EthSubmitHashrate(
+		Hashrate Bytes32,
+		Id Bytes32,
+	) (Success bool)
 	// Returns an EIP-191 signature over the provided data.
-	EthSign(*EthSignParams) (*EthSignResult, error)
+	EthSign(
+		Address Address,
+		Message Bytes,
+	) (Signature Bytes65)
 	// Returns an RLP encoded transaction signed by the specified account.
-	EthSignTransaction(*EthSignTransactionParams) (*EthSignTransactionResult, error)
+	EthSignTransaction(
+		Transaction GenericTransaction,
+	) (EncodedTransaction Bytes)
 	// Returns the balance of the account of given address.
-	EthGetBalance(*EthGetBalanceParams) (*EthGetBalanceResult, error)
+	EthGetBalance(
+		Address Address,
+		Block BlockNumberOrTag,
+	) (Balance Uint)
 	// Returns the value from a storage position at a given address.
-	EthGetStorageAt(*EthGetStorageAtParams) (*EthGetStorageAtResult, error)
+	EthGetStorageAt(
+		Address Address,
+		StorageSlot Uint256,
+		Block BlockNumberOrTag,
+	) (Value Bytes)
 	// Returns the number of transactions sent from an address.
-	EthGetTransactionCount(*EthGetTransactionCountParams) (*EthGetTransactionCountResult, error)
+	EthGetTransactionCount(
+		Address Address,
+		Block BlockNumberOrTag,
+	) (TransactionCount Uint)
 	// Returns code at a given address.
-	EthGetCode(*EthGetCodeParams) (*EthGetCodeResult, error)
+	EthGetCode(
+		Address Address,
+		Block BlockNumberOrTag,
+	) (Bytecode Bytes)
 	// Returns the merkle proof for a given account and optionally some storage keys.
-	EthGetProof(*EthGetProofParams) (*EthGetProofResult, error)
+	EthGetProof(
+		Address Address,
+		StorageKeys []Hash32,
+		Block BlockNumberOrTag,
+	) (Account AccountProof)
 	// Signs and submits a transaction.
-	EthSendTransaction(*EthSendTransactionParams) (*EthSendTransactionResult, error)
+	EthSendTransaction(
+		Transaction GenericTransaction,
+	) (TransactionHash Hash32)
 	// Submits a raw transaction.
-	EthSendRawTransaction(*EthSendRawTransactionParams) (*EthSendRawTransactionResult, error)
+	EthSendRawTransaction(
+		Transaction Bytes,
+	) (TransactionHash Hash32)
 	// Returns the information about a transaction requested by transaction hash.
-	EthGetTransactionByHash(*EthGetTransactionByHashParams) (*EthGetTransactionByHashResult, error)
+	EthGetTransactionByHash(
+		TransactionHash Hash32,
+	) (TransactionInformation TransactionInfo)
 	// Returns information about a transaction by block hash and transaction index position.
-	EthGetTransactionByBlockHashAndIndex(*EthGetTransactionByBlockHashAndIndexParams) (*EthGetTransactionByBlockHashAndIndexResult, error)
+	EthGetTransactionByBlockHashAndIndex(
+		BlockHash Hash32,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo)
 	// Returns information about a transaction by block number and transaction index position.
-	EthGetTransactionByBlockNumberAndIndex(*EthGetTransactionByBlockNumberAndIndexParams) (*EthGetTransactionByBlockNumberAndIndexResult, error)
+	EthGetTransactionByBlockNumberAndIndex(
+		Block BlockNumberOrTag,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo)
 	// Returns the receipt of a transaction by transaction hash.
-	EthGetTransactionReceipt(*EthGetTransactionReceiptParams) (*EthGetTransactionReceiptResult, error)
-}
-type BlockNumberOrTag struct {
-	FieldUint string `json:"uint"`
-}
-type DebugGetRawHeaderParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type DebugGetRawHeaderResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type DebugGetRawBlockParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type DebugGetRawBlockResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type DebugGetRawTransactionParams struct {
-	FieldHash32 string `json:"hash32"`
-}
-type DebugGetRawTransactionResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type DebugGetRawReceiptsParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type ReceiptArray struct {
-	FieldBytes string `json:"bytes"`
-}
-type DebugGetRawReceiptsResult struct {
-	FieldBytes string `json:"bytes"`
-
-	FieldReceiptArray []string `json:"receiptArray"`
-}
-type Block struct {
-	FieldBytes string `json:"bytes"`
-}
-type Hash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type Rlp struct {
-	FieldBytes string `json:"bytes"`
-}
-type BadBlockArray struct {
-	BadBlock
-}
-type DebugGetBadBlocksResult struct {
-	BadBlock
-
-	FieldBadBlockArray []BadBlock `json:"badBlockArray"`
-}
-type EthGetBlockByHashParams struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldHydrated bool `json:"hydrated"`
-}
-type StateRoot struct {
-	FieldHash32 string `json:"hash32"`
-}
-type TransactionsRoot struct {
-	FieldHash32 string `json:"hash32"`
-}
-type GasLimit struct {
-	FieldUint string `json:"uint"`
-}
-type MixHash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type Nonce struct {
-	FieldBytes8 string `json:"bytes8"`
-
-	FieldUint string `json:"uint"`
-
-	FieldUint64 string `json:"uint64"`
-}
-type Number struct {
-	FieldUint string `json:"uint"`
-}
-type Size struct {
-	FieldUint string `json:"uint"`
-}
-type Difficulty struct {
-	FieldBytes string `json:"bytes"`
-}
-type ExtraData struct {
-	FieldBytes string `json:"bytes"`
-}
-type LogsBloom struct {
-	FieldBytes256 string `json:"bytes256"`
-}
-type Sha3Uncles struct {
-	FieldHash32 string `json:"hash32"`
-}
-type Timestamp struct {
-	FieldUint string `json:"uint"`
-}
-type BaseFeePerGas struct {
-	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
-	FieldUint string `json:"uint"`
-	// An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.
-	FieldBaseFeePerGas []string `json:"baseFeePerGas"`
-}
-type GasUsed struct {
-	// The amount of gas used for this specific transaction alone.
-	FieldUint string `json:"uint"`
-}
-type Miner struct {
-	FieldAddress string `json:"address"`
-}
-type Uncles struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldUncles []string `json:"uncles"`
-}
-type ParentHash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type ReceiptsRoot struct {
-	FieldHash32 string `json:"hash32"`
-}
-type TotalDifficulty struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetBlockByHashResult struct {
-	BlockObject
-}
-type EthGetBlockByNumberParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-
-	FieldHydrated bool `json:"hydrated"`
-}
-type EthGetBlockByNumberResult struct {
-	BlockObject
-}
-type EthGetBlockTransactionCountByHashParams struct {
-	FieldHash32 string `json:"hash32"`
-}
-type EthGetBlockTransactionCountByHashResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetBlockTransactionCountByNumberParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetBlockTransactionCountByNumberResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetUncleCountByBlockHashParams struct {
-	FieldHash32 string `json:"hash32"`
-}
-type EthGetUncleCountByBlockHashResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetUncleCountByBlockNumberParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetUncleCountByBlockNumberResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthChainIdResult struct {
-	FieldUint string `json:"uint"`
-}
-type CurrentBlock struct {
-	FieldUint string `json:"uint"`
-}
-type HighestBlock struct {
-	FieldUint string `json:"uint"`
-}
-type StartingBlock struct {
-	FieldUint string `json:"uint"`
-}
-type SyncingStatus struct {
-	SyncingProgress
-}
-type EthSyncingResult struct {
-	FieldSyncingStatus SyncingProgress `json:"syncingStatus"`
-}
-type EthCoinbaseResult struct {
-	FieldAddress string `json:"address"`
-}
-type Accounts struct {
-	FieldAddress string `json:"address"`
-}
-type EthAccountsResult struct {
-	FieldAddress string `json:"address"`
-
-	FieldAccounts []string `json:"accounts"`
-}
-type EthBlockNumberResult struct {
-	FieldUint string `json:"uint"`
-}
-type Address struct {
-	FieldAddress string `json:"address"`
-}
-type StorageKeys struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldStorageKeys []string `json:"storageKeys"`
-}
-type AccessList struct {
-	// EIP-2930 access list
-	AccessListEntry
-	// EIP-2930 access list
-	FieldAccessList []AccessListEntry `json:"accessList"`
-}
-type MaxFeePerGas struct {
-	// The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei
-	FieldUint string `json:"uint"`
-}
-type Type struct {
-	FieldByte string `json:"byte"`
-}
-type To struct {
-	// Address of the receiver or null in a contract creation transaction.
-	FieldAddress string `json:"address"`
-}
-type ChainId struct {
-	// Chain ID that this transaction is valid on.
-	FieldUint string `json:"uint"`
-}
-type From struct {
-	FieldAddress string `json:"address"`
-}
-type Gas struct {
-	FieldUint string `json:"uint"`
-}
-type GasPrice struct {
-	// The gas price willing to be paid by the sender in wei
-	FieldUint string `json:"uint"`
-}
-type Input struct {
-	FieldBytes string `json:"bytes"`
-}
-type MaxPriorityFeePerGas struct {
-	// Maximum fee per gas the sender is willing to pay to miners in wei
-	FieldUint string `json:"uint"`
-}
-type Value struct {
-	FieldUint string `json:"uint"`
-
-	FieldUint256 string `json:"uint256"`
-}
-type EthCallParams struct {
-	TransactionObjectGenericToAllTypes
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthCallResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type EthEstimateGasParams struct {
-	TransactionObjectGenericToAllTypes
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthEstimateGasResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthCreateAccessListParams struct {
-	TransactionObjectGenericToAllTypes
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type Error struct {
-	FieldError string `json:"error"`
-}
-type EthCreateAccessListResult struct {
-	AccessListResult
-}
-type EthGasPriceResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthMaxPriorityFeePerGasResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthFeeHistoryParams struct {
-	// Requested range of blocks. Clients will return less than the requested range if not all blocks are available.
-	FieldUint string `json:"uint"`
-	// Highest block of the requested range.
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-	// Floating point value between 0 and 100.
-	FieldRewardPercentile float64 `json:"rewardPercentile"`
-	// A monotonically increasing list of percentile values. For each block in the requested range, the transactions will be sorted in ascending order by effective tip per gas and the coresponding effective tip for the percentile will be determined, accounting for gas consumed.
-	FieldRewardPercentiles []float64 `json:"rewardPercentiles"`
-}
-type RewardPercentiles struct {
-	// Floating point value between 0 and 100.
-	FieldRewardPercentile float64 `json:"rewardPercentile"`
-}
-type OldestBlock struct {
-	// Lowest number block of returned range.
-	FieldUint string `json:"uint"`
-}
-type RewardPercentile struct {
-	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
-	FieldUint string `json:"uint"`
-}
-type Reward struct {
-	// A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.
-	FieldUint string `json:"uint"`
-	// An array of effective priority fee per gas data points from a single block. All zeroes are returned if the block is empty.
-	FieldRewardPercentile []string `json:"rewardPercentile"`
-	// A two-dimensional array of effective priority fees per gas at the requested block percentiles.
-	FieldReward []array `json:"reward"`
-}
-type EthFeeHistoryResult struct {
-	// Fee history results.
-	FeeHistoryResults
-}
-type FromBlock struct {
-	FieldUint string `json:"uint"`
-}
-type ToBlock struct {
-	FieldUint string `json:"uint"`
-}
-type FilterTopicListEntry struct {
-	FieldAnyTopicMatch null `json:"anyTopicMatch"`
-}
-type FilterTopics struct {
-	FieldFilterTopicListEntry null `json:"filterTopicListEntry"`
-}
-type Topics struct {
-	FieldFilterTopicListEntry null `json:"filterTopicListEntry"`
-
-	FieldFilterTopics []FilterTopicListEntry `json:"filterTopics"`
-
-	FieldBytes32 string `json:"bytes32"`
-
-	FieldTopics []string `json:"topics"`
-}
-type EthNewFilterParams struct {
-	Filter
-}
-type EthNewFilterResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthNewBlockFilterResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthNewPendingTransactionFilterResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthUninstallFilterParams struct {
-	FieldUint string `json:"uint"`
-}
-type EthUninstallFilterResult struct {
-	FieldSuccess bool `json:"success"`
-}
-type EthGetFilterChangesParams struct {
-	FieldUint string `json:"uint"`
-}
-type NewBlockHashes struct {
-	FieldHash32 string `json:"hash32"`
-}
-type FilterResults struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldNewBlockHashes []string `json:"newBlockHashes"`
-}
-type EthGetFilterChangesResult struct {
-	FieldFilterResults array `json:"filterResults"`
-}
-type EthGetFilterLogsParams struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetFilterLogsResult struct {
-	FieldFilterResults array `json:"filterResults"`
-}
-type EthGetLogsParams struct {
-	Filter
-}
-type EthGetLogsResult struct {
-	FieldFilterResults array `json:"filterResults"`
-}
-type EthMiningResult struct {
-	FieldMiningStatus bool `json:"miningStatus"`
-}
-type EthHashrateResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetWorkResult struct {
-	FieldCurrentWork []string `json:"currentWork"`
-}
-type EthSubmitWorkParams struct {
-	FieldBytes8 string `json:"bytes8"`
-
-	FieldBytes32 string `json:"bytes32"`
-}
-type EthSubmitWorkResult struct {
-	FieldSuccess bool `json:"success"`
-}
-type EthSubmitHashrateParams struct {
-	FieldBytes32 string `json:"bytes32"`
-}
-type EthSubmitHashrateResult struct {
-	FieldSuccess bool `json:"success"`
-}
-type EthSignParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldBytes string `json:"bytes"`
-}
-type EthSignResult struct {
-	FieldBytes645 string `json:"bytes645"`
-}
-type EthSignTransactionParams struct {
-	TransactionObjectGenericToAllTypes
-}
-type EthSignTransactionResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type EthGetBalanceParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetBalanceResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetStorageAtParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldUint256 string `json:"uint256"`
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetStorageAtResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type EthGetTransactionCountParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetTransactionCountResult struct {
-	FieldUint string `json:"uint"`
-}
-type EthGetCodeParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-}
-type EthGetCodeResult struct {
-	FieldBytes string `json:"bytes"`
-}
-type EthGetProofParams struct {
-	FieldAddress string `json:"address"`
-
-	FieldHash32 string `json:"hash32"`
-
-	FieldStorageKeys []string `json:"storageKeys"`
-
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
+	EthGetTransactionReceipt(
+		TransactionHash Hash32,
+	) (ReceiptInformation ReceiptInfo)
+}
+type AccessList []AccessListEntry
+type AccessListEntry struct {
+	Address     Address
+	StorageKeys []Hash32
 }
 type AccountProof struct {
-	FieldBytes string `json:"bytes"`
-
-	FieldAccountProof []string `json:"accountProof"`
+	AccountProof []Bytes
+	Address      Address
+	Balance      Uint256
+	CodeHash     Hash32
+	Nonce        Uint64
+	StorageHash  Hash32
+	StorageProof []StorageProof
 }
-type Balance struct {
-	FieldUint256 string `json:"uint256"`
+type BadBlock struct {
+	Block Bytes
+	Hash  Hash32
+	Rlp   Bytes
 }
-type CodeHash struct {
-	FieldHash32 string `json:"hash32"`
+type Block struct {
+	BaseFeePerGas   Uint
+	Difficulty      Bytes
+	ExtraData       Bytes
+	GasLimit        Uint
+	GasUsed         Uint
+	LogsBloom       Bytes256
+	Miner           Address
+	MixHash         Hash32
+	Nonce           Bytes8
+	Number          Uint
+	ParentHash      Hash32
+	ReceiptsRoot    Hash32
+	Sha3Uncles      Hash32
+	Size            Uint
+	StateRoot       Hash32
+	Timestamp       Uint
+	TotalDifficulty Uint
+	Transactions    struct {
+		Option0 []Hash32
+		Option1 []TransactionSigned
+	}
+	TransactionsRoot Hash32
+	Uncles           []Hash32
 }
-type StorageHash struct {
-	FieldHash32 string `json:"hash32"`
+type BlockNumberOrTag struct {
+	Option0 Uint
+	Option1 BlockTag
 }
-type Key struct {
-	FieldHash32 string `json:"hash32"`
+type BlockTag string
+type Filter struct {
+	Address struct {
+		Option0 Address
+		Option1 Addresses
+	}
+	FromBlock Uint
+	ToBlock   Uint
+	Topics    FilterTopics
 }
-type Proof struct {
-	FieldBytes string `json:"bytes"`
-
-	FieldProof []string `json:"proof"`
+type FilterResults struct {
+	Option0 []Hash32
+	Option1 []Hash32
+	Option2 []Log
+}
+type FilterTopic struct {
+	Option0 struct{}
+	Option1 Bytes32
+	Option2 []Bytes32
+}
+type FilterTopics []FilterTopic
+type GenericTransaction struct {
+	AccessList           AccessList
+	ChainId              Uint
+	From                 Address
+	Gas                  Uint
+	GasPrice             Uint
+	Input                Bytes
+	MaxFeePerGas         Uint
+	MaxPriorityFeePerGas Uint
+	Nonce                Uint
+	To                   Address
+	Type                 Byte
+	Value                Uint
+}
+type Log struct {
+	Address          Address
+	BlockHash        Hash32
+	BlockNumber      Uint
+	Data             Bytes
+	LogIndex         Uint
+	Removed          bool
+	Topics           []Bytes32
+	TransactionHash  Hash32
+	TransactionIndex Uint
+}
+type ReceiptInfo struct {
+	BlockHash       Hash32
+	BlockNumber     Uint
+	ContractAddress struct {
+		Option0 Address
+		Option1 struct{}
+	}
+	CumulativeGasUsed Uint
+	EffectiveGasPrice Uint
+	From              Address
+	GasUsed           Uint
+	Logs              []Log
+	LogsBloom         Bytes256
+	Root              Bytes32
+	Status            Uint
+	To                Address
+	TransactionHash   Hash32
+	TransactionIndex  Uint
 }
 type StorageProof struct {
-	FieldStorageProof []StorageProof `json:"storageProof"`
+	Key   Hash32
+	Proof []Bytes
+	Value Uint256
 }
-type EthGetProofResult struct {
-	AccountProof
+type SyncingStatus struct {
+	Option0 struct {
+		CurrentBlock  Uint
+		HighestBlock  Uint
+		StartingBlock Uint
+	}
+	Option1 bool
 }
-type EthSendTransactionParams struct {
-	TransactionObjectGenericToAllTypes
+type Transaction1559Signed struct {
 }
-type EthSendTransactionResult struct {
-	FieldHash32 string `json:"hash32"`
+type Transaction1559Unsigned struct {
+	AccessList           AccessList
+	ChainId              Uint
+	Gas                  Uint
+	Input                Bytes
+	MaxFeePerGas         Uint
+	MaxPriorityFeePerGas Uint
+	Nonce                Uint
+	To                   Address
+	Type                 Byte
+	Value                Uint
 }
-type EthSendRawTransactionParams struct {
-	FieldBytes string `json:"bytes"`
+type Transaction2930Signed struct {
 }
-type EthSendRawTransactionResult struct {
-	FieldHash32 string `json:"hash32"`
+type Transaction2930Unsigned struct {
+	AccessList AccessList
+	ChainId    Uint
+	Gas        Uint
+	GasPrice   Uint
+	Input      Bytes
+	Nonce      Uint
+	To         Address
+	Type       Byte
+	Value      Uint
 }
-type EthGetTransactionByHashParams struct {
-	FieldHash32 string `json:"hash32"`
+type TransactionInfo struct {
 }
-type EthGetTransactionByHashResult struct {
-	FieldTransactionInformation object `json:"transactionInformation"`
+type TransactionLegacySigned struct {
 }
-type EthGetTransactionByBlockHashAndIndexParams struct {
-	FieldHash32 string `json:"hash32"`
-
-	FieldUint string `json:"uint"`
+type TransactionLegacyUnsigned struct {
+	ChainId  Uint
+	Gas      Uint
+	GasPrice Uint
+	Input    Bytes
+	Nonce    Uint
+	To       Address
+	Type     Byte
+	Value    Uint
 }
-type EthGetTransactionByBlockHashAndIndexResult struct {
-	FieldTransactionInformation object `json:"transactionInformation"`
+type TransactionSigned struct {
+	Option0 Transaction1559Signed
+	Option1 Transaction2930Signed
+	Option2 TransactionLegacySigned
 }
-type EthGetTransactionByBlockNumberAndIndexParams struct {
-	FieldBlockNumberOrTag string `json:"blockNumberOrTag"`
-
-	FieldUint string `json:"uint"`
+type TransactionUnsigned struct {
+	Option0 Transaction1559Unsigned
+	Option1 Transaction2930Unsigned
+	Option2 TransactionLegacyUnsigned
 }
-type EthGetTransactionByBlockNumberAndIndexResult struct {
-	FieldTransactionInformation object `json:"transactionInformation"`
-}
-type EthGetTransactionReceiptParams struct {
-	FieldHash32 string `json:"hash32"`
-}
-type EffectiveGasPrice struct {
-	// The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).
-	FieldUint string `json:"uint"`
-}
-type Status struct {
-	// Either 1 (success) or 0 (failure). Only specified for transactions included after the Byzantium upgrade.
-	FieldUint string `json:"uint"`
-}
-type BlockNumber struct {
-	FieldUint string `json:"uint"`
-}
-type ContractAddress struct {
-	FieldAddress string `json:"address"`
-	// The contract address created, if the transaction was a contract creation, otherwise null.
-	FieldContractAddress string `json:"contractAddress"`
-}
-type BlockHash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type CumulativeGasUsed struct {
-	// The sum of gas used by this transaction and all preceding transactions in the same block.
-	FieldUint string `json:"uint"`
-}
-type Root struct {
-	// The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.
-	FieldBytes32 string `json:"bytes32"`
-}
-type TransactionHash struct {
-	FieldHash32 string `json:"hash32"`
-}
-type TransactionIndex struct {
-	FieldUint string `json:"uint"`
-}
-type Data struct {
-	FieldBytes string `json:"bytes"`
-}
-type LogIndex struct {
-	FieldUint string `json:"uint"`
-}
-type Removed struct {
-	FieldRemoved bool `json:"removed"`
-}
-type Logs struct {
-	Log
-
-	FieldLogs []Log `json:"logs"`
-}
-type EthGetTransactionReceiptResult struct {
-	ReceiptInfo
-}
+type Address string
+type Addresses []Address
+type Byte string
+type Bytes string
+type Bytes256 string
+type Bytes32 string
+type Bytes65 string
+type Bytes8 string
+type Hash32 string
+type Uint string
+type Uint256 string
+type Uint64 string
