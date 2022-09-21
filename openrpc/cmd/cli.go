@@ -29,10 +29,10 @@ func (c *CompileCommand) Run() error {
 }
 
 type GenerateCommand struct {
-	Spec      string `name:"spec" short:"s" help:"path to jopenrpc spec"`
-	Output    string `name:"output" short:"o" help:"output directory and package"`
-	Templates string `name:"templates" short:"t" help:"template to generate with"`
-	Package   string `name:"package" short:"p" default:"api" help:"package name"`
+	Spec     string `name:"spec" short:"s" help:"path to jopenrpc spec"`
+	Output   string `name:"output" short:"o" help:"output directory and package"`
+	Template string `name:"template" short:"t" help:"template to generate with"`
+	Package  string `name:"package" short:"p" default:"api" help:"package name"`
 }
 
 func (c *GenerateCommand) Run() error {
@@ -45,7 +45,7 @@ func (c *GenerateCommand) Run() error {
 	}
 	openrpc.Package = c.Package
 
-	if err = generate.Generate(openrpc, c.Templates, c.Output); err != nil {
+	if err = generate.Generate(openrpc, c.Template, c.Output); err != nil {
 		return err
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"os"
+	"path"
 	"path/filepath"
 	"text/template"
 
@@ -45,8 +46,7 @@ var funcs = template.FuncMap{
 func Generate(rpc *types.OpenRPC, ts string, output string) error {
 
 	var wr bytes.Buffer
-	name := "types"
-	t, err := template.New(name).Funcs(funcs).ParseFiles(ts)
+	t, err := template.New(path.Base(ts)).Funcs(funcs).ParseFiles(ts)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,6 @@ func Generate(rpc *types.OpenRPC, ts string, output string) error {
 	}
 	wr.Reset()
 
-	name = name[:len(name)-len(filepath.Ext(name))]
 	err = os.WriteFile(output, fmtd, 0777)
 	if err != nil {
 		return err
