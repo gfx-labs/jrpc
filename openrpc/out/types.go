@@ -72,9 +72,9 @@ type GoOpenRPCService interface {
 		Transaction GenericTransaction,
 		Block BlockNumberOrTag,
 	) (GasUsed struct {
-		AccessList AccessList
-		Error      string
-		GasUsed    Uint
+		AccessList AccessList `json:"accessList"`
+		Error      string     `json:"error"`
+		GasUsed    Uint       `json:"gasUsed"`
 	})
 	// Returns the current price per gas in wei.
 	EthGasPrice() (GasPrice Uint)
@@ -86,9 +86,9 @@ type GoOpenRPCService interface {
 		NewestBlock BlockNumberOrTag,
 		RewardPercentiles []float64,
 	) (FeeHistoryResult struct {
-		BaseFeePerGas []Uint
-		OldestBlock   Uint
-		Reward        [][]Uint
+		BaseFeePerGas []Uint   `json:"baseFeePerGas"`
+		OldestBlock   Uint     `json:"oldestBlock"`
+		Reward        [][]Uint `json:"reward"`
 	})
 	// Creates a filter object, based on filter options, to notify when the state changes (logs).
 	EthNewFilter(
@@ -196,47 +196,47 @@ type GoOpenRPCService interface {
 }
 type AccessList []AccessListEntry
 type AccessListEntry struct {
-	Address     Address
-	StorageKeys []Hash32
+	Address     Address  `json:"address"`
+	StorageKeys []Hash32 `json:"storageKeys"`
 }
 type AccountProof struct {
-	AccountProof []Bytes
-	Address      Address
-	Balance      Uint256
-	CodeHash     Hash32
-	Nonce        Uint64
-	StorageHash  Hash32
-	StorageProof []StorageProof
+	AccountProof []Bytes        `json:"accountProof"`
+	Address      Address        `json:"address"`
+	Balance      Uint256        `json:"balance"`
+	CodeHash     Hash32         `json:"codeHash"`
+	Nonce        Uint64         `json:"nonce"`
+	StorageHash  Hash32         `json:"storageHash"`
+	StorageProof []StorageProof `json:"storageProof"`
 }
 type BadBlock struct {
-	Block Bytes
-	Hash  Hash32
-	Rlp   Bytes
+	Block Bytes  `json:"block"`
+	Hash  Hash32 `json:"hash"`
+	Rlp   Bytes  `json:"rlp"`
 }
 type Block struct {
-	BaseFeePerGas   Uint
-	Difficulty      Bytes
-	ExtraData       Bytes
-	GasLimit        Uint
-	GasUsed         Uint
-	LogsBloom       Bytes256
-	Miner           Address
-	MixHash         Hash32
-	Nonce           Bytes8
-	Number          Uint
-	ParentHash      Hash32
-	ReceiptsRoot    Hash32
-	Sha3Uncles      Hash32
-	Size            Uint
-	StateRoot       Hash32
-	Timestamp       Uint
-	TotalDifficulty Uint
+	BaseFeePerGas   Uint     `json:"baseFeePerGas"`
+	Difficulty      Bytes    `json:"difficulty"`
+	ExtraData       Bytes    `json:"extraData"`
+	GasLimit        Uint     `json:"gasLimit"`
+	GasUsed         Uint     `json:"gasUsed"`
+	LogsBloom       Bytes256 `json:"logsBloom"`
+	Miner           Address  `json:"miner"`
+	MixHash         Hash32   `json:"mixHash"`
+	Nonce           Bytes8   `json:"nonce"`
+	Number          Uint     `json:"number"`
+	ParentHash      Hash32   `json:"parentHash"`
+	ReceiptsRoot    Hash32   `json:"receiptsRoot"`
+	Sha3Uncles      Hash32   `json:"sha3Uncles"`
+	Size            Uint     `json:"size"`
+	StateRoot       Hash32   `json:"stateRoot"`
+	Timestamp       Uint     `json:"timestamp"`
+	TotalDifficulty Uint     `json:"totalDifficulty"`
 	Transactions    struct {
 		Option0 []Hash32
 		Option1 []TransactionSigned
-	}
-	TransactionsRoot Hash32
-	Uncles           []Hash32
+	} `json:"transactions"`
+	TransactionsRoot Hash32   `json:"transactionsRoot"`
+	Uncles           []Hash32 `json:"uncles"`
 }
 type BlockNumberOrTag struct {
 	Option0 Uint
@@ -247,10 +247,10 @@ type Filter struct {
 	Address struct {
 		Option0 Address
 		Option1 Addresses
-	}
-	FromBlock Uint
-	ToBlock   Uint
-	Topics    FilterTopics
+	} `json:"address"`
+	FromBlock Uint         `json:"fromBlock"`
+	ToBlock   Uint         `json:"toBlock"`
+	Topics    FilterTopics `json:"topics"`
 }
 type FilterResults struct {
 	Option0 []Hash32
@@ -264,102 +264,102 @@ type FilterTopic struct {
 }
 type FilterTopics []FilterTopic
 type GenericTransaction struct {
-	AccessList           AccessList
-	ChainId              Uint
-	From                 Address
-	Gas                  Uint
-	GasPrice             Uint
-	Input                Bytes
-	MaxFeePerGas         Uint
-	MaxPriorityFeePerGas Uint
-	Nonce                Uint
-	To                   Address
-	Type                 Byte
-	Value                Uint
+	AccessList           AccessList `json:"accessList"`
+	ChainId              Uint       `json:"chainId"`
+	From                 Address    `json:"from"`
+	Gas                  Uint       `json:"gas"`
+	GasPrice             Uint       `json:"gasPrice"`
+	Input                Bytes      `json:"input"`
+	MaxFeePerGas         Uint       `json:"maxFeePerGas"`
+	MaxPriorityFeePerGas Uint       `json:"maxPriorityFeePerGas"`
+	Nonce                Uint       `json:"nonce"`
+	To                   Address    `json:"to"`
+	Type                 Byte       `json:"type"`
+	Value                Uint       `json:"value"`
 }
 type Log struct {
-	Address          Address
-	BlockHash        Hash32
-	BlockNumber      Uint
-	Data             Bytes
-	LogIndex         Uint
-	Removed          bool
-	Topics           []Bytes32
-	TransactionHash  Hash32
-	TransactionIndex Uint
+	Address          Address   `json:"address"`
+	BlockHash        Hash32    `json:"blockHash"`
+	BlockNumber      Uint      `json:"blockNumber"`
+	Data             Bytes     `json:"data"`
+	LogIndex         Uint      `json:"logIndex"`
+	Removed          bool      `json:"removed"`
+	Topics           []Bytes32 `json:"topics"`
+	TransactionHash  Hash32    `json:"transactionHash"`
+	TransactionIndex Uint      `json:"transactionIndex"`
 }
 type ReceiptInfo struct {
-	BlockHash       Hash32
-	BlockNumber     Uint
+	BlockHash       Hash32 `json:"blockHash"`
+	BlockNumber     Uint   `json:"blockNumber"`
 	ContractAddress struct {
 		Option0 Address
 		Option1 struct{}
-	}
-	CumulativeGasUsed Uint
-	EffectiveGasPrice Uint
-	From              Address
-	GasUsed           Uint
-	Logs              []Log
-	LogsBloom         Bytes256
-	Root              Bytes32
-	Status            Uint
-	To                Address
-	TransactionHash   Hash32
-	TransactionIndex  Uint
+	} `json:"contractAddress"`
+	CumulativeGasUsed Uint     `json:"cumulativeGasUsed"`
+	EffectiveGasPrice Uint     `json:"effectiveGasPrice"`
+	From              Address  `json:"from"`
+	GasUsed           Uint     `json:"gasUsed"`
+	Logs              []Log    `json:"logs"`
+	LogsBloom         Bytes256 `json:"logsBloom"`
+	Root              Bytes32  `json:"root"`
+	Status            Uint     `json:"status"`
+	To                Address  `json:"to"`
+	TransactionHash   Hash32   `json:"transactionHash"`
+	TransactionIndex  Uint     `json:"transactionIndex"`
 }
 type StorageProof struct {
-	Key   Hash32
-	Proof []Bytes
-	Value Uint256
+	Key   Hash32  `json:"key"`
+	Proof []Bytes `json:"proof"`
+	Value Uint256 `json:"value"`
 }
 type SyncingStatus struct {
 	Option0 struct {
-		CurrentBlock  Uint
-		HighestBlock  Uint
-		StartingBlock Uint
+		CurrentBlock  Uint `json:"currentBlock"`
+		HighestBlock  Uint `json:"highestBlock"`
+		StartingBlock Uint `json:"startingBlock"`
 	}
 	Option1 bool
 }
 type Transaction1559Signed struct {
 }
 type Transaction1559Unsigned struct {
-	AccessList           AccessList
-	ChainId              Uint
-	Gas                  Uint
-	Input                Bytes
-	MaxFeePerGas         Uint
-	MaxPriorityFeePerGas Uint
-	Nonce                Uint
-	To                   Address
-	Type                 Byte
-	Value                Uint
+	AccessList           AccessList `json:"accessList"`
+	ChainId              Uint       `json:"chainId"`
+	Gas                  Uint       `json:"gas"`
+	Input                Bytes      `json:"input"`
+	MaxFeePerGas         Uint       `json:"maxFeePerGas"`
+	MaxPriorityFeePerGas Uint       `json:"maxPriorityFeePerGas"`
+	Nonce                Uint       `json:"nonce"`
+	To                   Address    `json:"to"`
+	Type                 Byte       `json:"type"`
+	Value                Uint       `json:"value"`
 }
 type Transaction2930Signed struct {
 }
 type Transaction2930Unsigned struct {
-	AccessList AccessList
-	ChainId    Uint
-	Gas        Uint
-	GasPrice   Uint
-	Input      Bytes
-	Nonce      Uint
-	To         Address
-	Type       Byte
-	Value      Uint
+	AccessList AccessList `json:"accessList"`
+	ChainId    Uint       `json:"chainId"`
+	Gas        Uint       `json:"gas"`
+	GasPrice   Uint       `json:"gasPrice"`
+	Input      Bytes      `json:"input"`
+	Nonce      Uint       `json:"nonce"`
+	To         Address    `json:"to"`
+	Type       Byte       `json:"type"`
+	Value      Uint       `json:"value"`
 }
 type TransactionInfo struct {
 }
 type TransactionLegacySigned struct {
 }
 type TransactionLegacyUnsigned struct {
-	ChainId  Uint
-	Gas      Uint
-	GasPrice Uint
-	Input    Bytes
-	Nonce    Uint
-	To       Address
-	Type     Byte
-	Value    Uint
+	ChainId  Uint    `json:"chainId"`
+	Gas      Uint    `json:"gas"`
+	GasPrice Uint    `json:"gasPrice"`
+	Input    Bytes   `json:"input"`
+	Nonce    Uint    `json:"nonce"`
+	To       Address `json:"to"`
+	Type     Byte    `json:"type"`
+	Value    Uint    `json:"value"`
 }
 type TransactionSigned struct {
 	Option0 Transaction1559Signed

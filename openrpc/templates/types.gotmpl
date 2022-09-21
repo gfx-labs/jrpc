@@ -8,7 +8,7 @@ package main
     {{- else if eq .Type "object" -}}
         struct {
             {{range $name, $property := .Properties -}}
-                {{camelCase $name}} {{template "schemaType" $property}}
+                {{camelCase $name}} {{template "schemaType" $property}} `json:"{{$name}}"`
             {{end -}}
         }
     {{- else if eq .Type "array" -}}
