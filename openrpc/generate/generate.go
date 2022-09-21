@@ -3,12 +3,14 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"gfx.cafe/open/jrpc/openrpc/types"
-	"github.com/iancoleman/strcase"
 	"go/format"
 	"os"
+	"path"
 	"path/filepath"
 	"text/template"
+
+	"gfx.cafe/open/jrpc/openrpc/types"
+	"github.com/iancoleman/strcase"
 )
 
 var defaultTemplates = []string{
@@ -41,37 +43,29 @@ var funcs = template.FuncMap{
 	},
 }
 
-func Generate(rpc *types.OpenRPC, templates []string, output string) error {
-	if len(templates) == 0 {
-		templates = defaultTemplates
-	}
+func Generate(rpc *types.OpenRPC, ts string, output string) error {
 
 	var wr bytes.Buffer
-	for _, tmpl := range templates {
-		name := filepath.Base(tmpl)
+	t, err := template.New(path.Base(ts)).Funcs(funcs).ParseFiles(ts)
+	if err != nil {
+		return err
+	}
 
-		t, err := template.New(name).Funcs(funcs).ParseFiles(tmpl)
-		if err != nil {
-			return err
-		}
+	err = t.Execute(&wr, rpc)
+	if err != nil {
+		return err
+	}
 
-		err = t.Execute(&wr, rpc)
-		if err != nil {
-			return err
-		}
+	var fmtd []byte
+	fmtd, err = format.Source(wr.Bytes())
+	if err != nil {
+		return err
+	}
+	wr.Reset()
 
-		var fmtd []byte
-		fmtd, err = format.Source(wr.Bytes())
-		if err != nil {
-			return err
-		}
-		wr.Reset()
-
-		name = name[:len(name)-len(filepath.Ext(name))]
-		err = os.WriteFile(filepath.Join(output, name+".go"), fmtd, 0777)
-		if err != nil {
-			return err
-		}
+	err = os.WriteFile(output, fmtd, 0777)
+	if err != nil {
+		return err
 	}
 
 	return nil
