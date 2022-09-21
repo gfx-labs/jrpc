@@ -1,10 +1,10 @@
 {
+ "package": "main",
  "openrpc": "1.0.0",
  "info": {
   "title": "gfx.cafe/open/jrpc/openrpc",
   "version": "0.0.0"
  },
- "servers": [],
  "methods": [
   {
    "name": "debug_getRawHeader",
@@ -14,14 +14,18 @@
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Header RLP",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -33,14 +37,18 @@
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Block RLP",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -52,14 +60,18 @@
      "name": "Transaction hash",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "EIP-2718 binary-encoded transaction",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -71,7 +83,9 @@
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
@@ -80,9 +94,14 @@
     "schema": {
      "type": "array",
      "title": "Receipt array",
-     "items": {
-      "$ref": "#/components/schemas/bytes"
-     }
+     "items": [
+      {
+       "$ref": "#/components/schemas/bytes",
+       "title": "",
+       "pattern": ""
+      }
+     ],
+     "pattern": ""
     }
    }
   },
@@ -95,9 +114,14 @@
     "schema": {
      "type": "array",
      "title": "Bad block array",
-     "items": {
-      "$ref": "#/components/schemas/BadBlock"
-     }
+     "items": [
+      {
+       "$ref": "#/components/schemas/BadBlock",
+       "title": "",
+       "pattern": ""
+      }
+     ],
+     "pattern": ""
     }
    }
   },
@@ -109,7 +133,9 @@
      "name": "Block hash",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     },
     {
@@ -117,14 +143,17 @@
      "required": true,
      "schema": {
       "type": "boolean",
-      "title": "hydrated"
+      "title": "hydrated",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Block information",
     "schema": {
-     "$ref": "#/components/schemas/Block"
+     "$ref": "#/components/schemas/Block",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -136,7 +165,9 @@
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     },
     {
@@ -144,14 +175,17 @@
      "required": true,
      "schema": {
       "type": "boolean",
-      "title": "hydrated"
+      "title": "hydrated",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Block information",
     "schema": {
-     "$ref": "#/components/schemas/Block"
+     "$ref": "#/components/schemas/Block",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -161,15 +195,20 @@
    "params": [
     {
      "name": "Block hash",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction count",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -179,15 +218,20 @@
    "params": [
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction count",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -197,15 +241,20 @@
    "params": [
     {
      "name": "Block hash",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Uncle count",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -215,15 +264,20 @@
    "params": [
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Uncle count",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -234,7 +288,9 @@
    "result": {
     "name": "Chain ID",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -245,7 +301,9 @@
    "result": {
     "name": "Syncing status",
     "schema": {
-     "$ref": "#/components/schemas/SyncingStatus"
+     "$ref": "#/components/schemas/SyncingStatus",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -256,7 +314,9 @@
    "result": {
     "name": "Coinbase address",
     "schema": {
-     "$ref": "#/components/schemas/address"
+     "$ref": "#/components/schemas/address",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -269,9 +329,14 @@
     "schema": {
      "type": "array",
      "title": "Accounts",
-     "items": {
-      "$ref": "#/components/schemas/address"
-     }
+     "items": [
+      {
+       "$ref": "#/components/schemas/address",
+       "title": "",
+       "pattern": ""
+      }
+     ],
+     "pattern": ""
     }
    }
   },
@@ -282,7 +347,9 @@
    "result": {
     "name": "Block number",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -294,20 +361,27 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/GenericTransaction"
+      "$ref": "#/components/schemas/GenericTransaction",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Return data",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -319,20 +393,27 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/GenericTransaction"
+      "$ref": "#/components/schemas/GenericTransaction",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Gas used",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -344,13 +425,18 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/GenericTransaction"
+      "$ref": "#/components/schemas/GenericTransaction",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
@@ -361,18 +447,22 @@
      "title": "Access list result",
      "properties": {
       "accessList": {
+       "$ref": "#/components/schemas/AccessList",
        "title": "accessList",
-       "$ref": "#/components/schemas/AccessList"
+       "pattern": ""
       },
       "error": {
        "type": "string",
-       "title": "error"
+       "title": "error",
+       "pattern": ""
       },
       "gasUsed": {
+       "$ref": "#/components/schemas/uint",
        "title": "Gas used",
-       "$ref": "#/components/schemas/uint"
+       "pattern": ""
       }
-     }
+     },
+     "pattern": ""
     }
    }
   },
@@ -383,8 +473,9 @@
    "result": {
     "name": "Gas price",
     "schema": {
+     "$ref": "#/components/schemas/uint",
      "title": "Gas price",
-     "$ref": "#/components/schemas/uint"
+     "pattern": ""
     }
    }
   },
@@ -395,52 +486,54 @@
    "result": {
     "name": "Max priority fee per gas",
     "schema": {
+     "$ref": "#/components/schemas/uint",
      "title": "Max priority fee per gas",
-     "$ref": "#/components/schemas/uint"
+     "pattern": ""
     }
    }
   },
   {
    "name": "eth_feeHistory",
    "summary": "Transaction fee history",
-   "description": "Returns transaction base fee per gas and effective priority fee per gas for the requested/supported block range.",
    "params": [
     {
      "name": "blockCount",
-     "description": "Requested range of blocks. Clients will return less than the requested range if not all blocks are available.",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "newestBlock",
-     "description": "Highest block of the requested range.",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "rewardPercentiles",
-     "description": "A monotonically increasing list of percentile values. For each block in the requested range, the transactions will be sorted in ascending order by effective tip per gas and the coresponding effective tip for the percentile will be determined, accounting for gas consumed.",
      "required": true,
      "schema": {
       "type": "array",
       "title": "rewardPercentiles",
-      "items": {
-       "description": "Floating point value between 0 and 100.",
-       "type": "number",
-       "title": "rewardPercentile"
-      }
+      "items": [
+       {
+        "type": "number",
+        "title": "rewardPercentile",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "feeHistoryResult",
-    "description": "Fee history for the returned block range. This can be a subsection of the requested range if not all blocks are available.",
     "schema": {
-     "description": "Fee history results.",
      "type": "object",
      "title": "feeHistoryResults",
      "required": [
@@ -450,34 +543,43 @@
      ],
      "properties": {
       "baseFeePerGas": {
-       "description": "An array of block base fees per gas. This includes the next block after the newest of the returned range, because this value can be derived from the newest block. Zeroes are returned for pre-EIP-1559 blocks.",
        "type": "array",
        "title": "baseFeePerGasArray",
-       "items": {
-        "$ref": "#/components/schemas/uint"
-       }
+       "items": [
+        {
+         "$ref": "#/components/schemas/uint",
+         "title": "",
+         "pattern": ""
+        }
+       ],
+       "pattern": ""
       },
       "oldestBlock": {
-       "description": "Lowest number block of returned range.",
+       "$ref": "#/components/schemas/uint",
        "title": "oldestBlock",
-       "$ref": "#/components/schemas/uint"
+       "pattern": ""
       },
       "reward": {
-       "description": "A two-dimensional array of effective priority fees per gas at the requested block percentiles.",
        "type": "array",
        "title": "rewardArray",
-       "items": {
-        "description": "An array of effective priority fee per gas data points from a single block. All zeroes are returned if the block is empty.",
-        "type": "array",
-        "title": "rewardPercentile",
-        "items": {
-         "description": "A given percentile sample of effective priority fees per gas from a single block in ascending order, weighted by gas used. Zeroes are returned if the block is empty.",
+       "items": [
+        {
+         "type": "array",
          "title": "rewardPercentile",
-         "$ref": "#/components/schemas/uint"
+         "items": [
+          {
+           "$ref": "#/components/schemas/uint",
+           "title": "rewardPercentile",
+           "pattern": ""
+          }
+         ],
+         "pattern": ""
         }
-       }
+       ],
+       "pattern": ""
       }
-     }
+     },
+     "pattern": ""
     }
    }
   },
@@ -487,15 +589,20 @@
    "params": [
     {
      "name": "Filter",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/Filter"
+      "$ref": "#/components/schemas/Filter",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Filter Identifier",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -506,7 +613,9 @@
    "result": {
     "name": "Filter Identifier",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -517,7 +626,9 @@
    "result": {
     "name": "Filter Identifier",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -527,15 +638,20 @@
    "params": [
     {
      "name": "Filter Identifier",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Success",
     "schema": {
-     "type": "boolean"
+     "type": "boolean",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -545,15 +661,20 @@
    "params": [
     {
      "name": "Filter Identifier",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Log objects",
     "schema": {
-     "$ref": "#/components/schemas/FilterResults"
+     "$ref": "#/components/schemas/FilterResults",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -563,15 +684,20 @@
    "params": [
     {
      "name": "Filter Identifier",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Log objects",
     "schema": {
-     "$ref": "#/components/schemas/FilterResults"
+     "$ref": "#/components/schemas/FilterResults",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -581,15 +707,20 @@
    "params": [
     {
      "name": "Filter",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/Filter"
+      "$ref": "#/components/schemas/Filter",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Log objects",
     "schema": {
-     "$ref": "#/components/schemas/FilterResults"
+     "$ref": "#/components/schemas/FilterResults",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -601,7 +732,8 @@
     "name": "Mining status",
     "schema": {
      "type": "boolean",
-     "title": "miningStatus"
+     "title": "miningStatus",
+     "pattern": ""
     }
    }
   },
@@ -612,8 +744,9 @@
    "result": {
     "name": "Mining status",
     "schema": {
+     "$ref": "#/components/schemas/uint",
      "title": "Hashrate",
-     "$ref": "#/components/schemas/uint"
+     "pattern": ""
     }
    }
   },
@@ -625,20 +758,25 @@
     "name": "Current work",
     "schema": {
      "type": "array",
+     "title": "",
      "items": [
       {
+       "$ref": "#/components/schemas/bytes32",
        "title": "Proof-of-work hash",
-       "$ref": "#/components/schemas/bytes32"
+       "pattern": ""
       },
       {
+       "$ref": "#/components/schemas/bytes32",
        "title": "seed hash",
-       "$ref": "#/components/schemas/bytes32"
+       "pattern": ""
       },
       {
+       "$ref": "#/components/schemas/bytes32",
        "title": "difficulty",
-       "$ref": "#/components/schemas/bytes32"
+       "pattern": ""
       }
-     ]
+     ],
+     "pattern": ""
     }
    }
   },
@@ -650,28 +788,36 @@
      "name": "nonce",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes8"
+      "$ref": "#/components/schemas/bytes8",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "hash",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes32"
+      "$ref": "#/components/schemas/bytes32",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "digest",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes32"
+      "$ref": "#/components/schemas/bytes32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Success",
     "schema": {
-     "type": "boolean"
+     "type": "boolean",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -683,21 +829,27 @@
      "name": "Hashrate",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes32"
+      "$ref": "#/components/schemas/bytes32",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "ID",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes32"
+      "$ref": "#/components/schemas/bytes32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Success",
     "schema": {
-     "type": "boolean"
+     "type": "boolean",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -709,21 +861,27 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Message",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes"
+      "$ref": "#/components/schemas/bytes",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Signature",
     "schema": {
-     "$ref": "#/components/schemas/bytes65"
+     "$ref": "#/components/schemas/bytes65",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -735,14 +893,18 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/GenericTransaction"
+      "$ref": "#/components/schemas/GenericTransaction",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Encoded transaction",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -754,20 +916,27 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Balance",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -779,27 +948,36 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Storage slot",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/uint256"
+      "$ref": "#/components/schemas/uint256",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Value",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -811,20 +989,27 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction count",
     "schema": {
-     "$ref": "#/components/schemas/uint"
+     "$ref": "#/components/schemas/uint",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -836,20 +1021,27 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Block",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Bytecode",
     "schema": {
-     "$ref": "#/components/schemas/bytes"
+     "$ref": "#/components/schemas/bytes",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -861,7 +1053,9 @@
      "name": "Address",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      }
     },
     {
@@ -870,23 +1064,32 @@
      "schema": {
       "type": "array",
       "title": "Storage keys",
-      "items": {
-       "$ref": "#/components/schemas/hash32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/hash32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
     },
     {
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Account",
     "schema": {
-     "$ref": "#/components/schemas/AccountProof"
+     "$ref": "#/components/schemas/AccountProof",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -898,14 +1101,18 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/GenericTransaction"
+      "$ref": "#/components/schemas/GenericTransaction",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction hash",
     "schema": {
-     "$ref": "#/components/schemas/hash32"
+     "$ref": "#/components/schemas/hash32",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -917,14 +1124,18 @@
      "name": "Transaction",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/bytes"
+      "$ref": "#/components/schemas/bytes",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction hash",
     "schema": {
-     "$ref": "#/components/schemas/hash32"
+     "$ref": "#/components/schemas/hash32",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -936,14 +1147,18 @@
      "name": "Transaction hash",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction information",
     "schema": {
-     "$ref": "#/components/schemas/TransactionInfo"
+     "$ref": "#/components/schemas/TransactionInfo",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -955,21 +1170,27 @@
      "name": "Block hash",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Transaction index",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction information",
     "schema": {
-     "$ref": "#/components/schemas/TransactionInfo"
+     "$ref": "#/components/schemas/TransactionInfo",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -981,21 +1202,27 @@
      "name": "Block",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/BlockNumberOrTag"
+      "$ref": "#/components/schemas/BlockNumberOrTag",
+      "title": "",
+      "pattern": ""
      }
     },
     {
      "name": "Transaction index",
      "required": true,
      "schema": {
-      "$ref": "#/components/schemas/uint"
+      "$ref": "#/components/schemas/uint",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Transaction information",
     "schema": {
-     "$ref": "#/components/schemas/TransactionInfo"
+     "$ref": "#/components/schemas/TransactionInfo",
+     "title": "",
+     "pattern": ""
     }
    }
   },
@@ -1005,42 +1232,62 @@
    "params": [
     {
      "name": "Transaction hash",
+     "required": false,
      "schema": {
-      "$ref": "#/components/schemas/hash32"
+      "$ref": "#/components/schemas/hash32",
+      "title": "",
+      "pattern": ""
      }
     }
    ],
    "result": {
     "name": "Receipt Information",
     "schema": {
-     "$ref": "#/components/schemas/ReceiptInfo"
+     "$ref": "#/components/schemas/ReceiptInfo",
+     "title": "",
+     "pattern": ""
     }
    }
   }
  ],
+ "servers": [],
  "components": {
   "schemas": {
    "AccessList": {
     "type": "array",
     "title": "Access list",
-    "items": {
-     "$ref": "#/components/schemas/AccessListEntry"
-    }
+    "items": [
+     {
+      "$ref": "#/components/schemas/AccessListEntry",
+      "title": "",
+      "pattern": ""
+     }
+    ],
+    "pattern": ""
    },
    "AccessListEntry": {
     "type": "object",
     "title": "Access list entry",
     "properties": {
      "address": {
-      "$ref": "#/components/schemas/address"
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
      },
      "storageKeys": {
       "type": "array",
-      "items": {
-       "$ref": "#/components/schemas/hash32"
-      }
+      "title": "",
+      "items": [
+       {
+        "$ref": "#/components/schemas/hash32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "AccountProof": {
     "type": "object",
@@ -1058,38 +1305,54 @@
      "accountProof": {
       "type": "array",
       "title": "accountProof",
-      "items": {
-       "$ref": "#/components/schemas/bytes"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/bytes",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      "address": {
+      "$ref": "#/components/schemas/address",
       "title": "address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "balance": {
+      "$ref": "#/components/schemas/uint256",
       "title": "balance",
-      "$ref": "#/components/schemas/uint256"
+      "pattern": ""
      },
      "codeHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "codeHash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/uint64",
       "title": "nonce",
-      "$ref": "#/components/schemas/uint64"
+      "pattern": ""
      },
      "storageHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "storageHash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "storageProof": {
       "type": "array",
       "title": "storageProof",
-      "items": {
-       "$ref": "#/components/schemas/StorageProof"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/StorageProof",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "BadBlock": {
     "type": "object",
@@ -1101,21 +1364,24 @@
     ],
     "properties": {
      "block": {
+      "$ref": "#/components/schemas/bytes",
       "title": "Block",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "hash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "rlp": {
+      "$ref": "#/components/schemas/bytes",
       "title": "RLP",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "Block": {
-    "id": "Block",
     "type": "object",
     "title": "Block object",
     "required": [
@@ -1139,119 +1405,157 @@
     ],
     "properties": {
      "baseFeePerGas": {
+      "$ref": "#/components/schemas/uint",
       "title": "Base fee per gas",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "difficulty": {
+      "$ref": "#/components/schemas/bytes",
       "title": "Difficulty",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "extraData": {
+      "$ref": "#/components/schemas/bytes",
       "title": "Extra data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "gasLimit": {
+      "$ref": "#/components/schemas/uint",
       "title": "Gas limit",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gasUsed": {
+      "$ref": "#/components/schemas/uint",
       "title": "Gas used",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "logsBloom": {
+      "$ref": "#/components/schemas/bytes256",
       "title": "Bloom filter",
-      "$ref": "#/components/schemas/bytes256"
+      "pattern": ""
      },
      "miner": {
+      "$ref": "#/components/schemas/address",
       "title": "Coinbase",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "mixHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Mix hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/bytes8",
       "title": "Nonce",
-      "$ref": "#/components/schemas/bytes8"
+      "pattern": ""
      },
      "number": {
+      "$ref": "#/components/schemas/uint",
       "title": "Number",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "parentHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Parent block hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "receiptsRoot": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Receipts root",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "sha3Uncles": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Ommers hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "size": {
+      "$ref": "#/components/schemas/uint",
       "title": "Block size",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "stateRoot": {
+      "$ref": "#/components/schemas/hash32",
       "title": "State root",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "timestamp": {
+      "$ref": "#/components/schemas/uint",
       "title": "Timestamp",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "totalDifficulty": {
+      "$ref": "#/components/schemas/uint",
       "title": "Total difficult",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "transactions": {
+      "title": "",
       "anyOf": [
        {
         "type": "array",
         "title": "Transaction hashes",
-        "items": {
-         "$ref": "#/components/schemas/hash32"
-        }
+        "items": [
+         {
+          "$ref": "#/components/schemas/hash32",
+          "title": "",
+          "pattern": ""
+         }
+        ],
+        "pattern": ""
        },
        {
         "type": "array",
         "title": "Full transactions",
-        "items": {
-         "$ref": "#/components/schemas/TransactionSigned"
-        }
+        "items": [
+         {
+          "$ref": "#/components/schemas/TransactionSigned",
+          "title": "",
+          "pattern": ""
+         }
+        ],
+        "pattern": ""
        }
-      ]
+      ],
+      "pattern": ""
      },
      "transactionsRoot": {
+      "$ref": "#/components/schemas/hash32",
       "title": "Transactions root",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "uncles": {
       "type": "array",
       "title": "Uncles",
-      "items": {
-       "$ref": "#/components/schemas/hash32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/hash32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "BlockNumberOrTag": {
     "title": "Block number or tag",
     "oneOf": [
      {
+      "$ref": "#/components/schemas/uint",
       "title": "Block number",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      {
+      "$ref": "#/components/schemas/BlockTag",
       "title": "Block tag",
-      "$ref": "#/components/schemas/BlockTag"
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "BlockTag": {
-    "description": "`earliest`: The lowest numbered block the client has available; `finalized`: The most recent crypto-economically secure block, cannot be re-orged outside of manual intervention driven by community coordination; `safe`: The most recent block that is safe from re-orgs under honest majority and certain synchronicity assumptions; `latest`: The most recent block in the canonical chain observed by the client, this block may be re-orged out of the canonical chain even under healthy/normal conditions; `pending`: A sample next block built by the client on top of `latest` and containing the set of transactions usually taken from local mempool. Before the merge transition is finalized, any call querying for `finalized` or `safe` block MUST be responded to with `-39001: Unknown block` error",
     "type": "string",
     "title": "Block tag",
     "enum": [
@@ -1260,7 +1564,8 @@
      "safe",
      "latest",
      "pending"
-    ]
+    ],
+    "pattern": ""
    },
    "Filter": {
     "type": "object",
@@ -1270,28 +1575,35 @@
       "title": "Address(es)",
       "oneOf": [
        {
+        "$ref": "#/components/schemas/address",
         "title": "Address",
-        "$ref": "#/components/schemas/address"
+        "pattern": ""
        },
        {
+        "$ref": "#/components/schemas/addresses",
         "title": "Addresses",
-        "$ref": "#/components/schemas/addresses"
+        "pattern": ""
        }
-      ]
+      ],
+      "pattern": ""
      },
      "fromBlock": {
+      "$ref": "#/components/schemas/uint",
       "title": "from block",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "toBlock": {
+      "$ref": "#/components/schemas/uint",
       "title": "to block",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "topics": {
+      "$ref": "#/components/schemas/FilterTopics",
       "title": "Topics",
-      "$ref": "#/components/schemas/FilterTopics"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "FilterResults": {
     "title": "Filter results",
@@ -1299,111 +1611,148 @@
      {
       "type": "array",
       "title": "new block hashes",
-      "items": {
-       "$ref": "#/components/schemas/hash32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/hash32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      {
       "type": "array",
       "title": "new transaction hashes",
-      "items": {
-       "$ref": "#/components/schemas/hash32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/hash32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      {
       "type": "array",
       "title": "new logs",
-      "items": {
-       "$ref": "#/components/schemas/Log"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/Log",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "FilterTopic": {
     "title": "Filter Topic List Entry",
     "oneOf": [
      {
       "type": "null",
-      "title": "Any Topic Match"
+      "title": "Any Topic Match",
+      "pattern": ""
      },
      {
+      "$ref": "#/components/schemas/bytes32",
       "title": "Single Topic Match",
-      "$ref": "#/components/schemas/bytes32"
+      "pattern": ""
      },
      {
       "type": "array",
       "title": "Multiple Topic Match",
-      "items": {
-       "$ref": "#/components/schemas/bytes32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/bytes32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "FilterTopics": {
     "type": "array",
     "title": "Filter Topics",
-    "items": {
-     "$ref": "#/components/schemas/FilterTopic"
-    }
+    "items": [
+     {
+      "$ref": "#/components/schemas/FilterTopic",
+      "title": "",
+      "pattern": ""
+     }
+    ],
+    "pattern": ""
    },
    "GenericTransaction": {
     "type": "object",
     "title": "Transaction object generic to all types",
     "properties": {
      "accessList": {
-      "description": "EIP-2930 access list",
+      "$ref": "#/components/schemas/AccessList",
       "title": "accessList",
-      "$ref": "#/components/schemas/AccessList"
+      "pattern": ""
      },
      "chainId": {
-      "description": "Chain ID that this transaction is valid on.",
+      "$ref": "#/components/schemas/uint",
       "title": "chainId",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "from": {
+      "$ref": "#/components/schemas/address",
       "title": "from address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "gas": {
+      "$ref": "#/components/schemas/uint",
       "title": "gas limit",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gasPrice": {
-      "description": "The gas price willing to be paid by the sender in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "gas price",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "input": {
+      "$ref": "#/components/schemas/bytes",
       "title": "input data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "maxFeePerGas": {
-      "description": "The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "max fee per gas",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "maxPriorityFeePerGas": {
-      "description": "Maximum fee per gas the sender is willing to pay to miners in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "max priority fee per gas",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/uint",
       "title": "nonce",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "to": {
+      "$ref": "#/components/schemas/address",
       "title": "to address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "type": {
+      "$ref": "#/components/schemas/byte",
       "title": "type",
-      "$ref": "#/components/schemas/byte"
+      "pattern": ""
      },
      "value": {
+      "$ref": "#/components/schemas/uint",
       "title": "value",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "Log": {
     "type": "object",
@@ -1413,45 +1762,59 @@
     ],
     "properties": {
      "address": {
+      "$ref": "#/components/schemas/address",
       "title": "address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "blockHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "block hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "blockNumber": {
+      "$ref": "#/components/schemas/uint",
       "title": "block number",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "data": {
+      "$ref": "#/components/schemas/bytes",
       "title": "data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "logIndex": {
+      "$ref": "#/components/schemas/uint",
       "title": "log index",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "removed": {
       "type": "boolean",
-      "title": "removed"
+      "title": "removed",
+      "pattern": ""
      },
      "topics": {
       "type": "array",
       "title": "topics",
-      "items": {
-       "$ref": "#/components/schemas/bytes32"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/bytes32",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      "transactionHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "transaction hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "transactionIndex": {
+      "$ref": "#/components/schemas/uint",
       "title": "transaction index",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "ReceiptInfo": {
     "type": "object",
@@ -1470,80 +1833,95 @@
     ],
     "properties": {
      "blockHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "block hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "blockNumber": {
+      "$ref": "#/components/schemas/uint",
       "title": "block number",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "contractAddress": {
-      "description": "The contract address created, if the transaction was a contract creation, otherwise null.",
       "title": "contract address",
       "oneOf": [
        {
-        "$ref": "#/components/schemas/address"
+        "$ref": "#/components/schemas/address",
+        "title": "",
+        "pattern": ""
        },
        {
         "type": "null",
-        "name": null
+        "title": "",
+        "pattern": ""
        }
-      ]
+      ],
+      "pattern": ""
      },
      "cumulativeGasUsed": {
-      "description": "The sum of gas used by this transaction and all preceding transactions in the same block.",
+      "$ref": "#/components/schemas/uint",
       "title": "cumulative gas used",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "effectiveGasPrice": {
-      "description": "The actual value per gas deducted from the senders account. Before EIP-1559, this is equal to the transaction's gas price. After, it is equal to baseFeePerGas + min(maxFeePerGas - baseFeePerGas, maxPriorityFeePerGas).",
+      "$ref": "#/components/schemas/uint",
       "title": "effective gas price",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "from": {
+      "$ref": "#/components/schemas/address",
       "title": "from",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "gasUsed": {
-      "description": "The amount of gas used for this specific transaction alone.",
+      "$ref": "#/components/schemas/uint",
       "title": "gas used",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "logs": {
       "type": "array",
       "title": "logs",
-      "items": {
-       "$ref": "#/components/schemas/Log"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/Log",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      "logsBloom": {
+      "$ref": "#/components/schemas/bytes256",
       "title": "logs bloom",
-      "$ref": "#/components/schemas/bytes256"
+      "pattern": ""
      },
      "root": {
-      "description": "The post-transaction state root. Only specified for transactions included before the Byzantium upgrade.",
+      "$ref": "#/components/schemas/bytes32",
       "title": "state root",
-      "$ref": "#/components/schemas/bytes32"
+      "pattern": ""
      },
      "status": {
-      "description": "Either 1 (success) or 0 (failure). Only specified for transactions included after the Byzantium upgrade.",
+      "$ref": "#/components/schemas/uint",
       "title": "status",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "to": {
-      "description": "Address of the receiver or null in a contract creation transaction.",
+      "$ref": "#/components/schemas/address",
       "title": "to",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "transactionHash": {
+      "$ref": "#/components/schemas/hash32",
       "title": "transaction hash",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "transactionIndex": {
+      "$ref": "#/components/schemas/uint",
       "title": "transaction index",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "StorageProof": {
     "type": "object",
@@ -1555,21 +1933,29 @@
     ],
     "properties": {
      "key": {
+      "$ref": "#/components/schemas/hash32",
       "title": "key",
-      "$ref": "#/components/schemas/hash32"
+      "pattern": ""
      },
      "proof": {
       "type": "array",
       "title": "proof",
-      "items": {
-       "$ref": "#/components/schemas/bytes"
-      }
+      "items": [
+       {
+        "$ref": "#/components/schemas/bytes",
+        "title": "",
+        "pattern": ""
+       }
+      ],
+      "pattern": ""
      },
      "value": {
+      "$ref": "#/components/schemas/uint256",
       "title": "value",
-      "$ref": "#/components/schemas/uint256"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "SyncingStatus": {
     "title": "Syncing status",
@@ -1579,32 +1965,39 @@
       "title": "Syncing progress",
       "properties": {
        "currentBlock": {
+        "$ref": "#/components/schemas/uint",
         "title": "Current block",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "highestBlock": {
+        "$ref": "#/components/schemas/uint",
         "title": "Highest block",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "startingBlock": {
+        "$ref": "#/components/schemas/uint",
         "title": "Starting block",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        }
-      }
+      },
+      "pattern": ""
      },
      {
-      "description": "Should always return false if not syncing.",
       "type": "boolean",
-      "title": "Not syncing"
+      "title": "Not syncing",
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "Transaction1559Signed": {
     "type": "object",
     "title": "Signed 1559 Transaction",
     "allOf": [
      {
-      "$ref": "#/components/schemas/Transaction1559Unsigned"
+      "$ref": "#/components/schemas/Transaction1559Unsigned",
+      "title": "",
+      "pattern": ""
      },
      {
       "title": "EIP-1559 transaction signature properties.",
@@ -1615,21 +2008,25 @@
       ],
       "properties": {
        "r": {
+        "$ref": "#/components/schemas/uint",
         "title": "r",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "s": {
+        "$ref": "#/components/schemas/uint",
         "title": "s",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "yParity": {
-        "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.",
+        "$ref": "#/components/schemas/uint",
         "title": "yParity",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        }
-      }
+      },
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "Transaction1559Unsigned": {
     "type": "object",
@@ -1647,57 +2044,66 @@
     ],
     "properties": {
      "accessList": {
-      "description": "EIP-2930 access list",
+      "$ref": "#/components/schemas/AccessList",
       "title": "accessList",
-      "$ref": "#/components/schemas/AccessList"
+      "pattern": ""
      },
      "chainId": {
-      "description": "Chain ID that this transaction is valid on.",
+      "$ref": "#/components/schemas/uint",
       "title": "chainId",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gas": {
+      "$ref": "#/components/schemas/uint",
       "title": "gas limit",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "input": {
+      "$ref": "#/components/schemas/bytes",
       "title": "input data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "maxFeePerGas": {
-      "description": "The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "max fee per gas",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "maxPriorityFeePerGas": {
-      "description": "Maximum fee per gas the sender is willing to pay to miners in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "max priority fee per gas",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/uint",
       "title": "nonce",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "to": {
+      "$ref": "#/components/schemas/address",
       "title": "to address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "type": {
+      "$ref": "#/components/schemas/byte",
       "title": "type",
-      "$ref": "#/components/schemas/byte"
+      "pattern": ""
      },
      "value": {
+      "$ref": "#/components/schemas/uint",
       "title": "value",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "Transaction2930Signed": {
     "type": "object",
     "title": "Signed 2930 Transaction",
     "allOf": [
      {
-      "$ref": "#/components/schemas/Transaction2930Unsigned"
+      "$ref": "#/components/schemas/Transaction2930Unsigned",
+      "title": "",
+      "pattern": ""
      },
      {
       "title": "EIP-2930 transaction signature properties.",
@@ -1708,21 +2114,25 @@
       ],
       "properties": {
        "r": {
+        "$ref": "#/components/schemas/uint",
         "title": "r",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "s": {
+        "$ref": "#/components/schemas/uint",
         "title": "s",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "yParity": {
-        "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.",
+        "$ref": "#/components/schemas/uint",
         "title": "yParity",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        }
-      }
+      },
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "Transaction2930Unsigned": {
     "type": "object",
@@ -1739,45 +2149,52 @@
     ],
     "properties": {
      "accessList": {
-      "description": "EIP-2930 access list",
+      "$ref": "#/components/schemas/AccessList",
       "title": "accessList",
-      "$ref": "#/components/schemas/AccessList"
+      "pattern": ""
      },
      "chainId": {
-      "description": "Chain ID that this transaction is valid on.",
+      "$ref": "#/components/schemas/uint",
       "title": "chainId",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gas": {
+      "$ref": "#/components/schemas/uint",
       "title": "gas limit",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gasPrice": {
-      "description": "The gas price willing to be paid by the sender in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "gas price",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "input": {
+      "$ref": "#/components/schemas/bytes",
       "title": "input data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/uint",
       "title": "nonce",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "to": {
+      "$ref": "#/components/schemas/address",
       "title": "to address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "type": {
+      "$ref": "#/components/schemas/byte",
       "title": "type",
-      "$ref": "#/components/schemas/byte"
+      "pattern": ""
      },
      "value": {
+      "$ref": "#/components/schemas/uint",
       "title": "value",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "TransactionInfo": {
     "type": "object",
@@ -1794,38 +2211,49 @@
       ],
       "properties": {
        "blockHash": {
+        "$ref": "#/components/schemas/hash32",
         "title": "block hash",
-        "$ref": "#/components/schemas/hash32"
+        "pattern": ""
        },
        "blockNumber": {
+        "$ref": "#/components/schemas/uint",
         "title": "block number",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "from": {
+        "$ref": "#/components/schemas/address",
         "title": "from address",
-        "$ref": "#/components/schemas/address"
+        "pattern": ""
        },
        "hash": {
+        "$ref": "#/components/schemas/hash32",
         "title": "transaction hash",
-        "$ref": "#/components/schemas/hash32"
+        "pattern": ""
        },
        "transactionIndex": {
+        "$ref": "#/components/schemas/uint",
         "title": "transaction index",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        }
-      }
+      },
+      "pattern": ""
      },
      {
-      "$ref": "#/components/schemas/TransactionSigned"
+      "$ref": "#/components/schemas/TransactionSigned",
+      "title": "",
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "TransactionLegacySigned": {
     "type": "object",
     "title": "Signed Legacy Transaction",
     "allOf": [
      {
-      "$ref": "#/components/schemas/TransactionLegacyUnsigned"
+      "$ref": "#/components/schemas/TransactionLegacyUnsigned",
+      "title": "",
+      "pattern": ""
      },
      {
       "title": "Legacy transaction signature properties.",
@@ -1836,20 +2264,25 @@
       ],
       "properties": {
        "r": {
+        "$ref": "#/components/schemas/uint",
         "title": "r",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "s": {
+        "$ref": "#/components/schemas/uint",
         "title": "s",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        },
        "v": {
+        "$ref": "#/components/schemas/uint",
         "title": "v",
-        "$ref": "#/components/schemas/uint"
+        "pattern": ""
        }
-      }
+      },
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "TransactionLegacyUnsigned": {
     "type": "object",
@@ -1864,66 +2297,89 @@
     ],
     "properties": {
      "chainId": {
-      "description": "Chain ID that this transaction is valid on.",
+      "$ref": "#/components/schemas/uint",
       "title": "chainId",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gas": {
+      "$ref": "#/components/schemas/uint",
       "title": "gas limit",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "gasPrice": {
-      "description": "The gas price willing to be paid by the sender in wei",
+      "$ref": "#/components/schemas/uint",
       "title": "gas price",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "input": {
+      "$ref": "#/components/schemas/bytes",
       "title": "input data",
-      "$ref": "#/components/schemas/bytes"
+      "pattern": ""
      },
      "nonce": {
+      "$ref": "#/components/schemas/uint",
       "title": "nonce",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      },
      "to": {
+      "$ref": "#/components/schemas/address",
       "title": "to address",
-      "$ref": "#/components/schemas/address"
+      "pattern": ""
      },
      "type": {
+      "$ref": "#/components/schemas/byte",
       "title": "type",
-      "$ref": "#/components/schemas/byte"
+      "pattern": ""
      },
      "value": {
+      "$ref": "#/components/schemas/uint",
       "title": "value",
-      "$ref": "#/components/schemas/uint"
+      "pattern": ""
      }
-    }
+    },
+    "pattern": ""
    },
    "TransactionSigned": {
+    "title": "",
     "oneOf": [
      {
-      "$ref": "#/components/schemas/Transaction1559Signed"
+      "$ref": "#/components/schemas/Transaction1559Signed",
+      "title": "",
+      "pattern": ""
      },
      {
-      "$ref": "#/components/schemas/Transaction2930Signed"
+      "$ref": "#/components/schemas/Transaction2930Signed",
+      "title": "",
+      "pattern": ""
      },
      {
-      "$ref": "#/components/schemas/TransactionLegacySigned"
+      "$ref": "#/components/schemas/TransactionLegacySigned",
+      "title": "",
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "TransactionUnsigned": {
+    "title": "",
     "oneOf": [
      {
-      "$ref": "#/components/schemas/Transaction1559Unsigned"
+      "$ref": "#/components/schemas/Transaction1559Unsigned",
+      "title": "",
+      "pattern": ""
      },
      {
-      "$ref": "#/components/schemas/Transaction2930Unsigned"
+      "$ref": "#/components/schemas/Transaction2930Unsigned",
+      "title": "",
+      "pattern": ""
      },
      {
-      "$ref": "#/components/schemas/TransactionLegacyUnsigned"
+      "$ref": "#/components/schemas/TransactionLegacyUnsigned",
+      "title": "",
+      "pattern": ""
      }
-    ]
+    ],
+    "pattern": ""
    },
    "address": {
     "type": "string",
@@ -1933,9 +2389,14 @@
    "addresses": {
     "type": "array",
     "title": "Addresses",
-    "items": {
-     "$ref": "#/components/schemas/address"
-    }
+    "items": [
+     {
+      "$ref": "#/components/schemas/address",
+      "title": "",
+      "pattern": ""
+     }
+    ],
+    "pattern": ""
    },
    "byte": {
     "type": "string",
@@ -1959,7 +2420,7 @@
    },
    "bytes65": {
     "type": "string",
-    "title": "bytes65",
+    "title": "bytes645",
     "pattern": "^0x[0-9a-f]{512}$"
    },
    "bytes8": {

@@ -33,7 +33,30 @@ type CompileCommand struct {
 }
 
 func (c *CompileCommand) Run() error {
-	// TODO
+	openrpc := types.NewOpenRPCSpec1()
+	var err error
+	for _, v := range c.Methods {
+		err = openrpc.AddMethods(v)
+		if err != nil {
+			return err
+		}
+	}
+	for _, v := range c.Schemas {
+		err = openrpc.AddSchemas(v)
+		if err != nil {
+			return err
+		}
+	}
+	jzn, err := json.MarshalIndent(openrpc, "", " ")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(c.Output, jzn, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+
 	return nil
 }
 

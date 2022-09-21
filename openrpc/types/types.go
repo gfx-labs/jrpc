@@ -3,7 +3,26 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+
+	"sigs.k8s.io/yaml"
 )
+
+type Server struct {
+	Name        string                    `json:"name"`
+	URL         string                    `json:"url"`
+	Summary     string                    `json:"summary,omitempty"`
+	Description string                    `json:"description,omitempty"`
+	Variables   map[string]ServerVariable `json:"variables,omitempty"`
+}
+
+type ServerVariable struct {
+	Enum        []string `json:"enum,omitempty"`
+	Default     string   `json:"default,omitempty"`
+	Description string   `json:"description,omitempty"`
+}
 
 type Info struct {
 	Title   string `json:"title"`
@@ -24,7 +43,6 @@ func (I *Items) UnmarshalJSON(b []byte) error {
 	default:
 		return fmt.Errorf("expected array or object")
 	}
-	return nil
 }
 
 var _ json.Unmarshaler = (*Items)(nil)
@@ -66,7 +84,106 @@ type OpenRPC struct {
 	Version    string   `json:"openrpc"`
 	Info       Info     `json:"info"`
 	Methods    []Method `json:"methods"`
+	Servers    []Server `json:"servers"`
 	Components struct {
 		Schemas map[string]Schema `json:"schemas"`
 	} `json:"components"`
+}
+
+func NewOpenRPCSpec1() *OpenRPC {
+	return &OpenRPC{
+		Package: "main",
+		Version: "1.0.0",
+		Info: Info{
+			Title:   "gfx.cafe/open/jrpc/openrpc",
+			Version: "0.0.0",
+		},
+		Servers: make([]Server, 0),
+		Methods: make([]Method, 0),
+	}
+}
+
+func (o *OpenRPC) AddSchemas(pth string) error {
+	dr, err := os.ReadDir(pth)
+	if err != nil {
+		return err
+	}
+	for _, v := range dr {
+		if v.IsDir() {
+			if err := o.AddSchemas(path.Join(pth, v.Name())); err != nil {
+				return err
+			}
+		} else {
+			if err := o.AddSchema(path.Join(pth, v.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (o *OpenRPC) AddSchema(pth string) error {
+	schem := map[string]Schema{}
+	bts, err := os.ReadFile(pth)
+	if err != nil {
+		return err
+	}
+	ext := filepath.Ext(path.Base(pth))
+	switch ext {
+	case ".json":
+		err = json.Unmarshal(bts, &schem)
+	case ".yml", ".yaml":
+		err = yaml.Unmarshal(bts, &schem)
+	}
+	if err != nil {
+		return err
+	}
+	if o.Components.Schemas == nil {
+		o.Components.Schemas = map[string]Schema{}
+	}
+	for k, v := range schem {
+		o.Components.Schemas[k] = v
+	}
+	return nil
+}
+
+func (o *OpenRPC) AddMethods(pth string) error {
+	dr, err := os.ReadDir(pth)
+	if err != nil {
+		return err
+	}
+	for _, v := range dr {
+		if v.IsDir() {
+			if err := o.AddMethods(path.Join(pth, v.Name())); err != nil {
+				return err
+			}
+		} else {
+			if err := o.AddMethod(path.Join(pth, v.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (o *OpenRPC) AddMethod(pth string) error {
+	var meth []Method
+	bts, err := os.ReadFile(pth)
+	if err != nil {
+		return err
+	}
+	switch filepath.Ext(path.Base(pth)) {
+	case ".json":
+		err = json.Unmarshal(bts, &meth)
+	case ".yml", ".yaml":
+		err = yaml.Unmarshal(bts, &meth)
+		if err != nil {
+			return err
+		}
+	}
+	if err != nil {
+		return err
+	}
+	o.Methods = append(o.Methods, meth...)
+	return nil
 }
