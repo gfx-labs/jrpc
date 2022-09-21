@@ -1,12 +1,12 @@
 package main
 
-import "C"
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 
 	"gfx.cafe/open/jrpc/openrpc/generate"
+	"gfx.cafe/open/jrpc/openrpc/templates"
 
 	"gfx.cafe/open/jrpc/openrpc/types"
 	"github.com/alecthomas/kong"
@@ -15,6 +15,15 @@ import (
 var CLI struct {
 	Compile  CompileCommand  `cmd:"" help:"Compile a folder into a single openrpc spec"`
 	Generate GenerateCommand `cmd:"" help:"Compile a folder into a single openrpc spec"`
+	Template TemplateCommand `cmd:"" help:"print template to stdout"`
+}
+
+type TemplateCommand struct {
+}
+
+func (c *TemplateCommand) Run() error {
+	fmt.Print(templates.TEMPLATE)
+	return nil
 }
 
 type CompileCommand struct {

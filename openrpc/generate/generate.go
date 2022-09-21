@@ -44,7 +44,6 @@ var funcs = template.FuncMap{
 }
 
 func Generate(rpc *types.OpenRPC, ts string, output string) error {
-
 	var wr bytes.Buffer
 	t, err := template.New(path.Base(ts)).Funcs(funcs).ParseFiles(ts)
 	if err != nil {
