@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"gfx.cafe/open/jrpc/openrpc/templates"
 	"gfx.cafe/open/jrpc/openrpc/types"
 	"github.com/iancoleman/strcase"
 )
@@ -45,9 +46,19 @@ var funcs = template.FuncMap{
 
 func Generate(rpc *types.OpenRPC, ts string, output string) error {
 	var wr bytes.Buffer
-	t, err := template.New(path.Base(ts)).Funcs(funcs).ParseFiles(ts)
-	if err != nil {
-		return err
+	var t *template.Template
+	var err error
+	if ts == "default" {
+		t, err = template.New(path.Base(ts)).Funcs(funcs).Parse(templates.TEMPLATE)
+		if err != nil {
+			return err
+		}
+	} else {
+		t, err = template.New(path.Base(ts)).Funcs(funcs).ParseFiles(ts)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	err = t.Execute(&wr, rpc)

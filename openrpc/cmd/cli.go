@@ -56,8 +56,6 @@ func (c *CompileCommand) Run() error {
 		return err
 	}
 	return nil
-
-	return nil
 }
 
 type GenerateCommand struct {
