@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"sigs.k8s.io/yaml"
 )
@@ -77,6 +78,22 @@ type Method struct {
 	Summary string  `json:"summary"`
 	Params  []Param `json:"params"`
 	Result  Result  `json:"result"`
+}
+
+func (m *Method) Namespace() string {
+	splt := strings.Split(m.Name, "_")
+	if len(splt) > 1 {
+		return splt[0]
+	}
+	return ""
+}
+
+func (m *Method) MethodName() string {
+	splt := strings.Split(m.Name, "_")
+	if len(splt) > 1 {
+		return splt[1]
+	}
+	return splt[0]
 }
 
 type OpenRPC struct {

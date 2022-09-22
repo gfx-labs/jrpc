@@ -2,7 +2,11 @@
 
 package {{ .Package }}
 
-import "context"
+import (
+        "context"
+        "gfx.cafe/open/jrpc"
+       )
+
 
 {{define "schemaType" -}}
     {{if not (eq .Ref "") -}}
@@ -36,15 +40,54 @@ import "context"
     {{- end}}
 {{- end -}}
 
+type GoOpenRPCHandler struct {
+	Srv GoOpenRPCService
+}
+
+
+func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
+    {{range .Methods -}}
+        // {{.Summary}}
+        {{if .Namespace}}
+            r.Route("{{.Namespace}}", func(r2 jrpc.Router) {
+                r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}})
+            })
+        {{else}}
+            r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}})
+        {{end}}
+    {{end -}}
+}
+
+type RpcHandler struct {
+{{range .Methods -}}
+    // {{.Summary}}
+  Fn{{camelCase .Name}} func(ctx context.Context,
+        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        {{end -}})({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
+
+{{end -}}
+}
+
+{{range .Methods -}}
+    // {{.Summary}}
+    func(h *RpcHandler) {{camelCase .Name}}(ctx context.Context,
+        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        {{end -}}) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error) {
+        handler := h.Fn{{camelCase .Name}}
+        return handler(ctx context.Context,
+        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        {{end -}})
+    }
+{{end -}}
+
+
 type GoOpenRPCService interface {
     {{range .Methods -}}
         // {{.Summary}}
-        {{camelCase .Name}}(
-            ctx context.Context,
-            {{range .Params -}}
-                {{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        {{camelCase .Name}}(ctx context.Context,
+            {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
             {{end -}}
-        ) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
+            ) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
     {{end -}}
 }
 

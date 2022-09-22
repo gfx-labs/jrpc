@@ -73,6 +73,22 @@ func (m *Mux) RegisterStruct(name string, rcvr any) error {
 	})
 	return nil
 }
+func (m *Mux) RegisterFunc(name string, rcvr any) error {
+	rcvrVal := reflect.ValueOf(rcvr)
+	if name == "" {
+		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
+	}
+	callbacks := suitableCallbacks(rcvrVal)
+	if len(callbacks) == 0 {
+		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
+	}
+	m.Route(name, func(r Router) {
+		for nm, cb := range callbacks {
+			r.Handle(nm, cb)
+		}
+	})
+	return nil
+}
 
 // ServeRPC is the single method of the Handler interface that makes
 // Mux interoperable with the standard library. It uses a sync.Pool to get and

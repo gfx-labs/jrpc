@@ -9,6 +9,9 @@ type StructReflector interface {
 	// mimics the behavior of the handlers in the go-ethereum rpc package
 	// if you don't know how to use this, just use the chi-like interface instead.
 	RegisterStruct(pattern string, rcvr any) error
+	// mimics the behavior of the handlers in the go-ethereum rpc package
+	// if you don't know how to use this, just use the chi-like interface instead.
+	RegisterFunc(pattern string, rcvr any) error
 }
 
 // Router consisting of the core routing methods used by chi's Mux,
