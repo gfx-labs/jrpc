@@ -3,7 +3,6 @@ package jrpc
 import (
 	"context"
 	"encoding/json"
-	"io"
 )
 
 type HandlerFunc func(w ResponseWriter, r *Request)
@@ -14,6 +13,7 @@ type Handler interface {
 
 type ResponseWriter interface {
 	Send(v any, err error) error
+	Notify(v any) error
 }
 
 func (fn HandlerFunc) ServeRPC(w ResponseWriter, r *Request) {
@@ -100,35 +100,22 @@ func (r *Request) Msg() jsonrpcMessage {
 	return r.msg
 }
 
-type ResponseWriterIo struct {
-	r *Request
-	w io.Writer
-}
-
-func NewReaderResponseWriterIo(r *Request, w io.Writer) ResponseWriter {
-	return &ResponseWriterIo{
-		w: w,
-		r: r,
-	}
-}
-
-func (w *ResponseWriterIo) Send(args any, e error) (err error) {
-	enc := jzon.NewEncoder(w.w)
-	if e != nil {
-		return enc.Encode(errorMessage(e))
-	}
-	return enc.Encode(args)
-}
-
 type ResponseWriterMsg struct {
-	r   *Request
-	msg *jsonrpcMessage
+	r             *Request
+	msg           *jsonrpcMessage
+	notifications chan *jsonrpcMessage
 }
 
 func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
-	return &ResponseWriterMsg{
+	rw := &ResponseWriterMsg{
 		r: r,
 	}
+	switch r.Peer().Transport {
+	case "http":
+	default:
+		rw.notifications = make(chan *jsonrpcMessage, 128)
+	}
+	return rw
 }
 
 func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
@@ -138,6 +125,18 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 		return nil
 	}
 	w.msg = cm.response(args)
+	close(w.notifications)
+	return nil
+}
+
+func (w *ResponseWriterMsg) Notify(args any) (err error) {
+	if w.notifications == nil {
+		return nil
+	}
+	cm := w.r.Msg()
+	nf := cm.response(args)
+	nf.ID = nil
+	w.notifications <- nf
 	return nil
 }
 

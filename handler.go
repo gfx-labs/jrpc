@@ -19,7 +19,6 @@ package jrpc
 import (
 	"context"
 	"sync"
-	"time"
 
 	"git.tuxpa.in/a/zlog"
 )
@@ -75,9 +74,6 @@ func newHandler(connCtx context.Context, conn jsonWriter, reg Router) *handler {
 		cl := h.log.With().Str("conn", conn.remoteAddr()).Logger()
 		h.log = &cl
 	}
-	if h.peer.RemoteAddr == "" {
-		h.log.Error().Msg("CONNECTION WITHOUT REMOTE IP DETECTED. PLEASE MAKE SURE YOU KNOW WHAT YOU ARE DOING, OTHERWISE, THIS COULD BE A SECURITY ISSUE")
-	}
 	return h
 }
 
@@ -90,7 +86,6 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 		})
 		return
 	}
-
 	// Handle non-call messages first:
 	calls := make([]*jsonrpcMessage, 0, len(msgs))
 	for _, msg := range msgs {
@@ -209,11 +204,9 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 // handleCallMsg executes a call message and returns the answer.
 // TODO: export prometheus metrics maybe? also fix logging
 func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
-	// start := NewTimer()
 	switch {
 	case msg.isNotification():
-		h.handleCall(ctx, msg)
-		//	h.log.Debug().Str("method", msg.Method).Dur("duration", start.Since()).Msg("Served")
+		go h.handleCall(ctx, msg)
 		return nil
 	case msg.isCall():
 		resp := h.handleCall(ctx, msg)
@@ -231,24 +224,21 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 	if !callb {
 		return msg.errorResponse(&methodNotFoundError{method: msg.Method})
 	}
-
-	start := time.Now()
-	// TODO:  there's a copy here
-	// TODO: add buffer pool here
 	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
 	mw := NewReaderResponseWriterMsg(req)
 	h.reg.ServeRPC(mw, req)
-	{
-		// Collect the statistics for RPC calls if metrics is enabled.
-		// We only care about pure rpc call. Filter out subscription.
-		rpcRequestGauge.Inc(1)
-		if mw.msg.Error != nil {
-			failedRequestGauge.Inc(1)
-		} else {
-			successfulRequestGauge.Inc(1)
+	if mw.notifications != nil {
+		for {
+			val, more := <-mw.notifications
+			if !more {
+				break
+			}
+			err := h.conn.writeJSON(cp.ctx, val)
+			if err != nil {
+				close(mw.notifications)
+				return msg.errorResponse(err)
+			}
 		}
-		rpcServingTimer.UpdateSince(start)
-		updateServeTimeHistogram(msg.Method, mw.msg.Error == nil, time.Since(start))
 	}
 	return mw.msg
 }

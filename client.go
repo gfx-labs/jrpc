@@ -84,6 +84,9 @@ type Client struct {
 }
 
 func (c *Client) Router() Router {
+	if c.r == nil {
+		c.r = NewMux()
+	}
 	return c.r
 }
 
