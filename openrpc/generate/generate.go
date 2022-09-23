@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -66,8 +65,6 @@ func Generate(rpc *types.OpenRPC, ts string, output string) error {
 	if err != nil {
 		return err
 	}
-	log.Println(wr.String())
-
 	var fmtd []byte
 	fmtd, err = format.Source(wr.Bytes())
 	if err != nil {

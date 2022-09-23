@@ -78,15 +78,11 @@ func (m *Mux) RegisterFunc(name string, rcvr any) error {
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	callbacks := suitableCallbacks(rcvrVal)
-	if len(callbacks) == 0 {
-		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
+	cb := newCallback(reflect.ValueOf(nil), rcvrVal)
+	if cb == nil {
+		return fmt.Errorf("invalid function registeration for %s", name)
 	}
-	m.Route(name, func(r Router) {
-		for nm, cb := range callbacks {
-			r.Handle(nm, cb)
-		}
-	})
+	m.Mount(name, cb)
 	return nil
 }
 

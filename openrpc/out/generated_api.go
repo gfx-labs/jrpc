@@ -4,742 +4,16 @@ package out
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"gfx.cafe/open/jrpc"
 )
 
-type GoOpenRPCHandler struct {
-	Srv GoOpenRPCService
-}
+var _ = jrpc.Version
+var _ = context.Background
+var _ = errors.New
+var _ = fmt.Sprintf
 
-func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
-	// Returns an RLP-encoded header.
-
-	r.Route("debug", func(r2 jrpc.Router) {
-		r.RegisterFunc("getRawHeader", h.Srv.DebugGetRawHeader)
-	})
-
-	// Returns an RLP-encoded block.
-
-	r.Route("debug", func(r2 jrpc.Router) {
-		r.RegisterFunc("getRawBlock", h.Srv.DebugGetRawBlock)
-	})
-
-	// Returns an array of EIP-2718 binary-encoded transactions.
-
-	r.Route("debug", func(r2 jrpc.Router) {
-		r.RegisterFunc("getRawTransaction", h.Srv.DebugGetRawTransaction)
-	})
-
-	// Returns an array of EIP-2718 binary-encoded receipts.
-
-	r.Route("debug", func(r2 jrpc.Router) {
-		r.RegisterFunc("getRawReceipts", h.Srv.DebugGetRawReceipts)
-	})
-
-	// Returns an array of recent bad blocks that the client has seen on the network.
-
-	r.Route("debug", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBadBlocks", h.Srv.DebugGetBadBlocks)
-	})
-
-	// Returns information about a block by hash.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBlockByHash", h.Srv.EthGetBlockByHash)
-	})
-
-	// Returns information about a block by number.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBlockByNumber", h.Srv.EthGetBlockByNumber)
-	})
-
-	// Returns the number of transactions in a block from a block matching the given block hash.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBlockTransactionCountByHash", h.Srv.EthGetBlockTransactionCountByHash)
-	})
-
-	// Returns the number of transactions in a block matching the given block number.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBlockTransactionCountByNumber", h.Srv.EthGetBlockTransactionCountByNumber)
-	})
-
-	// Returns the number of uncles in a block from a block matching the given block hash.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getUncleCountByBlockHash", h.Srv.EthGetUncleCountByBlockHash)
-	})
-
-	// Returns the number of transactions in a block matching the given block number.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getUncleCountByBlockNumber", h.Srv.EthGetUncleCountByBlockNumber)
-	})
-
-	// Returns the chain ID of the current network.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("chainId", h.Srv.EthChainId)
-	})
-
-	// Returns an object with data about the sync status or false.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("syncing", h.Srv.EthSyncing)
-	})
-
-	// Returns the client coinbase address.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("coinbase", h.Srv.EthCoinbase)
-	})
-
-	// Returns a list of addresses owned by client.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("accounts", h.Srv.EthAccounts)
-	})
-
-	// Returns the number of most recent block.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("blockNumber", h.Srv.EthBlockNumber)
-	})
-
-	// Executes a new message call immediately without creating a transaction on the block chain.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("call", h.Srv.EthCall)
-	})
-
-	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("estimateGas", h.Srv.EthEstimateGas)
-	})
-
-	// Generates an access list for a transaction.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("createAccessList", h.Srv.EthCreateAccessList)
-	})
-
-	// Returns the current price per gas in wei.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("gasPrice", h.Srv.EthGasPrice)
-	})
-
-	// Returns the current maxPriorityFeePerGas per gas in wei.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("maxPriorityFeePerGas", h.Srv.EthMaxPriorityFeePerGas)
-	})
-
-	// Transaction fee history
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("feeHistory", h.Srv.EthFeeHistory)
-	})
-
-	// Creates a filter object, based on filter options, to notify when the state changes (logs).
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("newFilter", h.Srv.EthNewFilter)
-	})
-
-	// Creates a filter in the node, to notify when a new block arrives.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("newBlockFilter", h.Srv.EthNewBlockFilter)
-	})
-
-	// Creates a filter in the node, to notify when new pending transactions arrive.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("newPendingTransactionFilter", h.Srv.EthNewPendingTransactionFilter)
-	})
-
-	// Uninstalls a filter with given id.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("uninstallFilter", h.Srv.EthUninstallFilter)
-	})
-
-	// Polling method for a filter, which returns an array of logs which occurred since last poll.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getFilterChanges", h.Srv.EthGetFilterChanges)
-	})
-
-	// Returns an array of all logs matching filter with given id.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getFilterLogs", h.Srv.EthGetFilterLogs)
-	})
-
-	// Returns an array of all logs matching filter with given id.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getLogs", h.Srv.EthGetLogs)
-	})
-
-	// Returns whether the client is actively mining new blocks.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("mining", h.Srv.EthMining)
-	})
-
-	// Returns the number of hashes per second that the node is mining with.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("hashrate", h.Srv.EthHashrate)
-	})
-
-	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getWork", h.Srv.EthGetWork)
-	})
-
-	// Used for submitting a proof-of-work solution.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("submitWork", h.Srv.EthSubmitWork)
-	})
-
-	// Used for submitting mining hashrate.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("submitHashrate", h.Srv.EthSubmitHashrate)
-	})
-
-	// Returns an EIP-191 signature over the provided data.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("sign", h.Srv.EthSign)
-	})
-
-	// Returns an RLP encoded transaction signed by the specified account.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("signTransaction", h.Srv.EthSignTransaction)
-	})
-
-	// Returns the balance of the account of given address.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getBalance", h.Srv.EthGetBalance)
-	})
-
-	// Returns the value from a storage position at a given address.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getStorageAt", h.Srv.EthGetStorageAt)
-	})
-
-	// Returns the number of transactions sent from an address.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getTransactionCount", h.Srv.EthGetTransactionCount)
-	})
-
-	// Returns code at a given address.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getCode", h.Srv.EthGetCode)
-	})
-
-	// Returns the merkle proof for a given account and optionally some storage keys.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getProof", h.Srv.EthGetProof)
-	})
-
-	// Signs and submits a transaction.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("sendTransaction", h.Srv.EthSendTransaction)
-	})
-
-	// Submits a raw transaction.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("sendRawTransaction", h.Srv.EthSendRawTransaction)
-	})
-
-	// Returns the information about a transaction requested by transaction hash.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getTransactionByHash", h.Srv.EthGetTransactionByHash)
-	})
-
-	// Returns information about a transaction by block hash and transaction index position.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getTransactionByBlockHashAndIndex", h.Srv.EthGetTransactionByBlockHashAndIndex)
-	})
-
-	// Returns information about a transaction by block number and transaction index position.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getTransactionByBlockNumberAndIndex", h.Srv.EthGetTransactionByBlockNumberAndIndex)
-	})
-
-	// Returns the receipt of a transaction by transaction hash.
-
-	r.Route("eth", func(r2 jrpc.Router) {
-		r.RegisterFunc("getTransactionReceipt", h.Srv.EthGetTransactionReceipt)
-	})
-
-}
-
-type RpcHandler struct {
-}
-
-// Returns an RLP-encoded header.
-func (h *RpcHandler) DebugGetRawHeader(ctx context.Context,
-	Block BlockNumberOrTag) (HeaderRLP Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns an RLP-encoded block.
-func (h *RpcHandler) DebugGetRawBlock(ctx context.Context,
-	Block BlockNumberOrTag) (BlockRLP Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns an array of EIP-2718 binary-encoded transactions.
-func (h *RpcHandler) DebugGetRawTransaction(ctx context.Context,
-	TransactionHash Hash32) (EIP2718BinaryEncodedTransaction Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns an array of EIP-2718 binary-encoded receipts.
-func (h *RpcHandler) DebugGetRawReceipts(ctx context.Context,
-	Block BlockNumberOrTag) (Receipts []Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns an array of recent bad blocks that the client has seen on the network.
-func (h *RpcHandler) DebugGetBadBlocks(ctx context.Context,
-) (Blocks []BadBlock, err error) {
-	panic("implement me")
-}
-
-// Returns information about a block by hash.
-func (h *RpcHandler) EthGetBlockByHash(ctx context.Context,
-	BlockHash Hash32, HydratedTransactions bool) (BlockInformation Block, err error) {
-	panic("implement me")
-}
-
-// Returns information about a block by number.
-func (h *RpcHandler) EthGetBlockByNumber(ctx context.Context,
-	Block BlockNumberOrTag, HydratedTransactions bool) (BlockInformation Block, err error) {
-	panic("implement me")
-}
-
-// Returns the number of transactions in a block from a block matching the given block hash.
-func (h *RpcHandler) EthGetBlockTransactionCountByHash(ctx context.Context,
-	BlockHash *Hash32) (TransactionCount Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the number of transactions in a block matching the given block number.
-func (h *RpcHandler) EthGetBlockTransactionCountByNumber(ctx context.Context,
-	Block *BlockNumberOrTag) (TransactionCount Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the number of uncles in a block from a block matching the given block hash.
-func (h *RpcHandler) EthGetUncleCountByBlockHash(ctx context.Context,
-	BlockHash *Hash32) (UncleCount Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the number of transactions in a block matching the given block number.
-func (h *RpcHandler) EthGetUncleCountByBlockNumber(ctx context.Context,
-	Block *BlockNumberOrTag) (UncleCount Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the chain ID of the current network.
-func (h *RpcHandler) EthChainId(ctx context.Context,
-) (ChainID Uint, err error) {
-	panic("implement me")
-}
-
-// Returns an object with data about the sync status or false.
-func (h *RpcHandler) EthSyncing(ctx context.Context,
-) (SyncingStatus SyncingStatus, err error) {
-	panic("implement me")
-}
-
-// Returns the client coinbase address.
-func (h *RpcHandler) EthCoinbase(ctx context.Context,
-) (CoinbaseAddress Address, err error) {
-	panic("implement me")
-}
-
-// Returns a list of addresses owned by client.
-func (h *RpcHandler) EthAccounts(ctx context.Context,
-) (Accounts []Address, err error) {
-	panic("implement me")
-}
-
-// Returns the number of most recent block.
-func (h *RpcHandler) EthBlockNumber(ctx context.Context,
-) (BlockNumber Uint, err error) {
-	panic("implement me")
-}
-
-// Executes a new message call immediately without creating a transaction on the block chain.
-func (h *RpcHandler) EthCall(ctx context.Context,
-	Transaction GenericTransaction, Block *BlockNumberOrTag) (ReturnData Bytes, err error) {
-	panic("implement me")
-}
-
-// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
-func (h *RpcHandler) EthEstimateGas(ctx context.Context,
-	Transaction GenericTransaction, Block *BlockNumberOrTag) (GasUsed Uint, err error) {
-	panic("implement me")
-}
-
-// Generates an access list for a transaction.
-func (h *RpcHandler) EthCreateAccessList(ctx context.Context,
-	Transaction GenericTransaction, Block *BlockNumberOrTag) (GasUsed struct {
-	AccessList AccessList `json:"accessList"`
-	Error      string     `json:"error"`
-	GasUsed    Uint       `json:"gasUsed"`
-}, err error) {
-	panic("implement me")
-}
-
-// Returns the current price per gas in wei.
-func (h *RpcHandler) EthGasPrice(ctx context.Context,
-) (GasPrice Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the current maxPriorityFeePerGas per gas in wei.
-func (h *RpcHandler) EthMaxPriorityFeePerGas(ctx context.Context,
-) (MaxPriorityFeePerGas Uint, err error) {
-	panic("implement me")
-}
-
-// Transaction fee history
-func (h *RpcHandler) EthFeeHistory(ctx context.Context,
-	BlockCount Uint, NewestBlock BlockNumberOrTag, RewardPercentiles []float64) (FeeHistoryResult struct {
-	BaseFeePerGas []Uint   `json:"baseFeePerGas"`
-	OldestBlock   Uint     `json:"oldestBlock"`
-	Reward        [][]Uint `json:"reward"`
-}, err error) {
-	panic("implement me")
-}
-
-// Creates a filter object, based on filter options, to notify when the state changes (logs).
-func (h *RpcHandler) EthNewFilter(ctx context.Context,
-	Filter *Filter) (FilterIdentifier Uint, err error) {
-	panic("implement me")
-}
-
-// Creates a filter in the node, to notify when a new block arrives.
-func (h *RpcHandler) EthNewBlockFilter(ctx context.Context,
-) (FilterIdentifier Uint, err error) {
-	panic("implement me")
-}
-
-// Creates a filter in the node, to notify when new pending transactions arrive.
-func (h *RpcHandler) EthNewPendingTransactionFilter(ctx context.Context,
-) (FilterIdentifier Uint, err error) {
-	panic("implement me")
-}
-
-// Uninstalls a filter with given id.
-func (h *RpcHandler) EthUninstallFilter(ctx context.Context,
-	FilterIdentifier *Uint) (Success bool, err error) {
-	panic("implement me")
-}
-
-// Polling method for a filter, which returns an array of logs which occurred since last poll.
-func (h *RpcHandler) EthGetFilterChanges(ctx context.Context,
-	FilterIdentifier *Uint) (LogObjects FilterResults, err error) {
-	panic("implement me")
-}
-
-// Returns an array of all logs matching filter with given id.
-func (h *RpcHandler) EthGetFilterLogs(ctx context.Context,
-	FilterIdentifier *Uint) (LogObjects FilterResults, err error) {
-	panic("implement me")
-}
-
-// Returns an array of all logs matching filter with given id.
-func (h *RpcHandler) EthGetLogs(ctx context.Context,
-	Filter *Filter) (LogObjects FilterResults, err error) {
-	panic("implement me")
-}
-
-// Returns whether the client is actively mining new blocks.
-func (h *RpcHandler) EthMining(ctx context.Context,
-) (MiningStatus bool, err error) {
-	panic("implement me")
-}
-
-// Returns the number of hashes per second that the node is mining with.
-func (h *RpcHandler) EthHashrate(ctx context.Context,
-) (MiningStatus Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
-func (h *RpcHandler) EthGetWork(ctx context.Context,
-) (CurrentWork []Bytes32, err error) {
-	panic("implement me")
-}
-
-// Used for submitting a proof-of-work solution.
-func (h *RpcHandler) EthSubmitWork(ctx context.Context,
-	Nonce Bytes8, Hash Bytes32, Digest Bytes32) (Success bool, err error) {
-	panic("implement me")
-}
-
-// Used for submitting mining hashrate.
-func (h *RpcHandler) EthSubmitHashrate(ctx context.Context,
-	Hashrate Bytes32, Id Bytes32) (Success bool, err error) {
-	panic("implement me")
-}
-
-// Returns an EIP-191 signature over the provided data.
-func (h *RpcHandler) EthSign(ctx context.Context,
-	Address Address, Message Bytes) (Signature Bytes65, err error) {
-	panic("implement me")
-}
-
-// Returns an RLP encoded transaction signed by the specified account.
-func (h *RpcHandler) EthSignTransaction(ctx context.Context,
-	Transaction GenericTransaction) (EncodedTransaction Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns the balance of the account of given address.
-func (h *RpcHandler) EthGetBalance(ctx context.Context,
-	Address Address, Block *BlockNumberOrTag) (Balance Uint, err error) {
-	panic("implement me")
-}
-
-// Returns the value from a storage position at a given address.
-func (h *RpcHandler) EthGetStorageAt(ctx context.Context,
-	Address Address, StorageSlot Uint256, Block *BlockNumberOrTag) (Value Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns the number of transactions sent from an address.
-func (h *RpcHandler) EthGetTransactionCount(ctx context.Context,
-	Address Address, Block *BlockNumberOrTag) (TransactionCount Uint, err error) {
-	panic("implement me")
-}
-
-// Returns code at a given address.
-func (h *RpcHandler) EthGetCode(ctx context.Context,
-	Address Address, Block *BlockNumberOrTag) (Bytecode Bytes, err error) {
-	panic("implement me")
-}
-
-// Returns the merkle proof for a given account and optionally some storage keys.
-func (h *RpcHandler) EthGetProof(ctx context.Context,
-	Address Address, StorageKeys []Hash32, Block BlockNumberOrTag) (Account AccountProof, err error) {
-	panic("implement me")
-}
-
-// Signs and submits a transaction.
-func (h *RpcHandler) EthSendTransaction(ctx context.Context,
-	Transaction GenericTransaction) (TransactionHash Hash32, err error) {
-	panic("implement me")
-}
-
-// Submits a raw transaction.
-func (h *RpcHandler) EthSendRawTransaction(ctx context.Context,
-	Transaction Bytes) (TransactionHash Hash32, err error) {
-	panic("implement me")
-}
-
-// Returns the information about a transaction requested by transaction hash.
-func (h *RpcHandler) EthGetTransactionByHash(ctx context.Context,
-	TransactionHash Hash32) (TransactionInformation TransactionInfo, err error) {
-	panic("implement me")
-}
-
-// Returns information about a transaction by block hash and transaction index position.
-func (h *RpcHandler) EthGetTransactionByBlockHashAndIndex(ctx context.Context,
-	BlockHash Hash32, TransactionIndex Uint) (TransactionInformation TransactionInfo, err error) {
-	panic("implement me")
-}
-
-// Returns information about a transaction by block number and transaction index position.
-func (h *RpcHandler) EthGetTransactionByBlockNumberAndIndex(ctx context.Context,
-	Block BlockNumberOrTag, TransactionIndex Uint) (TransactionInformation TransactionInfo, err error) {
-	panic("implement me")
-}
-
-// Returns the receipt of a transaction by transaction hash.
-func (h *RpcHandler) EthGetTransactionReceipt(ctx context.Context,
-	TransactionHash *Hash32) (ReceiptInformation ReceiptInfo, err error) {
-	panic("implement me")
-}
-
-type GoOpenRPCService interface {
-	// Returns an RLP-encoded header.
-	DebugGetRawHeader(ctx context.Context,
-		Block BlockNumberOrTag) (HeaderRLP Bytes, err error)
-	// Returns an RLP-encoded block.
-	DebugGetRawBlock(ctx context.Context,
-		Block BlockNumberOrTag) (BlockRLP Bytes, err error)
-	// Returns an array of EIP-2718 binary-encoded transactions.
-	DebugGetRawTransaction(ctx context.Context,
-		TransactionHash Hash32) (EIP2718BinaryEncodedTransaction Bytes, err error)
-	// Returns an array of EIP-2718 binary-encoded receipts.
-	DebugGetRawReceipts(ctx context.Context,
-		Block BlockNumberOrTag) (Receipts []Bytes, err error)
-	// Returns an array of recent bad blocks that the client has seen on the network.
-	DebugGetBadBlocks(ctx context.Context,
-	) (Blocks []BadBlock, err error)
-	// Returns information about a block by hash.
-	EthGetBlockByHash(ctx context.Context,
-		BlockHash Hash32, HydratedTransactions bool) (BlockInformation Block, err error)
-	// Returns information about a block by number.
-	EthGetBlockByNumber(ctx context.Context,
-		Block BlockNumberOrTag, HydratedTransactions bool) (BlockInformation Block, err error)
-	// Returns the number of transactions in a block from a block matching the given block hash.
-	EthGetBlockTransactionCountByHash(ctx context.Context,
-		BlockHash *Hash32) (TransactionCount Uint, err error)
-	// Returns the number of transactions in a block matching the given block number.
-	EthGetBlockTransactionCountByNumber(ctx context.Context,
-		Block *BlockNumberOrTag) (TransactionCount Uint, err error)
-	// Returns the number of uncles in a block from a block matching the given block hash.
-	EthGetUncleCountByBlockHash(ctx context.Context,
-		BlockHash *Hash32) (UncleCount Uint, err error)
-	// Returns the number of transactions in a block matching the given block number.
-	EthGetUncleCountByBlockNumber(ctx context.Context,
-		Block *BlockNumberOrTag) (UncleCount Uint, err error)
-	// Returns the chain ID of the current network.
-	EthChainId(ctx context.Context,
-	) (ChainID Uint, err error)
-	// Returns an object with data about the sync status or false.
-	EthSyncing(ctx context.Context,
-	) (SyncingStatus SyncingStatus, err error)
-	// Returns the client coinbase address.
-	EthCoinbase(ctx context.Context,
-	) (CoinbaseAddress Address, err error)
-	// Returns a list of addresses owned by client.
-	EthAccounts(ctx context.Context,
-	) (Accounts []Address, err error)
-	// Returns the number of most recent block.
-	EthBlockNumber(ctx context.Context,
-	) (BlockNumber Uint, err error)
-	// Executes a new message call immediately without creating a transaction on the block chain.
-	EthCall(ctx context.Context,
-		Transaction GenericTransaction, Block *BlockNumberOrTag) (ReturnData Bytes, err error)
-	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
-	EthEstimateGas(ctx context.Context,
-		Transaction GenericTransaction, Block *BlockNumberOrTag) (GasUsed Uint, err error)
-	// Generates an access list for a transaction.
-	EthCreateAccessList(ctx context.Context,
-		Transaction GenericTransaction, Block *BlockNumberOrTag) (GasUsed struct {
-		AccessList AccessList `json:"accessList"`
-		Error      string     `json:"error"`
-		GasUsed    Uint       `json:"gasUsed"`
-	}, err error)
-	// Returns the current price per gas in wei.
-	EthGasPrice(ctx context.Context,
-	) (GasPrice Uint, err error)
-	// Returns the current maxPriorityFeePerGas per gas in wei.
-	EthMaxPriorityFeePerGas(ctx context.Context,
-	) (MaxPriorityFeePerGas Uint, err error)
-	// Transaction fee history
-	EthFeeHistory(ctx context.Context,
-		BlockCount Uint, NewestBlock BlockNumberOrTag, RewardPercentiles []float64) (FeeHistoryResult struct {
-		BaseFeePerGas []Uint   `json:"baseFeePerGas"`
-		OldestBlock   Uint     `json:"oldestBlock"`
-		Reward        [][]Uint `json:"reward"`
-	}, err error)
-	// Creates a filter object, based on filter options, to notify when the state changes (logs).
-	EthNewFilter(ctx context.Context,
-		Filter *Filter) (FilterIdentifier Uint, err error)
-	// Creates a filter in the node, to notify when a new block arrives.
-	EthNewBlockFilter(ctx context.Context,
-	) (FilterIdentifier Uint, err error)
-	// Creates a filter in the node, to notify when new pending transactions arrive.
-	EthNewPendingTransactionFilter(ctx context.Context,
-	) (FilterIdentifier Uint, err error)
-	// Uninstalls a filter with given id.
-	EthUninstallFilter(ctx context.Context,
-		FilterIdentifier *Uint) (Success bool, err error)
-	// Polling method for a filter, which returns an array of logs which occurred since last poll.
-	EthGetFilterChanges(ctx context.Context,
-		FilterIdentifier *Uint) (LogObjects FilterResults, err error)
-	// Returns an array of all logs matching filter with given id.
-	EthGetFilterLogs(ctx context.Context,
-		FilterIdentifier *Uint) (LogObjects FilterResults, err error)
-	// Returns an array of all logs matching filter with given id.
-	EthGetLogs(ctx context.Context,
-		Filter *Filter) (LogObjects FilterResults, err error)
-	// Returns whether the client is actively mining new blocks.
-	EthMining(ctx context.Context,
-	) (MiningStatus bool, err error)
-	// Returns the number of hashes per second that the node is mining with.
-	EthHashrate(ctx context.Context,
-	) (MiningStatus Uint, err error)
-	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
-	EthGetWork(ctx context.Context,
-	) (CurrentWork []Bytes32, err error)
-	// Used for submitting a proof-of-work solution.
-	EthSubmitWork(ctx context.Context,
-		Nonce Bytes8, Hash Bytes32, Digest Bytes32) (Success bool, err error)
-	// Used for submitting mining hashrate.
-	EthSubmitHashrate(ctx context.Context,
-		Hashrate Bytes32, Id Bytes32) (Success bool, err error)
-	// Returns an EIP-191 signature over the provided data.
-	EthSign(ctx context.Context,
-		Address Address, Message Bytes) (Signature Bytes65, err error)
-	// Returns an RLP encoded transaction signed by the specified account.
-	EthSignTransaction(ctx context.Context,
-		Transaction GenericTransaction) (EncodedTransaction Bytes, err error)
-	// Returns the balance of the account of given address.
-	EthGetBalance(ctx context.Context,
-		Address Address, Block *BlockNumberOrTag) (Balance Uint, err error)
-	// Returns the value from a storage position at a given address.
-	EthGetStorageAt(ctx context.Context,
-		Address Address, StorageSlot Uint256, Block *BlockNumberOrTag) (Value Bytes, err error)
-	// Returns the number of transactions sent from an address.
-	EthGetTransactionCount(ctx context.Context,
-		Address Address, Block *BlockNumberOrTag) (TransactionCount Uint, err error)
-	// Returns code at a given address.
-	EthGetCode(ctx context.Context,
-		Address Address, Block *BlockNumberOrTag) (Bytecode Bytes, err error)
-	// Returns the merkle proof for a given account and optionally some storage keys.
-	EthGetProof(ctx context.Context,
-		Address Address, StorageKeys []Hash32, Block BlockNumberOrTag) (Account AccountProof, err error)
-	// Signs and submits a transaction.
-	EthSendTransaction(ctx context.Context,
-		Transaction GenericTransaction) (TransactionHash Hash32, err error)
-	// Submits a raw transaction.
-	EthSendRawTransaction(ctx context.Context,
-		Transaction Bytes) (TransactionHash Hash32, err error)
-	// Returns the information about a transaction requested by transaction hash.
-	EthGetTransactionByHash(ctx context.Context,
-		TransactionHash Hash32) (TransactionInformation TransactionInfo, err error)
-	// Returns information about a transaction by block hash and transaction index position.
-	EthGetTransactionByBlockHashAndIndex(ctx context.Context,
-		BlockHash Hash32, TransactionIndex Uint) (TransactionInformation TransactionInfo, err error)
-	// Returns information about a transaction by block number and transaction index position.
-	EthGetTransactionByBlockNumberAndIndex(ctx context.Context,
-		Block BlockNumberOrTag, TransactionIndex Uint) (TransactionInformation TransactionInfo, err error)
-	// Returns the receipt of a transaction by transaction hash.
-	EthGetTransactionReceipt(ctx context.Context,
-		TransactionHash *Hash32) (ReceiptInformation ReceiptInfo, err error)
-}
 type AccessList []AccessListEntry
 type AccessListEntry struct {
 	Address     Address  `json:"address"`
@@ -955,3 +229,1417 @@ type Hash32 string
 type Uint string
 type Uint256 string
 type Uint64 string
+
+type GoOpenRPCHandler struct {
+	Srv GoOpenRPCService
+}
+
+// Returns an RLP-encoded header.
+func (h *RpcHandler) DebugGetRawHeader(ctx context.Context,
+	Block BlockNumberOrTag,
+) (HeaderRLP Bytes, err error) {
+	handler := h.FnDebugGetRawHeader
+	if handler == nil {
+		err = errors.New("Method debug_getRawHeader not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+	)
+}
+
+// Returns an RLP-encoded block.
+func (h *RpcHandler) DebugGetRawBlock(ctx context.Context,
+	Block BlockNumberOrTag,
+) (BlockRLP Bytes, err error) {
+	handler := h.FnDebugGetRawBlock
+	if handler == nil {
+		err = errors.New("Method debug_getRawBlock not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+	)
+}
+
+// Returns an array of EIP-2718 binary-encoded transactions.
+func (h *RpcHandler) DebugGetRawTransaction(ctx context.Context,
+	TransactionHash Hash32,
+) (EIP2718BinaryEncodedTransaction Bytes, err error) {
+	handler := h.FnDebugGetRawTransaction
+	if handler == nil {
+		err = errors.New("Method debug_getRawTransaction not implemented")
+		return
+	}
+	return handler(ctx,
+		TransactionHash,
+	)
+}
+
+// Returns an array of EIP-2718 binary-encoded receipts.
+func (h *RpcHandler) DebugGetRawReceipts(ctx context.Context,
+	Block BlockNumberOrTag,
+) (Receipts []Bytes, err error) {
+	handler := h.FnDebugGetRawReceipts
+	if handler == nil {
+		err = errors.New("Method debug_getRawReceipts not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+	)
+}
+
+// Returns an array of recent bad blocks that the client has seen on the network.
+func (h *RpcHandler) DebugGetBadBlocks(ctx context.Context,
+) (Blocks []BadBlock, err error) {
+	handler := h.FnDebugGetBadBlocks
+	if handler == nil {
+		err = errors.New("Method debug_getBadBlocks not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns information about a block by hash.
+func (h *RpcHandler) EthGetBlockByHash(ctx context.Context,
+	BlockHash Hash32,
+	HydratedTransactions bool,
+) (BlockInformation Block, err error) {
+	handler := h.FnEthGetBlockByHash
+	if handler == nil {
+		err = errors.New("Method eth_getBlockByHash not implemented")
+		return
+	}
+	return handler(ctx,
+		BlockHash,
+		HydratedTransactions,
+	)
+}
+
+// Returns information about a block by number.
+func (h *RpcHandler) EthGetBlockByNumber(ctx context.Context,
+	Block BlockNumberOrTag,
+	HydratedTransactions bool,
+) (BlockInformation Block, err error) {
+	handler := h.FnEthGetBlockByNumber
+	if handler == nil {
+		err = errors.New("Method eth_getBlockByNumber not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+		HydratedTransactions,
+	)
+}
+
+// Returns the number of transactions in a block from a block matching the given block hash.
+func (h *RpcHandler) EthGetBlockTransactionCountByHash(ctx context.Context,
+	BlockHash *Hash32,
+) (TransactionCount Uint, err error) {
+	handler := h.FnEthGetBlockTransactionCountByHash
+	if handler == nil {
+		err = errors.New("Method eth_getBlockTransactionCountByHash not implemented")
+		return
+	}
+	return handler(ctx,
+		BlockHash,
+	)
+}
+
+// Returns the number of transactions in a block matching the given block number.
+func (h *RpcHandler) EthGetBlockTransactionCountByNumber(ctx context.Context,
+	Block *BlockNumberOrTag,
+) (TransactionCount Uint, err error) {
+	handler := h.FnEthGetBlockTransactionCountByNumber
+	if handler == nil {
+		err = errors.New("Method eth_getBlockTransactionCountByNumber not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+	)
+}
+
+// Returns the number of uncles in a block from a block matching the given block hash.
+func (h *RpcHandler) EthGetUncleCountByBlockHash(ctx context.Context,
+	BlockHash *Hash32,
+) (UncleCount Uint, err error) {
+	handler := h.FnEthGetUncleCountByBlockHash
+	if handler == nil {
+		err = errors.New("Method eth_getUncleCountByBlockHash not implemented")
+		return
+	}
+	return handler(ctx,
+		BlockHash,
+	)
+}
+
+// Returns the number of transactions in a block matching the given block number.
+func (h *RpcHandler) EthGetUncleCountByBlockNumber(ctx context.Context,
+	Block *BlockNumberOrTag,
+) (UncleCount Uint, err error) {
+	handler := h.FnEthGetUncleCountByBlockNumber
+	if handler == nil {
+		err = errors.New("Method eth_getUncleCountByBlockNumber not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+	)
+}
+
+// Returns the chain ID of the current network.
+func (h *RpcHandler) EthChainId(ctx context.Context,
+) (ChainID Uint, err error) {
+	handler := h.FnEthChainId
+	if handler == nil {
+		err = errors.New("Method eth_chainId not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns an object with data about the sync status or false.
+func (h *RpcHandler) EthSyncing(ctx context.Context,
+) (SyncingStatus SyncingStatus, err error) {
+	handler := h.FnEthSyncing
+	if handler == nil {
+		err = errors.New("Method eth_syncing not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns the client coinbase address.
+func (h *RpcHandler) EthCoinbase(ctx context.Context,
+) (CoinbaseAddress Address, err error) {
+	handler := h.FnEthCoinbase
+	if handler == nil {
+		err = errors.New("Method eth_coinbase not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns a list of addresses owned by client.
+func (h *RpcHandler) EthAccounts(ctx context.Context,
+) (Accounts []Address, err error) {
+	handler := h.FnEthAccounts
+	if handler == nil {
+		err = errors.New("Method eth_accounts not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns the number of most recent block.
+func (h *RpcHandler) EthBlockNumber(ctx context.Context,
+) (BlockNumber Uint, err error) {
+	handler := h.FnEthBlockNumber
+	if handler == nil {
+		err = errors.New("Method eth_blockNumber not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Executes a new message call immediately without creating a transaction on the block chain.
+func (h *RpcHandler) EthCall(ctx context.Context,
+	Transaction GenericTransaction,
+	Block *BlockNumberOrTag,
+) (ReturnData Bytes, err error) {
+	handler := h.FnEthCall
+	if handler == nil {
+		err = errors.New("Method eth_call not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+		Block,
+	)
+}
+
+// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+func (h *RpcHandler) EthEstimateGas(ctx context.Context,
+	Transaction GenericTransaction,
+	Block *BlockNumberOrTag,
+) (GasUsed Uint, err error) {
+	handler := h.FnEthEstimateGas
+	if handler == nil {
+		err = errors.New("Method eth_estimateGas not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+		Block,
+	)
+}
+
+// Generates an access list for a transaction.
+func (h *RpcHandler) EthCreateAccessList(ctx context.Context,
+	Transaction GenericTransaction,
+	Block *BlockNumberOrTag,
+) (GasUsed struct {
+	AccessList AccessList `json:"accessList"`
+	Error      string     `json:"error"`
+	GasUsed    Uint       `json:"gasUsed"`
+}, err error) {
+	handler := h.FnEthCreateAccessList
+	if handler == nil {
+		err = errors.New("Method eth_createAccessList not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+		Block,
+	)
+}
+
+// Returns the current price per gas in wei.
+func (h *RpcHandler) EthGasPrice(ctx context.Context,
+) (GasPrice Uint, err error) {
+	handler := h.FnEthGasPrice
+	if handler == nil {
+		err = errors.New("Method eth_gasPrice not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns the current maxPriorityFeePerGas per gas in wei.
+func (h *RpcHandler) EthMaxPriorityFeePerGas(ctx context.Context,
+) (MaxPriorityFeePerGas Uint, err error) {
+	handler := h.FnEthMaxPriorityFeePerGas
+	if handler == nil {
+		err = errors.New("Method eth_maxPriorityFeePerGas not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Transaction fee history
+func (h *RpcHandler) EthFeeHistory(ctx context.Context,
+	BlockCount Uint,
+	NewestBlock BlockNumberOrTag,
+	RewardPercentiles []float64,
+) (FeeHistoryResult struct {
+	BaseFeePerGas []Uint   `json:"baseFeePerGas"`
+	OldestBlock   Uint     `json:"oldestBlock"`
+	Reward        [][]Uint `json:"reward"`
+}, err error) {
+	handler := h.FnEthFeeHistory
+	if handler == nil {
+		err = errors.New("Method eth_feeHistory not implemented")
+		return
+	}
+	return handler(ctx,
+		BlockCount,
+		NewestBlock,
+		RewardPercentiles,
+	)
+}
+
+// Creates a filter object, based on filter options, to notify when the state changes (logs).
+func (h *RpcHandler) EthNewFilter(ctx context.Context,
+	Filter *Filter,
+) (FilterIdentifier Uint, err error) {
+	handler := h.FnEthNewFilter
+	if handler == nil {
+		err = errors.New("Method eth_newFilter not implemented")
+		return
+	}
+	return handler(ctx,
+		Filter,
+	)
+}
+
+// Creates a filter in the node, to notify when a new block arrives.
+func (h *RpcHandler) EthNewBlockFilter(ctx context.Context,
+) (FilterIdentifier Uint, err error) {
+	handler := h.FnEthNewBlockFilter
+	if handler == nil {
+		err = errors.New("Method eth_newBlockFilter not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Creates a filter in the node, to notify when new pending transactions arrive.
+func (h *RpcHandler) EthNewPendingTransactionFilter(ctx context.Context,
+) (FilterIdentifier Uint, err error) {
+	handler := h.FnEthNewPendingTransactionFilter
+	if handler == nil {
+		err = errors.New("Method eth_newPendingTransactionFilter not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Uninstalls a filter with given id.
+func (h *RpcHandler) EthUninstallFilter(ctx context.Context,
+	FilterIdentifier *Uint,
+) (Success bool, err error) {
+	handler := h.FnEthUninstallFilter
+	if handler == nil {
+		err = errors.New("Method eth_uninstallFilter not implemented")
+		return
+	}
+	return handler(ctx,
+		FilterIdentifier,
+	)
+}
+
+// Polling method for a filter, which returns an array of logs which occurred since last poll.
+func (h *RpcHandler) EthGetFilterChanges(ctx context.Context,
+	FilterIdentifier *Uint,
+) (LogObjects FilterResults, err error) {
+	handler := h.FnEthGetFilterChanges
+	if handler == nil {
+		err = errors.New("Method eth_getFilterChanges not implemented")
+		return
+	}
+	return handler(ctx,
+		FilterIdentifier,
+	)
+}
+
+// Returns an array of all logs matching filter with given id.
+func (h *RpcHandler) EthGetFilterLogs(ctx context.Context,
+	FilterIdentifier *Uint,
+) (LogObjects FilterResults, err error) {
+	handler := h.FnEthGetFilterLogs
+	if handler == nil {
+		err = errors.New("Method eth_getFilterLogs not implemented")
+		return
+	}
+	return handler(ctx,
+		FilterIdentifier,
+	)
+}
+
+// Returns an array of all logs matching filter with given id.
+func (h *RpcHandler) EthGetLogs(ctx context.Context,
+	Filter *Filter,
+) (LogObjects FilterResults, err error) {
+	handler := h.FnEthGetLogs
+	if handler == nil {
+		err = errors.New("Method eth_getLogs not implemented")
+		return
+	}
+	return handler(ctx,
+		Filter,
+	)
+}
+
+// Returns whether the client is actively mining new blocks.
+func (h *RpcHandler) EthMining(ctx context.Context,
+) (MiningStatus bool, err error) {
+	handler := h.FnEthMining
+	if handler == nil {
+		err = errors.New("Method eth_mining not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns the number of hashes per second that the node is mining with.
+func (h *RpcHandler) EthHashrate(ctx context.Context,
+) (MiningStatus Uint, err error) {
+	handler := h.FnEthHashrate
+	if handler == nil {
+		err = errors.New("Method eth_hashrate not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
+func (h *RpcHandler) EthGetWork(ctx context.Context,
+) (CurrentWork []Bytes32, err error) {
+	handler := h.FnEthGetWork
+	if handler == nil {
+		err = errors.New("Method eth_getWork not implemented")
+		return
+	}
+	return handler(ctx)
+}
+
+// Used for submitting a proof-of-work solution.
+func (h *RpcHandler) EthSubmitWork(ctx context.Context,
+	Nonce Bytes8,
+	Hash Bytes32,
+	Digest Bytes32,
+) (Success bool, err error) {
+	handler := h.FnEthSubmitWork
+	if handler == nil {
+		err = errors.New("Method eth_submitWork not implemented")
+		return
+	}
+	return handler(ctx,
+		Nonce,
+		Hash,
+		Digest,
+	)
+}
+
+// Used for submitting mining hashrate.
+func (h *RpcHandler) EthSubmitHashrate(ctx context.Context,
+	Hashrate Bytes32,
+	Id Bytes32,
+) (Success bool, err error) {
+	handler := h.FnEthSubmitHashrate
+	if handler == nil {
+		err = errors.New("Method eth_submitHashrate not implemented")
+		return
+	}
+	return handler(ctx,
+		Hashrate,
+		Id,
+	)
+}
+
+// Returns an EIP-191 signature over the provided data.
+func (h *RpcHandler) EthSign(ctx context.Context,
+	Address Address,
+	Message Bytes,
+) (Signature Bytes65, err error) {
+	handler := h.FnEthSign
+	if handler == nil {
+		err = errors.New("Method eth_sign not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		Message,
+	)
+}
+
+// Returns an RLP encoded transaction signed by the specified account.
+func (h *RpcHandler) EthSignTransaction(ctx context.Context,
+	Transaction GenericTransaction,
+) (EncodedTransaction Bytes, err error) {
+	handler := h.FnEthSignTransaction
+	if handler == nil {
+		err = errors.New("Method eth_signTransaction not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+	)
+}
+
+// Returns the balance of the account of given address.
+func (h *RpcHandler) EthGetBalance(ctx context.Context,
+	Address Address,
+	Block *BlockNumberOrTag,
+) (Balance Uint, err error) {
+	handler := h.FnEthGetBalance
+	if handler == nil {
+		err = errors.New("Method eth_getBalance not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		Block,
+	)
+}
+
+// Returns the value from a storage position at a given address.
+func (h *RpcHandler) EthGetStorageAt(ctx context.Context,
+	Address Address,
+	StorageSlot Uint256,
+	Block *BlockNumberOrTag,
+) (Value Bytes, err error) {
+	handler := h.FnEthGetStorageAt
+	if handler == nil {
+		err = errors.New("Method eth_getStorageAt not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		StorageSlot,
+		Block,
+	)
+}
+
+// Returns the number of transactions sent from an address.
+func (h *RpcHandler) EthGetTransactionCount(ctx context.Context,
+	Address Address,
+	Block *BlockNumberOrTag,
+) (TransactionCount Uint, err error) {
+	handler := h.FnEthGetTransactionCount
+	if handler == nil {
+		err = errors.New("Method eth_getTransactionCount not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		Block,
+	)
+}
+
+// Returns code at a given address.
+func (h *RpcHandler) EthGetCode(ctx context.Context,
+	Address Address,
+	Block *BlockNumberOrTag,
+) (Bytecode Bytes, err error) {
+	handler := h.FnEthGetCode
+	if handler == nil {
+		err = errors.New("Method eth_getCode not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		Block,
+	)
+}
+
+// Returns the merkle proof for a given account and optionally some storage keys.
+func (h *RpcHandler) EthGetProof(ctx context.Context,
+	Address Address,
+	StorageKeys []Hash32,
+	Block BlockNumberOrTag,
+) (Account AccountProof, err error) {
+	handler := h.FnEthGetProof
+	if handler == nil {
+		err = errors.New("Method eth_getProof not implemented")
+		return
+	}
+	return handler(ctx,
+		Address,
+		StorageKeys,
+		Block,
+	)
+}
+
+// Signs and submits a transaction.
+func (h *RpcHandler) EthSendTransaction(ctx context.Context,
+	Transaction GenericTransaction,
+) (TransactionHash Hash32, err error) {
+	handler := h.FnEthSendTransaction
+	if handler == nil {
+		err = errors.New("Method eth_sendTransaction not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+	)
+}
+
+// Submits a raw transaction.
+func (h *RpcHandler) EthSendRawTransaction(ctx context.Context,
+	Transaction Bytes,
+) (TransactionHash Hash32, err error) {
+	handler := h.FnEthSendRawTransaction
+	if handler == nil {
+		err = errors.New("Method eth_sendRawTransaction not implemented")
+		return
+	}
+	return handler(ctx,
+		Transaction,
+	)
+}
+
+// Returns the information about a transaction requested by transaction hash.
+func (h *RpcHandler) EthGetTransactionByHash(ctx context.Context,
+	TransactionHash Hash32,
+) (TransactionInformation TransactionInfo, err error) {
+	handler := h.FnEthGetTransactionByHash
+	if handler == nil {
+		err = errors.New("Method eth_getTransactionByHash not implemented")
+		return
+	}
+	return handler(ctx,
+		TransactionHash,
+	)
+}
+
+// Returns information about a transaction by block hash and transaction index position.
+func (h *RpcHandler) EthGetTransactionByBlockHashAndIndex(ctx context.Context,
+	BlockHash Hash32,
+	TransactionIndex Uint,
+) (TransactionInformation TransactionInfo, err error) {
+	handler := h.FnEthGetTransactionByBlockHashAndIndex
+	if handler == nil {
+		err = errors.New("Method eth_getTransactionByBlockHashAndIndex not implemented")
+		return
+	}
+	return handler(ctx,
+		BlockHash,
+		TransactionIndex,
+	)
+}
+
+// Returns information about a transaction by block number and transaction index position.
+func (h *RpcHandler) EthGetTransactionByBlockNumberAndIndex(ctx context.Context,
+	Block BlockNumberOrTag,
+	TransactionIndex Uint,
+) (TransactionInformation TransactionInfo, err error) {
+	handler := h.FnEthGetTransactionByBlockNumberAndIndex
+	if handler == nil {
+		err = errors.New("Method eth_getTransactionByBlockNumberAndIndex not implemented")
+		return
+	}
+	return handler(ctx,
+		Block,
+		TransactionIndex,
+	)
+}
+
+// Returns the receipt of a transaction by transaction hash.
+func (h *RpcHandler) EthGetTransactionReceipt(ctx context.Context,
+	TransactionHash *Hash32,
+) (ReceiptInformation ReceiptInfo, err error) {
+	handler := h.FnEthGetTransactionReceipt
+	if handler == nil {
+		err = errors.New("Method eth_getTransactionReceipt not implemented")
+		return
+	}
+	return handler(ctx,
+		TransactionHash,
+	)
+}
+
+type GoOpenRPCService interface {
+	// Returns an RLP-encoded header.
+	DebugGetRawHeader(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (HeaderRLP Bytes, err error)
+	// Returns an RLP-encoded block.
+	DebugGetRawBlock(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (BlockRLP Bytes, err error)
+	// Returns an array of EIP-2718 binary-encoded transactions.
+	DebugGetRawTransaction(ctx context.Context,
+		TransactionHash Hash32,
+	) (EIP2718BinaryEncodedTransaction Bytes, err error)
+	// Returns an array of EIP-2718 binary-encoded receipts.
+	DebugGetRawReceipts(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (Receipts []Bytes, err error)
+	// Returns an array of recent bad blocks that the client has seen on the network.
+	DebugGetBadBlocks(ctx context.Context,
+	) (Blocks []BadBlock, err error)
+	// Returns information about a block by hash.
+	EthGetBlockByHash(ctx context.Context,
+		BlockHash Hash32,
+		HydratedTransactions bool,
+	) (BlockInformation Block, err error)
+	// Returns information about a block by number.
+	EthGetBlockByNumber(ctx context.Context,
+		Block BlockNumberOrTag,
+		HydratedTransactions bool,
+	) (BlockInformation Block, err error)
+	// Returns the number of transactions in a block from a block matching the given block hash.
+	EthGetBlockTransactionCountByHash(ctx context.Context,
+		BlockHash *Hash32,
+	) (TransactionCount Uint, err error)
+	// Returns the number of transactions in a block matching the given block number.
+	EthGetBlockTransactionCountByNumber(ctx context.Context,
+		Block *BlockNumberOrTag,
+	) (TransactionCount Uint, err error)
+	// Returns the number of uncles in a block from a block matching the given block hash.
+	EthGetUncleCountByBlockHash(ctx context.Context,
+		BlockHash *Hash32,
+	) (UncleCount Uint, err error)
+	// Returns the number of transactions in a block matching the given block number.
+	EthGetUncleCountByBlockNumber(ctx context.Context,
+		Block *BlockNumberOrTag,
+	) (UncleCount Uint, err error)
+	// Returns the chain ID of the current network.
+	EthChainId(ctx context.Context,
+	) (ChainID Uint, err error)
+	// Returns an object with data about the sync status or false.
+	EthSyncing(ctx context.Context,
+	) (SyncingStatus SyncingStatus, err error)
+	// Returns the client coinbase address.
+	EthCoinbase(ctx context.Context,
+	) (CoinbaseAddress Address, err error)
+	// Returns a list of addresses owned by client.
+	EthAccounts(ctx context.Context,
+	) (Accounts []Address, err error)
+	// Returns the number of most recent block.
+	EthBlockNumber(ctx context.Context,
+	) (BlockNumber Uint, err error)
+	// Executes a new message call immediately without creating a transaction on the block chain.
+	EthCall(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (ReturnData Bytes, err error)
+	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+	EthEstimateGas(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (GasUsed Uint, err error)
+	// Generates an access list for a transaction.
+	EthCreateAccessList(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (GasUsed struct {
+		AccessList AccessList `json:"accessList"`
+		Error      string     `json:"error"`
+		GasUsed    Uint       `json:"gasUsed"`
+	}, err error)
+	// Returns the current price per gas in wei.
+	EthGasPrice(ctx context.Context,
+	) (GasPrice Uint, err error)
+	// Returns the current maxPriorityFeePerGas per gas in wei.
+	EthMaxPriorityFeePerGas(ctx context.Context,
+	) (MaxPriorityFeePerGas Uint, err error)
+	// Transaction fee history
+	EthFeeHistory(ctx context.Context,
+		BlockCount Uint,
+		NewestBlock BlockNumberOrTag,
+		RewardPercentiles []float64,
+	) (FeeHistoryResult struct {
+		BaseFeePerGas []Uint   `json:"baseFeePerGas"`
+		OldestBlock   Uint     `json:"oldestBlock"`
+		Reward        [][]Uint `json:"reward"`
+	}, err error)
+	// Creates a filter object, based on filter options, to notify when the state changes (logs).
+	EthNewFilter(ctx context.Context,
+		Filter *Filter,
+	) (FilterIdentifier Uint, err error)
+	// Creates a filter in the node, to notify when a new block arrives.
+	EthNewBlockFilter(ctx context.Context,
+	) (FilterIdentifier Uint, err error)
+	// Creates a filter in the node, to notify when new pending transactions arrive.
+	EthNewPendingTransactionFilter(ctx context.Context,
+	) (FilterIdentifier Uint, err error)
+	// Uninstalls a filter with given id.
+	EthUninstallFilter(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (Success bool, err error)
+	// Polling method for a filter, which returns an array of logs which occurred since last poll.
+	EthGetFilterChanges(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (LogObjects FilterResults, err error)
+	// Returns an array of all logs matching filter with given id.
+	EthGetFilterLogs(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (LogObjects FilterResults, err error)
+	// Returns an array of all logs matching filter with given id.
+	EthGetLogs(ctx context.Context,
+		Filter *Filter,
+	) (LogObjects FilterResults, err error)
+	// Returns whether the client is actively mining new blocks.
+	EthMining(ctx context.Context,
+	) (MiningStatus bool, err error)
+	// Returns the number of hashes per second that the node is mining with.
+	EthHashrate(ctx context.Context,
+	) (MiningStatus Uint, err error)
+	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
+	EthGetWork(ctx context.Context,
+	) (CurrentWork []Bytes32, err error)
+	// Used for submitting a proof-of-work solution.
+	EthSubmitWork(ctx context.Context,
+		Nonce Bytes8,
+		Hash Bytes32,
+		Digest Bytes32,
+	) (Success bool, err error)
+	// Used for submitting mining hashrate.
+	EthSubmitHashrate(ctx context.Context,
+		Hashrate Bytes32,
+		Id Bytes32,
+	) (Success bool, err error)
+	// Returns an EIP-191 signature over the provided data.
+	EthSign(ctx context.Context,
+		Address Address,
+		Message Bytes,
+	) (Signature Bytes65, err error)
+	// Returns an RLP encoded transaction signed by the specified account.
+	EthSignTransaction(ctx context.Context,
+		Transaction GenericTransaction,
+	) (EncodedTransaction Bytes, err error)
+	// Returns the balance of the account of given address.
+	EthGetBalance(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (Balance Uint, err error)
+	// Returns the value from a storage position at a given address.
+	EthGetStorageAt(ctx context.Context,
+		Address Address,
+		StorageSlot Uint256,
+		Block *BlockNumberOrTag,
+	) (Value Bytes, err error)
+	// Returns the number of transactions sent from an address.
+	EthGetTransactionCount(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (TransactionCount Uint, err error)
+	// Returns code at a given address.
+	EthGetCode(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (Bytecode Bytes, err error)
+	// Returns the merkle proof for a given account and optionally some storage keys.
+	EthGetProof(ctx context.Context,
+		Address Address,
+		StorageKeys []Hash32,
+		Block BlockNumberOrTag,
+	) (Account AccountProof, err error)
+	// Signs and submits a transaction.
+	EthSendTransaction(ctx context.Context,
+		Transaction GenericTransaction,
+	) (TransactionHash Hash32, err error)
+	// Submits a raw transaction.
+	EthSendRawTransaction(ctx context.Context,
+		Transaction Bytes,
+	) (TransactionHash Hash32, err error)
+	// Returns the information about a transaction requested by transaction hash.
+	EthGetTransactionByHash(ctx context.Context,
+		TransactionHash Hash32,
+	) (TransactionInformation TransactionInfo, err error)
+	// Returns information about a transaction by block hash and transaction index position.
+	EthGetTransactionByBlockHashAndIndex(ctx context.Context,
+		BlockHash Hash32,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo, err error)
+	// Returns information about a transaction by block number and transaction index position.
+	EthGetTransactionByBlockNumberAndIndex(ctx context.Context,
+		Block BlockNumberOrTag,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo, err error)
+	// Returns the receipt of a transaction by transaction hash.
+	EthGetTransactionReceipt(ctx context.Context,
+		TransactionHash *Hash32,
+	) (ReceiptInformation ReceiptInfo, err error)
+}
+
+func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
+	// Returns an RLP-encoded header.
+
+	if err := r.RegisterFunc("debug_getRawHeader", h.Srv.DebugGetRawHeader); err != nil {
+		panic(err)
+	}
+
+	// Returns an RLP-encoded block.
+
+	if err := r.RegisterFunc("debug_getRawBlock", h.Srv.DebugGetRawBlock); err != nil {
+		panic(err)
+	}
+
+	// Returns an array of EIP-2718 binary-encoded transactions.
+
+	if err := r.RegisterFunc("debug_getRawTransaction", h.Srv.DebugGetRawTransaction); err != nil {
+		panic(err)
+	}
+
+	// Returns an array of EIP-2718 binary-encoded receipts.
+
+	if err := r.RegisterFunc("debug_getRawReceipts", h.Srv.DebugGetRawReceipts); err != nil {
+		panic(err)
+	}
+
+	// Returns an array of recent bad blocks that the client has seen on the network.
+
+	if err := r.RegisterFunc("debug_getBadBlocks", h.Srv.DebugGetBadBlocks); err != nil {
+		panic(err)
+	}
+
+	// Returns information about a block by hash.
+
+	if err := r.RegisterFunc("eth_getBlockByHash", h.Srv.EthGetBlockByHash); err != nil {
+		panic(err)
+	}
+
+	// Returns information about a block by number.
+
+	if err := r.RegisterFunc("eth_getBlockByNumber", h.Srv.EthGetBlockByNumber); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of transactions in a block from a block matching the given block hash.
+
+	if err := r.RegisterFunc("eth_getBlockTransactionCountByHash", h.Srv.EthGetBlockTransactionCountByHash); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of transactions in a block matching the given block number.
+
+	if err := r.RegisterFunc("eth_getBlockTransactionCountByNumber", h.Srv.EthGetBlockTransactionCountByNumber); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of uncles in a block from a block matching the given block hash.
+
+	if err := r.RegisterFunc("eth_getUncleCountByBlockHash", h.Srv.EthGetUncleCountByBlockHash); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of transactions in a block matching the given block number.
+
+	if err := r.RegisterFunc("eth_getUncleCountByBlockNumber", h.Srv.EthGetUncleCountByBlockNumber); err != nil {
+		panic(err)
+	}
+
+	// Returns the chain ID of the current network.
+
+	if err := r.RegisterFunc("eth_chainId", h.Srv.EthChainId); err != nil {
+		panic(err)
+	}
+
+	// Returns an object with data about the sync status or false.
+
+	if err := r.RegisterFunc("eth_syncing", h.Srv.EthSyncing); err != nil {
+		panic(err)
+	}
+
+	// Returns the client coinbase address.
+
+	if err := r.RegisterFunc("eth_coinbase", h.Srv.EthCoinbase); err != nil {
+		panic(err)
+	}
+
+	// Returns a list of addresses owned by client.
+
+	if err := r.RegisterFunc("eth_accounts", h.Srv.EthAccounts); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of most recent block.
+
+	if err := r.RegisterFunc("eth_blockNumber", h.Srv.EthBlockNumber); err != nil {
+		panic(err)
+	}
+
+	// Executes a new message call immediately without creating a transaction on the block chain.
+
+	if err := r.RegisterFunc("eth_call", h.Srv.EthCall); err != nil {
+		panic(err)
+	}
+
+	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+
+	if err := r.RegisterFunc("eth_estimateGas", h.Srv.EthEstimateGas); err != nil {
+		panic(err)
+	}
+
+	// Generates an access list for a transaction.
+
+	if err := r.RegisterFunc("eth_createAccessList", h.Srv.EthCreateAccessList); err != nil {
+		panic(err)
+	}
+
+	// Returns the current price per gas in wei.
+
+	if err := r.RegisterFunc("eth_gasPrice", h.Srv.EthGasPrice); err != nil {
+		panic(err)
+	}
+
+	// Returns the current maxPriorityFeePerGas per gas in wei.
+
+	if err := r.RegisterFunc("eth_maxPriorityFeePerGas", h.Srv.EthMaxPriorityFeePerGas); err != nil {
+		panic(err)
+	}
+
+	// Transaction fee history
+
+	if err := r.RegisterFunc("eth_feeHistory", h.Srv.EthFeeHistory); err != nil {
+		panic(err)
+	}
+
+	// Creates a filter object, based on filter options, to notify when the state changes (logs).
+
+	if err := r.RegisterFunc("eth_newFilter", h.Srv.EthNewFilter); err != nil {
+		panic(err)
+	}
+
+	// Creates a filter in the node, to notify when a new block arrives.
+
+	if err := r.RegisterFunc("eth_newBlockFilter", h.Srv.EthNewBlockFilter); err != nil {
+		panic(err)
+	}
+
+	// Creates a filter in the node, to notify when new pending transactions arrive.
+
+	if err := r.RegisterFunc("eth_newPendingTransactionFilter", h.Srv.EthNewPendingTransactionFilter); err != nil {
+		panic(err)
+	}
+
+	// Uninstalls a filter with given id.
+
+	if err := r.RegisterFunc("eth_uninstallFilter", h.Srv.EthUninstallFilter); err != nil {
+		panic(err)
+	}
+
+	// Polling method for a filter, which returns an array of logs which occurred since last poll.
+
+	if err := r.RegisterFunc("eth_getFilterChanges", h.Srv.EthGetFilterChanges); err != nil {
+		panic(err)
+	}
+
+	// Returns an array of all logs matching filter with given id.
+
+	if err := r.RegisterFunc("eth_getFilterLogs", h.Srv.EthGetFilterLogs); err != nil {
+		panic(err)
+	}
+
+	// Returns an array of all logs matching filter with given id.
+
+	if err := r.RegisterFunc("eth_getLogs", h.Srv.EthGetLogs); err != nil {
+		panic(err)
+	}
+
+	// Returns whether the client is actively mining new blocks.
+
+	if err := r.RegisterFunc("eth_mining", h.Srv.EthMining); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of hashes per second that the node is mining with.
+
+	if err := r.RegisterFunc("eth_hashrate", h.Srv.EthHashrate); err != nil {
+		panic(err)
+	}
+
+	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
+
+	if err := r.RegisterFunc("eth_getWork", h.Srv.EthGetWork); err != nil {
+		panic(err)
+	}
+
+	// Used for submitting a proof-of-work solution.
+
+	if err := r.RegisterFunc("eth_submitWork", h.Srv.EthSubmitWork); err != nil {
+		panic(err)
+	}
+
+	// Used for submitting mining hashrate.
+
+	if err := r.RegisterFunc("eth_submitHashrate", h.Srv.EthSubmitHashrate); err != nil {
+		panic(err)
+	}
+
+	// Returns an EIP-191 signature over the provided data.
+
+	if err := r.RegisterFunc("eth_sign", h.Srv.EthSign); err != nil {
+		panic(err)
+	}
+
+	// Returns an RLP encoded transaction signed by the specified account.
+
+	if err := r.RegisterFunc("eth_signTransaction", h.Srv.EthSignTransaction); err != nil {
+		panic(err)
+	}
+
+	// Returns the balance of the account of given address.
+
+	if err := r.RegisterFunc("eth_getBalance", h.Srv.EthGetBalance); err != nil {
+		panic(err)
+	}
+
+	// Returns the value from a storage position at a given address.
+
+	if err := r.RegisterFunc("eth_getStorageAt", h.Srv.EthGetStorageAt); err != nil {
+		panic(err)
+	}
+
+	// Returns the number of transactions sent from an address.
+
+	if err := r.RegisterFunc("eth_getTransactionCount", h.Srv.EthGetTransactionCount); err != nil {
+		panic(err)
+	}
+
+	// Returns code at a given address.
+
+	if err := r.RegisterFunc("eth_getCode", h.Srv.EthGetCode); err != nil {
+		panic(err)
+	}
+
+	// Returns the merkle proof for a given account and optionally some storage keys.
+
+	if err := r.RegisterFunc("eth_getProof", h.Srv.EthGetProof); err != nil {
+		panic(err)
+	}
+
+	// Signs and submits a transaction.
+
+	if err := r.RegisterFunc("eth_sendTransaction", h.Srv.EthSendTransaction); err != nil {
+		panic(err)
+	}
+
+	// Submits a raw transaction.
+
+	if err := r.RegisterFunc("eth_sendRawTransaction", h.Srv.EthSendRawTransaction); err != nil {
+		panic(err)
+	}
+
+	// Returns the information about a transaction requested by transaction hash.
+
+	if err := r.RegisterFunc("eth_getTransactionByHash", h.Srv.EthGetTransactionByHash); err != nil {
+		panic(err)
+	}
+
+	// Returns information about a transaction by block hash and transaction index position.
+
+	if err := r.RegisterFunc("eth_getTransactionByBlockHashAndIndex", h.Srv.EthGetTransactionByBlockHashAndIndex); err != nil {
+		panic(err)
+	}
+
+	// Returns information about a transaction by block number and transaction index position.
+
+	if err := r.RegisterFunc("eth_getTransactionByBlockNumberAndIndex", h.Srv.EthGetTransactionByBlockNumberAndIndex); err != nil {
+		panic(err)
+	}
+
+	// Returns the receipt of a transaction by transaction hash.
+
+	if err := r.RegisterFunc("eth_getTransactionReceipt", h.Srv.EthGetTransactionReceipt); err != nil {
+		panic(err)
+	}
+
+}
+
+type RpcHandler struct {
+	// Returns an RLP-encoded header.
+	FnDebugGetRawHeader func(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (HeaderRLP Bytes, err error)
+
+	// Returns an RLP-encoded block.
+	FnDebugGetRawBlock func(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (BlockRLP Bytes, err error)
+
+	// Returns an array of EIP-2718 binary-encoded transactions.
+	FnDebugGetRawTransaction func(ctx context.Context,
+		TransactionHash Hash32,
+	) (EIP2718BinaryEncodedTransaction Bytes, err error)
+
+	// Returns an array of EIP-2718 binary-encoded receipts.
+	FnDebugGetRawReceipts func(ctx context.Context,
+		Block BlockNumberOrTag,
+	) (Receipts []Bytes, err error)
+
+	// Returns an array of recent bad blocks that the client has seen on the network.
+	FnDebugGetBadBlocks func(ctx context.Context,
+	) (Blocks []BadBlock, err error)
+
+	// Returns information about a block by hash.
+	FnEthGetBlockByHash func(ctx context.Context,
+		BlockHash Hash32,
+		HydratedTransactions bool,
+	) (BlockInformation Block, err error)
+
+	// Returns information about a block by number.
+	FnEthGetBlockByNumber func(ctx context.Context,
+		Block BlockNumberOrTag,
+		HydratedTransactions bool,
+	) (BlockInformation Block, err error)
+
+	// Returns the number of transactions in a block from a block matching the given block hash.
+	FnEthGetBlockTransactionCountByHash func(ctx context.Context,
+		BlockHash *Hash32,
+	) (TransactionCount Uint, err error)
+
+	// Returns the number of transactions in a block matching the given block number.
+	FnEthGetBlockTransactionCountByNumber func(ctx context.Context,
+		Block *BlockNumberOrTag,
+	) (TransactionCount Uint, err error)
+
+	// Returns the number of uncles in a block from a block matching the given block hash.
+	FnEthGetUncleCountByBlockHash func(ctx context.Context,
+		BlockHash *Hash32,
+	) (UncleCount Uint, err error)
+
+	// Returns the number of transactions in a block matching the given block number.
+	FnEthGetUncleCountByBlockNumber func(ctx context.Context,
+		Block *BlockNumberOrTag,
+	) (UncleCount Uint, err error)
+
+	// Returns the chain ID of the current network.
+	FnEthChainId func(ctx context.Context,
+	) (ChainID Uint, err error)
+
+	// Returns an object with data about the sync status or false.
+	FnEthSyncing func(ctx context.Context,
+	) (SyncingStatus SyncingStatus, err error)
+
+	// Returns the client coinbase address.
+	FnEthCoinbase func(ctx context.Context,
+	) (CoinbaseAddress Address, err error)
+
+	// Returns a list of addresses owned by client.
+	FnEthAccounts func(ctx context.Context,
+	) (Accounts []Address, err error)
+
+	// Returns the number of most recent block.
+	FnEthBlockNumber func(ctx context.Context,
+	) (BlockNumber Uint, err error)
+
+	// Executes a new message call immediately without creating a transaction on the block chain.
+	FnEthCall func(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (ReturnData Bytes, err error)
+
+	// Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+	FnEthEstimateGas func(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (GasUsed Uint, err error)
+
+	// Generates an access list for a transaction.
+	FnEthCreateAccessList func(ctx context.Context,
+		Transaction GenericTransaction,
+		Block *BlockNumberOrTag,
+	) (GasUsed struct {
+		AccessList AccessList `json:"accessList"`
+		Error      string     `json:"error"`
+		GasUsed    Uint       `json:"gasUsed"`
+	}, err error)
+
+	// Returns the current price per gas in wei.
+	FnEthGasPrice func(ctx context.Context,
+	) (GasPrice Uint, err error)
+
+	// Returns the current maxPriorityFeePerGas per gas in wei.
+	FnEthMaxPriorityFeePerGas func(ctx context.Context,
+	) (MaxPriorityFeePerGas Uint, err error)
+
+	// Transaction fee history
+	FnEthFeeHistory func(ctx context.Context,
+		BlockCount Uint,
+		NewestBlock BlockNumberOrTag,
+		RewardPercentiles []float64,
+	) (FeeHistoryResult struct {
+		BaseFeePerGas []Uint   `json:"baseFeePerGas"`
+		OldestBlock   Uint     `json:"oldestBlock"`
+		Reward        [][]Uint `json:"reward"`
+	}, err error)
+
+	// Creates a filter object, based on filter options, to notify when the state changes (logs).
+	FnEthNewFilter func(ctx context.Context,
+		Filter *Filter,
+	) (FilterIdentifier Uint, err error)
+
+	// Creates a filter in the node, to notify when a new block arrives.
+	FnEthNewBlockFilter func(ctx context.Context,
+	) (FilterIdentifier Uint, err error)
+
+	// Creates a filter in the node, to notify when new pending transactions arrive.
+	FnEthNewPendingTransactionFilter func(ctx context.Context,
+	) (FilterIdentifier Uint, err error)
+
+	// Uninstalls a filter with given id.
+	FnEthUninstallFilter func(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (Success bool, err error)
+
+	// Polling method for a filter, which returns an array of logs which occurred since last poll.
+	FnEthGetFilterChanges func(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (LogObjects FilterResults, err error)
+
+	// Returns an array of all logs matching filter with given id.
+	FnEthGetFilterLogs func(ctx context.Context,
+		FilterIdentifier *Uint,
+	) (LogObjects FilterResults, err error)
+
+	// Returns an array of all logs matching filter with given id.
+	FnEthGetLogs func(ctx context.Context,
+		Filter *Filter,
+	) (LogObjects FilterResults, err error)
+
+	// Returns whether the client is actively mining new blocks.
+	FnEthMining func(ctx context.Context,
+	) (MiningStatus bool, err error)
+
+	// Returns the number of hashes per second that the node is mining with.
+	FnEthHashrate func(ctx context.Context,
+	) (MiningStatus Uint, err error)
+
+	// Returns the hash of the current block, the seedHash, and the boundary condition to be met (“target”).
+	FnEthGetWork func(ctx context.Context,
+	) (CurrentWork []Bytes32, err error)
+
+	// Used for submitting a proof-of-work solution.
+	FnEthSubmitWork func(ctx context.Context,
+		Nonce Bytes8,
+		Hash Bytes32,
+		Digest Bytes32,
+	) (Success bool, err error)
+
+	// Used for submitting mining hashrate.
+	FnEthSubmitHashrate func(ctx context.Context,
+		Hashrate Bytes32,
+		Id Bytes32,
+	) (Success bool, err error)
+
+	// Returns an EIP-191 signature over the provided data.
+	FnEthSign func(ctx context.Context,
+		Address Address,
+		Message Bytes,
+	) (Signature Bytes65, err error)
+
+	// Returns an RLP encoded transaction signed by the specified account.
+	FnEthSignTransaction func(ctx context.Context,
+		Transaction GenericTransaction,
+	) (EncodedTransaction Bytes, err error)
+
+	// Returns the balance of the account of given address.
+	FnEthGetBalance func(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (Balance Uint, err error)
+
+	// Returns the value from a storage position at a given address.
+	FnEthGetStorageAt func(ctx context.Context,
+		Address Address,
+		StorageSlot Uint256,
+		Block *BlockNumberOrTag,
+	) (Value Bytes, err error)
+
+	// Returns the number of transactions sent from an address.
+	FnEthGetTransactionCount func(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (TransactionCount Uint, err error)
+
+	// Returns code at a given address.
+	FnEthGetCode func(ctx context.Context,
+		Address Address,
+		Block *BlockNumberOrTag,
+	) (Bytecode Bytes, err error)
+
+	// Returns the merkle proof for a given account and optionally some storage keys.
+	FnEthGetProof func(ctx context.Context,
+		Address Address,
+		StorageKeys []Hash32,
+		Block BlockNumberOrTag,
+	) (Account AccountProof, err error)
+
+	// Signs and submits a transaction.
+	FnEthSendTransaction func(ctx context.Context,
+		Transaction GenericTransaction,
+	) (TransactionHash Hash32, err error)
+
+	// Submits a raw transaction.
+	FnEthSendRawTransaction func(ctx context.Context,
+		Transaction Bytes,
+	) (TransactionHash Hash32, err error)
+
+	// Returns the information about a transaction requested by transaction hash.
+	FnEthGetTransactionByHash func(ctx context.Context,
+		TransactionHash Hash32,
+	) (TransactionInformation TransactionInfo, err error)
+
+	// Returns information about a transaction by block hash and transaction index position.
+	FnEthGetTransactionByBlockHashAndIndex func(ctx context.Context,
+		BlockHash Hash32,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo, err error)
+
+	// Returns information about a transaction by block number and transaction index position.
+	FnEthGetTransactionByBlockNumberAndIndex func(ctx context.Context,
+		Block BlockNumberOrTag,
+		TransactionIndex Uint,
+	) (TransactionInformation TransactionInfo, err error)
+
+	// Returns the receipt of a transaction by transaction hash.
+	FnEthGetTransactionReceipt func(ctx context.Context,
+		TransactionHash *Hash32,
+	) (ReceiptInformation ReceiptInfo, err error)
+}

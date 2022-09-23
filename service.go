@@ -146,6 +146,7 @@ func newCallback(receiver, fn reflect.Value) Handler {
 		}
 		c.errPos = 1
 	}
+	log.Println(c)
 	return c
 }
 

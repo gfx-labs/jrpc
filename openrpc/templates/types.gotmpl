@@ -5,8 +5,20 @@ package {{ .Package }}
 import (
         "context"
         "gfx.cafe/open/jrpc"
+        "errors"
+        "fmt"
        )
 
+var _ = jrpc.Version
+var _ = context.Background
+var _ = errors.New
+var _ = fmt.Sprintf
+
+
+
+{{- range $name, $component := .Components.Schemas }}
+    type {{camelCase $name}} {{template "schemaType" $component}}
+{{- end }}
 
 {{define "schemaType" -}}
     {{if not (eq .Ref "") -}}
@@ -43,39 +55,18 @@ import (
 type GoOpenRPCHandler struct {
 	Srv GoOpenRPCService
 }
-
-
-func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
-    {{range .Methods -}}
-        // {{.Summary}}
-        {{if .Namespace}}
-            r.Route("{{.Namespace}}", func(r2 jrpc.Router) {
-                r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}})
-            })
-        {{else}}
-            r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}})
-        {{end}}
-    {{end -}}
-}
-
-type RpcHandler struct {
-{{range .Methods -}}
-    // {{.Summary}}
-  Fn{{camelCase .Name}} func(ctx context.Context,
-        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
-        {{end -}})({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
-
-{{end -}}
-}
-
 {{range .Methods -}}
     // {{.Summary}}
     func(h *RpcHandler) {{camelCase .Name}}(ctx context.Context,
         {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
         {{end -}}) ({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error) {
         handler := h.Fn{{camelCase .Name}}
-        return handler(ctx context.Context,
-        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        if handler == nil {
+            err = errors.New("method {{.Name}} not implemented")
+            return
+        }
+        return handler(ctx,
+        {{range .Params -}}{{camelCase .Name}},
         {{end -}})
     }
 {{end -}}
@@ -91,7 +82,29 @@ type GoOpenRPCService interface {
     {{end -}}
 }
 
-{{- range $name, $component := .Components.Schemas }}
-    type {{camelCase $name}} {{template "schemaType" $component}}
-{{- end }}
 
+
+func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
+    {{range .Methods -}}
+        // {{.Summary}}
+        {{if .Namespace}}
+            if err := r.RegisterFunc("{{.Namespace}}_{{.MethodName}}", h.Srv.{{camelCase .Name}}); err != nil {
+                panic(err)
+            }
+        {{else}}
+            if err := r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}}); err != nil {
+                panic(err)
+            }
+        {{end}}
+    {{end -}}
+}
+
+type RpcHandler struct {
+{{range .Methods -}}
+    // {{.Summary}}
+  Fn{{camelCase .Name}} func(ctx context.Context,
+        {{range .Params -}}{{camelCase .Name}} {{if not .Required}}*{{end}}{{template "schemaType" .Schema}},
+        {{end -}})({{camelCase .Result.Name}} {{template "schemaType" .Result.Schema}}, err error)
+
+{{end -}}
+}
