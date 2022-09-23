@@ -87,15 +87,9 @@ type GoOpenRPCService interface {
 func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
     {{range .Methods -}}
         // {{.Summary}}
-        {{if .Namespace}}
-            if err := r.RegisterFunc("{{.Namespace}}_{{.MethodName}}", h.Srv.{{camelCase .Name}}); err != nil {
-                panic(err)
-            }
-        {{else}}
-            if err := r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}}); err != nil {
-                panic(err)
-            }
-        {{end}}
+        if err := r.RegisterFunc("{{.MethodName}}", h.Srv.{{camelCase .Name}}); err != nil {
+            panic(err)
+        }
     {{end -}}
 }
 
