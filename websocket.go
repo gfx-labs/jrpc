@@ -34,7 +34,7 @@ const (
 	wsPingInterval     = 60 * time.Second
 	wsPingWriteTimeout = 5 * time.Second
 	wsPongTimeout      = 30 * time.Second
-	wsMessageSizeLimit = 32 * 1024 * 1024 * 4
+	wsMessageSizeLimit = 32 * 1024 * 1024
 )
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
