@@ -235,7 +235,9 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 			}
 			err := h.conn.writeJSON(cp.ctx, val)
 			if err != nil {
-				close(mw.notifications)
+				if mw.notifications != nil {
+					close(mw.notifications)
+				}
 				return msg.errorResponse(err)
 			}
 		}
