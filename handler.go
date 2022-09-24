@@ -227,20 +227,24 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
 	mw := NewReaderResponseWriterMsg(req)
 	h.reg.ServeRPC(mw, req)
-	if mw.notifications != nil {
-		for {
-			val, more := <-mw.notifications
-			if !more {
-				break
-			}
-			err := h.conn.writeJSON(cp.ctx, val)
-			if err != nil {
-				if mw.notifications != nil {
-					close(mw.notifications)
-				}
-				return msg.errorResponse(err)
-			}
-		}
-	}
+
+	//TODO: notifications
+	//if mw.notifications != nil {
+	//	go func() {
+	//		for {
+	//			val, more := <-mw.notifications
+	//			if !more {
+	//				break
+	//			}
+	//			err := h.conn.writeJSON(cp.ctx, val)
+	//			if err != nil {
+	//				if mw.notifications != nil {
+	//					close(mw.notifications)
+	//				}
+	//				log.Println("error in notification", err)
+	//			}
+	//		}
+	//	}()
+	//}
 	return mw.msg
 }

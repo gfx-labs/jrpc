@@ -138,7 +138,10 @@ func (w *ResponseWriterMsg) Notify(args any) (err error) {
 	cm := w.r.Msg()
 	nf := cm.response(args)
 	nf.ID = nil
-	w.notifications <- nf
+	select {
+	case w.notifications <- nf:
+	default:
+	}
 	return nil
 }
 
