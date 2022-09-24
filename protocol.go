@@ -125,7 +125,9 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 		return nil
 	}
 	w.msg = cm.response(args)
-	close(w.notifications)
+	if w.notifications != nil {
+		close(w.notifications)
+	}
 	return nil
 }
 
