@@ -32,7 +32,6 @@ func Read(ctx context.Context, c *websocket.Conn, v interface{}) error {
 }
 
 func read(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
-
 	_, r, err := c.Reader(ctx)
 	if err != nil {
 		return err
