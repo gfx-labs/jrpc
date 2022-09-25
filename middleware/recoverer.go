@@ -24,6 +24,7 @@ func Recoverer(next jrpc.Handler) jrpc.Handler {
 	fn := func(w jrpc.ResponseWriter, r *jrpc.Request) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
+				PrintPrettyStack(rvr)
 				w.Send(nil, errors.New("Internal Server Error"))
 			}
 		}()
