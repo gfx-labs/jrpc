@@ -71,7 +71,7 @@ func Generate(rpc *types.OpenRPC, ts string, output string) error {
 		return err
 	}
 
-	err = os.WriteFile(output, fmtd, 0777)
+	err = os.WriteFile(output, fmtd, 0600)
 	if err != nil {
 		return err
 	}
