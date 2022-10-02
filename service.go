@@ -19,6 +19,7 @@ package jrpc
 import (
 	"context"
 	"reflect"
+	"runtime"
 	"unicode"
 )
 
@@ -93,18 +94,18 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 		fullargs = append(fullargs, reflect.ValueOf(r.ctx))
 	}
 	fullargs = append(fullargs, args...)
-	// Catch panic while running the callback.
-	//defer func() {
-	//	if err := recover(); err != nil {
-	//		const size = 64 << 10
-	//		buf := make([]byte, size)
-	//		buf = buf[:runtime.Stack(buf, false)]
-	//		log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
-	//		//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-	//		w.Send(nil, nil)
-	//		return
-	//	}
-	//}()
+	//Catch panic while running the callback.
+	defer func() {
+		if err := recover(); err != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			//log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
+			w.Send(nil, nil)
+			return
+		}
+	}()
 	// Run the callback.
 	results := e.fn.Call(fullargs)
 	if e.errPos >= 0 && !results[e.errPos].IsNil() {

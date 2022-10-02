@@ -506,12 +506,10 @@ func (c *Client) dispatch(codec ServerCodec) {
 
 	// Spawn the initial read loop.
 	go c.read(codec)
-
 	for {
 		select {
 		case <-c.close:
 			return
-
 		// Read path:
 		case op := <-c.readOp:
 			if op.batch {
