@@ -51,7 +51,7 @@ var _ json.Unmarshaler = (*Items)(nil)
 type Schema struct {
 	Ref        string            `json:"$ref,omitempty"`
 	Type       string            `json:"type,omitempty"`
-	Title      string            `json:"title"`
+	Title      string            `json:"title,omitempty"`
 	Required   []string          `json:"required,omitempty"`
 	Items      Items             `json:"items,omitempty"`
 	Properties map[string]Schema `json:"properties,omitempty"`
@@ -59,7 +59,7 @@ type Schema struct {
 	AnyOf      []Schema          `json:"anyOf,omitempty"`
 	AllOf      []Schema          `json:"allOf,omitempty"`
 	Enum       []string          `json:"enum,omitempty"`
-	Pattern    string            `json:"pattern"`
+	Pattern    string            `json:"pattern,omitempty"`
 }
 
 type Param struct {
