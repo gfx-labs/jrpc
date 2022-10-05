@@ -97,7 +97,7 @@ func (m *Method) MethodName() string {
 }
 
 type OpenRPC struct {
-	Package    string   `json:"package"`
+	Package    string   `json:"-"`
 	Version    string   `json:"openrpc"`
 	Info       Info     `json:"info"`
 	Methods    []Method `json:"methods"`
