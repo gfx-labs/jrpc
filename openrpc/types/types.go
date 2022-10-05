@@ -97,6 +97,7 @@ func (m *Method) MethodName() string {
 }
 
 type OpenRPC struct {
+	Package    string   `json:"-"`
 	Version    string   `json:"openrpc"`
 	Info       Info     `json:"info"`
 	Methods    []Method `json:"methods"`
@@ -108,6 +109,7 @@ type OpenRPC struct {
 
 func NewOpenRPCSpec1() *OpenRPC {
 	return &OpenRPC{
+		Package: "main",
 		Version: "1.0.0",
 		Info: Info{
 			Title:   "gfx.cafe/open/jrpc/openrpc",
