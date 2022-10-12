@@ -2,19 +2,18 @@ package jrpc
 
 import (
 	"context"
-	"net/http"
 	"strings"
 )
 
-// MethodParam returns the url parameter from a http.Request object.
-func MethodParam(r *http.Request, key string) string {
+// MethodParam returns the url parameter from a Request object.
+func MethodParam(r *Request, key string) string {
 	if rctx := RouteContext(r.Context()); rctx != nil {
 		return rctx.MethodParam(key)
 	}
 	return ""
 }
 
-// MethodParamFromCtx returns the url parameter from a http.Request Context.
+// MethodParamFromCtx returns the url parameter from a Request Context.
 func MethodParamFromCtx(ctx context.Context, key string) string {
 	if rctx := RouteContext(ctx); rctx != nil {
 		return rctx.MethodParam(key)
@@ -23,7 +22,7 @@ func MethodParamFromCtx(ctx context.Context, key string) string {
 }
 
 // RouteContext returns chi's routing Context object from a
-// http.Request Context.
+// Request Context.
 func RouteContext(ctx context.Context) *Context {
 	val, _ := ctx.Value(RouteCtxKey).(*Context)
 	return val
@@ -51,7 +50,7 @@ type Context struct {
 	parentCtx context.Context
 
 	// Routing path/method override used during the route search.
-	// See Mux#routeHTTP method.
+	// See Mux#routemethod.
 	RoutePath   string
 	RouteMethod string
 
@@ -112,26 +111,26 @@ func (x *Context) MethodParam(key string) string {
 //
 // For example,
 //
-//   func Instrument(next http.Handler) http.Handler {
-//     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//       next.ServeHTTP(w, r)
-//       routePattern := chi.RouteContext(r.Context()).RoutePattern()
-//       measure(w, r, routePattern)
-//   	 })
-//   }
+//	func Instrument(next Handler) Handler {
+//	  return HandlerFunc(func(w ResponseWriter, r *Request) {
+//	    next.Servew, r)
+//	    routePattern := chi.RouteContext(r.Context()).RoutePattern()
+//	    measure(w, r, routePattern)
+//		 })
+//	}
 func (x *Context) RoutePattern() string {
 	routePattern := strings.Join(x.RoutePatterns, "")
 	routePattern = replaceWildcards(routePattern)
-	routePattern = strings.TrimSuffix(routePattern, "//")
-	routePattern = strings.TrimSuffix(routePattern, "/")
+	routePattern = strings.TrimSuffix(routePattern, "__")
+	routePattern = strings.TrimSuffix(routePattern, "_")
 	return routePattern
 }
 
 // replaceWildcards takes a route pattern and recursively replaces all
-// occurrences of "/*/" to "/".
+// occurrences of "_*_" to "_".
 func replaceWildcards(p string) string {
-	if strings.Contains(p, "/*/") {
-		return replaceWildcards(strings.Replace(p, "/*/", "/", -1))
+	if strings.Contains(p, "_*_") {
+		return replaceWildcards(strings.Replace(p, "_*_", "_", -1))
 	}
 	return p
 }
@@ -149,7 +148,7 @@ func (s *RouteParams) Add(key, value string) {
 
 // contextKey is a value for use with context.WithValue. It's used as
 // a pointer so it fits in an interface{} without allocation. This technique
-// for defining context keys was copied from Go 1.7's new use of context in net/http.
+// for defining context keys was copied from Go 1.7's new use of context in net/
 type contextKey struct {
 	name string
 }
