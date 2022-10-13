@@ -230,8 +230,8 @@ type httpServerConn struct {
 	pi PeerInfo
 }
 
-func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
-	c := &httpServerConn{Writer: w, r: r}
+func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) ServerCodec {
+	c := &httpServerConn{Writer: w, r: r, pi: pi}
 	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters
 	// we however allow for non base64 encoded parameters to be passed
@@ -259,36 +259,13 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 		// it's a post request or whatever, so just process it like normal
 		c.Reader = io.LimitReader(r.Body, maxRequestContentLength)
 	}
-	connInfo := PeerInfo{
-		Transport: "http",
-		HTTP: HttpInfo{
-			Version:   c.r.Proto,
-			UserAgent: c.r.UserAgent(),
-			Origin:    c.r.Header.Get("Origin"),
-			Host:      c.r.Host,
-			Headers:   c.r.Header,
-		},
-	}
-	connInfo.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
-	if connInfo.HTTP.Origin == "" {
-		connInfo.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
-	}
-	if connInfo.HTTP.Origin == "" {
-		connInfo.HTTP.Origin = c.r.Header.Get("Origin")
-	}
-	connInfo.RemoteAddr = connInfo.HTTP.Origin
-	c.pi = connInfo
 
 	c.jc = NewCodec(c)
 	return c
 }
 
 func (c *httpServerConn) peerInfo() PeerInfo {
-	if c.w != nil {
-		c.pi.HTTP.WriteHeaders = c.w.Header()
-	}
 	return c.pi
-
 }
 
 func (c *httpServerConn) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
@@ -353,14 +330,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create request-scoped context.
-	connInfo := PeerInfo{Transport: "http", RemoteAddr: r.RemoteAddr}
+	connInfo := PeerInfo{
+		Transport:  "http",
+		RemoteAddr: r.RemoteAddr,
+		HTTP: HttpInfo{
+			Version:      r.Proto,
+			UserAgent:    r.UserAgent(),
+			Host:         r.Host,
+			Headers:      r.Header.Clone(),
+			WriteHeaders: w.Header(),
+		},
+	}
 	connInfo.HTTP.Version = r.Proto
 	connInfo.HTTP.Host = r.Host
 	connInfo.HTTP.Origin = r.Header.Get("X-Real-Ip")
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = r.Header.Get("X-Forwarded-For")
 	}
-	connInfo.HTTP.UserAgent = r.Header.Get("User-Agent")
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = r.Header.Get("Origin")
+	}
 	// the headers used
 	connInfo.HTTP.Headers = r.Header
 
@@ -371,7 +360,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// until EOF, writes the response to w, and orders the server to process a
 	// single request.
 	w.Header().Set("content-type", contentType)
-	codec := newHTTPServerConn(r, w)
+
+	codec := newHTTPServerConn(r, w, connInfo)
 	defer codec.close()
 	s.serveSingleRequest(ctx, codec)
 }
