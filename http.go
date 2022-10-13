@@ -226,10 +226,12 @@ type httpServerConn struct {
 
 	r *http.Request
 	w http.ResponseWriter
+
+	pi PeerInfo
 }
 
 func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
-	conn := &httpServerConn{Writer: w, r: r}
+	c := &httpServerConn{Writer: w, r: r}
 	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters
 	// we however allow for non base64 encoded parameters to be passed
@@ -247,35 +249,29 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 			param = pb
 		}
 		buf := bufpool.GetStd()
-		defer bufpool.Put(buf)
 		jzon.NewEncoder(buf).Encode(jsonrpcMessage{
 			ID:     NewStringIDPtr(id),
 			Method: method_up,
 			Params: param,
 		})
-		conn.Reader = buf
+		c.Reader = buf
 	} else {
 		// it's a post request or whatever, so just process it like normal
-		conn.Reader = io.LimitReader(r.Body, maxRequestContentLength)
+		c.Reader = io.LimitReader(r.Body, maxRequestContentLength)
 	}
-	conn.jc = NewCodec(conn)
-	return conn
-}
-
-func (c *httpServerConn) peerInfo() PeerInfo {
 	connInfo := PeerInfo{
-		Transport:  "http",
-		RemoteAddr: c.remoteAddr(),
+		Transport: "http",
 		HTTP: HttpInfo{
-			Version:      c.r.Proto,
-			UserAgent:    c.r.UserAgent(),
-			Origin:       c.r.Header.Get("Origin"),
-			Host:         c.r.Host,
-			Headers:      c.r.Header,
-			WriteHeaders: c.w.Header(),
+			Version:   c.r.Proto,
+			UserAgent: c.r.UserAgent(),
+			Origin:    c.r.Header.Get("Origin"),
+			Host:      c.r.Host,
+			Headers:   c.r.Header,
 		},
 	}
-
+	if c.w != nil {
+		connInfo.HTTP.WriteHeaders = c.w.Header()
+	}
 	connInfo.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
@@ -283,12 +279,16 @@ func (c *httpServerConn) peerInfo() PeerInfo {
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = c.r.Header.Get("Origin")
 	}
+	connInfo.RemoteAddr = connInfo.HTTP.Origin
+	c.pi = connInfo
 
-	return connInfo
+	c.jc = NewCodec(c)
+	return c
 }
 
-func (c *httpServerConn) remoteAddr() string {
-	return c.RemoteAddr()
+func (c *httpServerConn) peerInfo() PeerInfo {
+	return c.pi
+
 }
 
 func (c *httpServerConn) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
@@ -311,9 +311,13 @@ func (c *httpServerConn) closed() <-chan any {
 // Close does nothing and always returns nil.
 func (t *httpServerConn) Close() error { return nil }
 
+func (c *httpServerConn) remoteAddr() string {
+	return c.RemoteAddr()
+}
+
 // RemoteAddr returns the peer address of the underlying connection.
 func (t *httpServerConn) RemoteAddr() string {
-	return t.r.RemoteAddr
+	return t.peerInfo().RemoteAddr
 }
 
 // SetWriteDeadline does nothing and always returns nil.
