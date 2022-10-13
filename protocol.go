@@ -14,6 +14,7 @@ type Handler interface {
 
 type ResponseWriter interface {
 	Send(v any, err error) error
+	Option(k string, v any)
 	Notify(v any) error
 	Header() http.Header
 }
@@ -122,6 +123,15 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 
 func (w *ResponseWriterMsg) Header() http.Header {
 	return w.r.Peer().HTTP.WriteHeaders
+}
+
+func (w *ResponseWriterMsg) Option(k string, v any) {
+	switch k {
+	case "sorted":
+		w.msg.sortKeys = true
+	case "unsorted":
+		w.msg.sortKeys = true
+	}
 }
 
 func (w *ResponseWriterMsg) Send(args any, e error) (err error) {

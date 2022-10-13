@@ -24,6 +24,19 @@ var jzon = jsoniter.Config{
 }.Froze()
 
 var JZON = jzon
+var JSON = jsoniter.Config{
+	IndentionStep:                 0,
+	MarshalFloatWith6Digits:       false,
+	EscapeHTML:                    true,
+	SortMapKeys:                   true,
+	UseNumber:                     false,
+	DisallowUnknownFields:         false,
+	TagKey:                        "",
+	OnlyTaggedField:               false,
+	ValidateJsonRawMessage:        false,
+	ObjectFieldMustBeSimpleString: false,
+	CaseSensitive:                 false,
+}.Froze()
 
 // Read reads a JSON message from c into v.
 // It will reuse buffers in between calls to avoid allocations.

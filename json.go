@@ -50,6 +50,8 @@ type jsonrpcMessage struct {
 	Result  json.RawMessage `json:"result,omitempty"`
 
 	Error *jsonError `json:"error,omitempty"`
+
+	sortKeys bool
 }
 
 func MakeCall(id int, method string, params []any) *JsonRpcMessage {
@@ -91,7 +93,11 @@ func (msg *jsonrpcMessage) errorResponse(err error) *jsonrpcMessage {
 
 func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	// do a funny marshaling
-	enc, err := jzon.Marshal(result)
+	jz := jzon
+	if msg.sortKeys {
+		jz = wsjson.JSON
+	}
+	enc, err := jz.Marshal(result)
 	if err != nil {
 		return msg.errorResponse(err)
 	}
