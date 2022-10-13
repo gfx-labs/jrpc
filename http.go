@@ -269,9 +269,6 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 			Headers:   c.r.Header,
 		},
 	}
-	if c.w != nil {
-		connInfo.HTTP.WriteHeaders = c.w.Header()
-	}
 	connInfo.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
@@ -287,6 +284,9 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 }
 
 func (c *httpServerConn) peerInfo() PeerInfo {
+	if c.w != nil {
+		c.pi.HTTP.WriteHeaders = c.w.Header()
+	}
 	return c.pi
 
 }
