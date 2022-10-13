@@ -129,9 +129,6 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 
 func (w *ResponseWriterMsg) Header() http.Header {
 	wh := w.r.Peer().HTTP.WriteHeaders
-	if wh == nil {
-		wh = make(http.Header)
-	}
 	return wh
 }
 
