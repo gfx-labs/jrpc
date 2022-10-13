@@ -135,16 +135,20 @@ type PeerInfo struct {
 	RemoteAddr string
 
 	// Addditional information for HTTP and WebSocket connections.
-	HTTP struct {
-		// Protocol version, i.e. "HTTP/1.1". This is not set for WebSocket.
-		Version string
-		// Header values sent by the client.
-		UserAgent string
-		Origin    string
-		Host      string
+	HTTP HttpInfo
+}
 
-		Headers http.Header
-	}
+type HttpInfo struct {
+	// Protocol version, i.e. "HTTP/1.1". This is not set for WebSocket.
+	Version string
+	// Header values sent by the client.
+	UserAgent string
+	Origin    string
+	Host      string
+
+	Headers http.Header
+
+	WriteHeaders http.Header
 }
 
 type peerInfoContextKey struct{}

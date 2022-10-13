@@ -30,6 +30,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gfx.cafe/util/go/bufpool"
 )
 
 const (
@@ -219,7 +221,11 @@ func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, erro
 type httpServerConn struct {
 	io.Reader
 	io.Writer
+
+	jc ServerCodec
+
 	r *http.Request
+	w http.ResponseWriter
 }
 
 func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
@@ -240,8 +246,8 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 		if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
 			param = pb
 		}
-		buf := new(bytes.Buffer)
-		buf.Grow(128)
+		buf := bufpool.GetStd()
+		defer bufpool.Put(buf)
 		jzon.NewEncoder(buf).Encode(jsonrpcMessage{
 			ID:     NewStringIDPtr(id),
 			Method: method_up,
@@ -252,7 +258,54 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 		// it's a post request or whatever, so just process it like normal
 		conn.Reader = io.LimitReader(r.Body, maxRequestContentLength)
 	}
-	return NewCodec(conn)
+	conn.jc = NewCodec(conn)
+	return conn
+}
+
+func (c *httpServerConn) peerInfo() PeerInfo {
+	connInfo := PeerInfo{
+		Transport:  "http",
+		RemoteAddr: c.remoteAddr(),
+		HTTP: HttpInfo{
+			Version:      c.r.Proto,
+			UserAgent:    c.r.UserAgent(),
+			Origin:       c.r.Header.Get("Origin"),
+			Host:         c.r.Host,
+			Headers:      c.r.Header,
+			WriteHeaders: c.w.Header(),
+		},
+	}
+
+	connInfo.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
+	}
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = c.r.Header.Get("Origin")
+	}
+
+	return connInfo
+}
+
+func (c *httpServerConn) remoteAddr() string {
+	return c.RemoteAddr()
+}
+
+func (c *httpServerConn) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
+	return c.jc.readBatch()
+}
+
+func (c *httpServerConn) writeJSON(ctx context.Context, v any) error {
+	return c.jc.writeJSON(ctx, v)
+}
+
+func (c *httpServerConn) close() {
+	c.jc.close()
+}
+
+// Closed returns a channel which will be closed when Close is called
+func (c *httpServerConn) closed() <-chan any {
+	return c.jc.closed()
 }
 
 // Close does nothing and always returns nil.

@@ -3,6 +3,7 @@ package jrpc
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 )
 
 type HandlerFunc func(w ResponseWriter, r *Request)
@@ -14,6 +15,7 @@ type Handler interface {
 type ResponseWriter interface {
 	Send(v any, err error) error
 	Notify(v any) error
+	Header() http.Header
 }
 
 func (fn HandlerFunc) ServeRPC(w ResponseWriter, r *Request) {
@@ -116,6 +118,10 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 		rw.notifications = make(chan *jsonrpcMessage, 128)
 	}
 	return rw
+}
+
+func (w *ResponseWriterMsg) Header() http.Header {
+	return w.r.Peer().HTTP.WriteHeaders
 }
 
 func (w *ResponseWriterMsg) Send(args any, e error) (err error) {

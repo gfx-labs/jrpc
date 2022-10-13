@@ -226,6 +226,7 @@ func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage 
 	}
 	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
 	mw := NewReaderResponseWriterMsg(req)
+	// now actually run the handler
 	h.reg.ServeRPC(mw, req)
 
 	//TODO: notifications
