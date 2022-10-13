@@ -128,7 +128,11 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 }
 
 func (w *ResponseWriterMsg) Header() http.Header {
-	return w.r.Peer().HTTP.WriteHeaders
+	wh := w.r.Peer().HTTP.WriteHeaders
+	if wh == nil {
+		wh = make(http.Header)
+	}
+	return wh
 }
 
 func (w *ResponseWriterMsg) Option(k string, v any) {
