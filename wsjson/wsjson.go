@@ -13,7 +13,7 @@ var jzon = jsoniter.Config{
 	IndentionStep:                 0,
 	MarshalFloatWith6Digits:       false,
 	EscapeHTML:                    true,
-	SortMapKeys:                   false,
+	SortMapKeys:                   true,
 	UseNumber:                     false,
 	DisallowUnknownFields:         false,
 	TagKey:                        "",

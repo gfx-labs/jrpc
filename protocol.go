@@ -107,6 +107,12 @@ type ResponseWriterMsg struct {
 	r             *Request
 	msg           *jsonrpcMessage
 	notifications chan *jsonrpcMessage
+
+	options options
+}
+
+type options struct {
+	sorted bool
 }
 
 func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
@@ -128,9 +134,9 @@ func (w *ResponseWriterMsg) Header() http.Header {
 func (w *ResponseWriterMsg) Option(k string, v any) {
 	switch k {
 	case "sorted":
-		w.msg.sortKeys = true
+		w.options.sorted = true
 	case "unsorted":
-		w.msg.sortKeys = true
+		w.options.sorted = false
 	}
 }
 
@@ -144,6 +150,7 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	if w.notifications != nil {
 		close(w.notifications)
 	}
+	w.msg.sortKeys = w.options.sorted
 	return nil
 }
 
@@ -154,6 +161,7 @@ func (w *ResponseWriterMsg) Notify(args any) (err error) {
 	cm := w.r.Msg()
 	nf := cm.response(args)
 	nf.ID = nil
+	nf.sortKeys = w.options.sorted
 	select {
 	case w.notifications <- nf:
 	default:
