@@ -26,6 +26,7 @@ import (
 var (
 	contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 	errorType   = reflect.TypeOf((*error)(nil)).Elem()
+	stringType  = reflect.TypeOf("")
 )
 
 // A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
@@ -117,9 +118,13 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 	w.Send(results[0].Interface(), nil)
 }
 
+func NewCallback(receiver, fn reflect.Value) Handler {
+	return newCallback(receiver, fn)
+}
+
 // newCallback turns fn (a function) into a callback object. It returns nil if the function
 // is unsuitable as an RPC callback.
-func newCallback(receiver, fn reflect.Value) Handler {
+func newCallback(receiver, fn reflect.Value) *callback {
 	fntype := fn.Type()
 	c := &callback{fn: fn, rcvr: receiver, errPos: -1}
 	// Determine parameter types. They must all be exported or builtin types.

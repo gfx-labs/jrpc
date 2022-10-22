@@ -3,6 +3,7 @@ package jrpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -15,8 +16,9 @@ type Handler interface {
 type ResponseWriter interface {
 	Send(v any, err error) error
 	Option(k string, v any)
-	Notify(v any) error
 	Header() http.Header
+
+	Notify(v any) error
 }
 
 func (fn HandlerFunc) ServeRPC(w ResponseWriter, r *Request) {
@@ -104,9 +106,11 @@ func (r *Request) Msg() jsonrpcMessage {
 }
 
 type ResponseWriterMsg struct {
-	r             *Request
-	msg           *jsonrpcMessage
-	notifications chan *jsonrpcMessage
+	r *Request
+	n *Notifier
+	s *Subscription
+
+	msg *jsonrpcMessage
 
 	options options
 }
@@ -115,15 +119,19 @@ type options struct {
 	sorted bool
 }
 
+func UpgradeToSubscription(w ResponseWriter, r *Request) (*Subscription, error) {
+	not, ok := NotifierFromContext(r.ctx)
+	if !ok || not == nil {
+		return nil, errors.New("subscription not supported")
+	}
+	return not.CreateSubscription(), nil
+}
+
 func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 	rw := &ResponseWriterMsg{
 		r: r,
 	}
-	switch r.Peer().Transport {
-	case "http":
-	default:
-		rw.notifications = make(chan *jsonrpcMessage, 128)
-	}
+	rw.n, _ = NotifierFromContext(r.ctx)
 	return rw
 }
 
@@ -147,25 +155,24 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 		w.msg = cm.errorResponse(e)
 		return nil
 	}
-	w.msg = cm.response(args)
-	if w.notifications != nil {
-		close(w.notifications)
+	switch c := args.(type) {
+	case *Subscription:
+		w.s = c
+	default:
 	}
+	w.msg = cm.response(args)
 	w.msg.sortKeys = w.options.sorted
 	return nil
 }
 
 func (w *ResponseWriterMsg) Notify(args any) (err error) {
-	if w.notifications == nil {
-		return nil
+	if w.s == nil || w.n == nil {
+		return ErrSubscriptionNotFound
 	}
-	cm := w.r.Msg()
-	nf := cm.response(args)
-	nf.ID = nil
-	nf.sortKeys = w.options.sorted
-	select {
-	case w.notifications <- nf:
-	default:
+	bts, _ := jzon.Marshal(args)
+	err = w.n.send(w.s, bts)
+	if err != nil {
+		return err
 	}
 	return nil
 }

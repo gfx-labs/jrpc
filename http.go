@@ -43,7 +43,7 @@ const (
 var acceptedContentTypes = []string{
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
 	contentType, "application/json-rpc", "application/jsonrequest",
-	// these are added because they make sense
+	// these are added because they make sense, fight me!
 	"application/jsonrpc2", "application/json-rpc2", "application/jrpc",
 }
 
@@ -315,6 +315,19 @@ func (s *WebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func isWebsocket(r *http.Request) bool {
 	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket") &&
 		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
+}
+
+func (s *Server) ServeHTTPWithWss(cb func(r *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isWebsocket(r) {
+			if cb != nil {
+				cb(r)
+			}
+			s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
+			return
+		}
+		s.ServeHTTP(w, r)
+	})
 }
 
 // ServeHTTP serves JSON-RPC requests over HTTP.

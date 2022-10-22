@@ -69,14 +69,15 @@ func Write(ctx context.Context, c *websocket.Conn, v interface{}) error {
 	return write(ctx, c, v)
 }
 
+var jpool = jsoniter.NewStream(jzon, nil, 0).Pool()
+
 func write(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	w, err := c.Writer(ctx, websocket.MessageText)
 	if err != nil {
 		return err
 	}
-	// json.Marshal cannot reuse buffers between calls as it has to return
-	// a copy of the byte slice but Encoder does as it directly writes to w.
-	st := jsoniter.NewStream(jzon, w, 1024)
+	st := jpool.BorrowStream(w)
+	defer jpool.ReturnStream(st)
 	st.WriteVal(v)
 	err = st.Flush()
 	if err != nil {

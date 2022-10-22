@@ -25,6 +25,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -76,6 +77,18 @@ func (msg *jsonrpcMessage) isResponse() bool {
 
 func (msg *jsonrpcMessage) hasValidID() bool {
 	return msg.ID != nil && !msg.ID.null
+}
+func (msg *jsonrpcMessage) isSubscribe() bool {
+	return strings.HasSuffix(msg.Method, subscribeMethodSuffix)
+}
+
+func (msg *jsonrpcMessage) isUnsubscribe() bool {
+	return strings.HasSuffix(msg.Method, unsubscribeMethodSuffix)
+}
+
+func (msg *jsonrpcMessage) namespace() string {
+	elem := strings.SplitN(msg.Method, serviceMethodSeparator, 2)
+	return elem[0]
 }
 
 func (msg *jsonrpcMessage) String() string {

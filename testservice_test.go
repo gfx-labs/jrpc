@@ -19,12 +19,29 @@ package jrpc
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"time"
 )
 
 func newTestServer() *Server {
 	server := NewServer()
+	server.Router().HandleFunc("testservice_subscribe", func(w ResponseWriter, r *Request) {
+		log.Println(r.Params())
+		sub, err := UpgradeToSubscription(w, r)
+		w.Send(sub, err)
+		if err != nil {
+			return
+		}
+		idx := 0
+		for {
+			err := w.Notify(idx)
+			if err != nil {
+				return
+			}
+			idx = idx + 1
+		}
+	})
 	if err := server.Router().RegisterStruct("test", new(testService)); err != nil {
 		panic(err)
 	}
@@ -124,7 +141,9 @@ func (s *testService) CallMeBackLater(ctx context.Context, method string, args [
 }
 
 type notificationTestService struct {
-	unsubscribed chan string
+	unsubscribed            chan string
+	gotHangSubscriptionReq  chan struct{}
+	unblockHangSubscription chan struct{}
 }
 
 func (s *notificationTestService) Echo(i int) int {
@@ -135,6 +154,49 @@ func (s *notificationTestService) Unsubscribe(subid string) {
 	if s.unsubscribed != nil {
 		s.unsubscribed <- subid
 	}
+}
+
+func (s *notificationTestService) SomeSubscription(ctx context.Context, n, val int) (*Subscription, error) {
+	notifier, supported := NotifierFromContext(ctx)
+	if !supported {
+		return nil, ErrNotificationsUnsupported
+	}
+
+	// By explicitly creating an subscription we make sure that the subscription id is send
+	// back to the client before the first subscription.Notify is called. Otherwise the
+	// events might be send before the response for the *_subscribe method.
+	subscription := notifier.CreateSubscription()
+	go func() {
+		for i := 0; i < n; i++ {
+			if err := notifier.Notify(subscription.ID, val+i); err != nil {
+				return
+			}
+		}
+		select {
+		case <-notifier.Closed():
+		case <-subscription.Err():
+		}
+		if s.unsubscribed != nil {
+			s.unsubscribed <- string(subscription.ID)
+		}
+	}()
+	return subscription, nil
+}
+
+// HangSubscription blocks on s.unblockHangSubscription before sending anything.
+func (s *notificationTestService) HangSubscription(ctx context.Context, val int) (*Subscription, error) {
+	notifier, supported := NotifierFromContext(ctx)
+	if !supported {
+		return nil, ErrNotificationsUnsupported
+	}
+	s.gotHangSubscriptionReq <- struct{}{}
+	<-s.unblockHangSubscription
+	subscription := notifier.CreateSubscription()
+
+	go func() {
+		notifier.Notify(subscription.ID, val)
+	}()
+	return subscription, nil
 }
 
 // largeRespService generates arbitrary-size JSON responses.

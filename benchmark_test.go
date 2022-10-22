@@ -67,12 +67,13 @@ func BenchmarkClientWebsocketEcho(b *testing.B) {
 		"on":  map[string]any{"two": "three"},
 	}
 
+	payload := []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack}
 	b.StartTimer()
 	for n := 0; n < b.N; n++ {
 		eg := &errgroup.Group{}
 		for i := 0; i < 1000; i++ {
 			eg.Go(func() error {
-				return client.Call(nil, "test_echoAny", []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack})
+				return client.Call(nil, "test_echoAny", payload)
 			})
 		}
 		eg.Wait()
