@@ -34,7 +34,7 @@ const (
 	wsPingInterval     = 60 * time.Second
 	wsPingWriteTimeout = 5 * time.Second
 	wsPongTimeout      = 30 * time.Second
-	wsMessageSizeLimit = 32 * 1024 * 1024
+	wsMessageSizeLimit = 128 * 1024 * 1024
 )
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
@@ -154,11 +154,11 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 }
 
 func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req http.Header) ServerCodec {
-	c.SetReadLimit(wsMessageSizeLimit)
 	jsonWriter := func(v any) error {
 		return wsjson.Write(context.Background(), c, v)
 	}
 	jsonReader := func(v any) error {
+		c.SetReadLimit(wsMessageSizeLimit)
 		return wsjson.Read(context.Background(), c, v)
 	}
 	conn := websocket.NetConn(ctx, c, websocket.MessageText)
