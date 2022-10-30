@@ -3,16 +3,14 @@ package jrpc
 import (
 	"container/list"
 	"context"
-	crand "crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
-	"time"
+
+	"gfx.cafe/util/go/frand"
 )
 
 const (
@@ -42,23 +40,9 @@ func NewID() SubID {
 
 // randomIDGenerator returns a function generates a random IDs.
 func randomIDGenerator() func() SubID {
-	var buf = make([]byte, 8)
-	var seed int64
-	if _, err := crand.Read(buf); err == nil {
-		seed = int64(binary.BigEndian.Uint64(buf))
-	} else {
-		seed = int64(time.Now().Nanosecond())
-	}
-
-	var (
-		mu  sync.Mutex
-		rng = rand.New(rand.NewSource(seed)) // nolint: gosec
-	)
 	return func() SubID {
-		mu.Lock()
-		defer mu.Unlock()
 		id := make([]byte, 16)
-		rng.Read(id)
+		frand.Read(id)
 		return encodeSubID(id)
 	}
 }

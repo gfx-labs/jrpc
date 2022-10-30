@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type HandlerFunc func(w ResponseWriter, r *Request)
@@ -55,6 +57,14 @@ func (r *Request) ParamSlice() []any {
 	var params []any
 	jzon.Unmarshal(r.msg.Params, &params)
 	return params
+}
+
+var jpool = jsoniter.NewIterator(jsoniter.ConfigCompatibleWithStandardLibrary).Pool()
+
+func (r *Request) Iter(fn func(j *jsoniter.Iterator) error) error {
+	it := jpool.BorrowIterator(r.Params())
+	defer jpool.ReturnIterator(it)
+	return fn(it)
 }
 
 func (r *Request) ParamArray(a ...any) error {
