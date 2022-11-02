@@ -114,6 +114,9 @@ func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	if err != nil {
 		return msg.errorResponse(err)
 	}
+	if len(enc) == 0 {
+		enc = []byte("null")
+	}
 	return &jsonrpcMessage{ID: msg.ID, Result: enc}
 }
 
@@ -269,9 +272,10 @@ func (c *jsonCodec) closed() <-chan any {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // jsonrpcMessage.
 func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
+
 	if !isBatch(raw) {
 		msgs := []*jsonrpcMessage{{}}
-		jzon.Unmarshal(raw, &msgs[0])
+		json.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))

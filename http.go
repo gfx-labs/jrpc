@@ -259,7 +259,6 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) Serv
 		// it's a post request or whatever, so just process it like normal
 		c.Reader = io.LimitReader(r.Body, maxRequestContentLength)
 	}
-
 	c.jc = NewCodec(c)
 	return c
 }
