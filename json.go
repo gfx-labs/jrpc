@@ -272,7 +272,6 @@ func (c *jsonCodec) closed() <-chan any {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // jsonrpcMessage.
 func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
-
 	if !isBatch(raw) {
 		msgs := []*jsonrpcMessage{{}}
 		json.Unmarshal(raw, &msgs[0])
