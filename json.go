@@ -312,6 +312,8 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 		if args, err = parseArgumentArray(rawArgs, types); err != nil {
 			return nil, err
 		}
+	case string(rawArgs) == "null":
+		return nil, nil
 	default:
 		return nil, errors.New("non-array args")
 	}
