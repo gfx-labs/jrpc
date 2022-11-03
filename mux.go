@@ -10,12 +10,12 @@ import (
 
 var _ Router = &Mux{}
 
-// Mux is a simple HTTP route multiplexer that parses a request path,
+// Mux is a simple JRPC route multiplexer that parses a request path,
 // records any URL params, and executes an end handler. It implements
 // the Handler interface and is friendly with the standard library.
 //
 // Mux is designed to be fast, minimal and offer a powerful API for building
-// modular and composable HTTP services with a large set of handlers. It's
+// modular and composable JRPC services with a large set of handlers. It's
 // particularly useful for writing large REST API services that break a handler
 // into many smaller parts composed of middlewares and end handlers.
 type Mux struct {
@@ -356,7 +356,7 @@ func (mx *Mux) handle(pattern string, handler Handler) *node {
 	return mx.tree.InsertRoute(pattern, h)
 }
 
-// routeHTTP routes a Request through the Mux routing tree to serve
+// routeJRPC routes a Request through the Mux routing tree to serve
 // the matching handler for a particular http method.
 func (mx *Mux) routeRPC(w ResponseWriter, r *Request) {
 	// Grab the route context object

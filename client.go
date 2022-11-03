@@ -279,6 +279,8 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 		return resp.Error
 	case len(resp.Result) == 0:
 		return ErrNoResult
+	case result == nil:
+		return nil
 	default:
 		return jzon.Unmarshal(resp.Result, &result)
 	}
