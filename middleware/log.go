@@ -14,7 +14,11 @@ func Logger(next jrpc.Handler) jrpc.Handler {
 	fn := func(w jrpc.ResponseWriter, r *jrpc.Request) {
 		start := time.Now()
 		next.ServeRPC(w, r)
-		log.Trace().Stringer("time", time.Since(start)).Str("method", r.Method()).Str("params", string(r.Msg().Params)).Msg("RPC Request")
+		log.Trace().
+			Stringer("time", time.Since(start)).
+			Str("remote", r.Remote()).
+			Str("method", r.Method()).
+			Str("params", string(r.Msg().Params)).Msg("RPC Request")
 	}
 	return jrpc.HandlerFunc(fn)
 }
