@@ -181,9 +181,6 @@ func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req 
 	if wc.info.HTTP.Origin == "" {
 		wc.info.HTTP.Origin = req.Get("origin")
 	}
-	if wc.info.HTTP.Origin == "" {
-		wc.info.HTTP.Origin = req.
-	}
 	wc.info.RemoteAddr = wc.info.HTTP.Origin
 	wc.info.HTTP.UserAgent = req.Get("User-Agent")
 	wc.info.HTTP.Headers = req
