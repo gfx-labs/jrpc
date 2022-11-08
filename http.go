@@ -362,6 +362,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = r.Header.Get("Origin")
 	}
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = r.RemoteAddr
+	}
 	// the headers used
 	connInfo.HTTP.Headers = r.Header
 
