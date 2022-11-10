@@ -38,11 +38,11 @@ type ServerCodec interface {
 // jsonWriter can write JSON messages to its underlying connection.
 // Implementations must be safe for concurrent use.
 type jsonWriter interface {
-	writeJSON(context.Context, any) error
+	WriteJSON(context.Context, any) error
 	// Closed returns a channel which is closed when the connection is closed.
 	closed() <-chan any
 	// RemoteAddr returns the peer address of the connection.
-	remoteAddr() string
+	RemoteAddr() string
 }
 
 // DecimalOrHex unmarshals a non-negative decimal or hex parameter into a uint64.

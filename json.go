@@ -221,7 +221,7 @@ func (c *jsonCodec) PeerInfo() PeerInfo {
 	return PeerInfo{Transport: "ipc", RemoteAddr: c.remote}
 }
 
-func (c *jsonCodec) remoteAddr() string {
+func (c *jsonCodec) RemoteAddr() string {
 	return c.remote
 }
 
@@ -243,7 +243,7 @@ func (c *jsonCodec) ReadBatch() (messages []*jsonrpcMessage, batch bool, err err
 	return messages, batch, nil
 }
 
-func (c *jsonCodec) writeJSON(ctx context.Context, v any) error {
+func (c *jsonCodec) WriteJSON(ctx context.Context, v any) error {
 	c.encMu.Lock()
 	defer c.encMu.Unlock()
 

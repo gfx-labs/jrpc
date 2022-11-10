@@ -60,15 +60,15 @@ type httpConn struct {
 // and some methods don't work. The panic() stubs here exist to ensure
 // this special treatment is correct.
 
-func (hc *httpConn) writeJSON(context.Context, any) error {
-	panic("writeJSON called on httpConn")
+func (hc *httpConn) WriteJSON(context.Context, any) error {
+	panic("WriteJSON called on httpConn")
 }
 
 func (hc *httpConn) PeerInfo() PeerInfo {
 	panic("PeerInfo called on httpConn")
 }
 
-func (hc *httpConn) remoteAddr() string {
+func (hc *httpConn) RemoteAddr() string {
 	return hc.url
 }
 
@@ -271,8 +271,8 @@ func (c *httpServerConn) ReadBatch() (messages []*jsonrpcMessage, batch bool, er
 	return c.jc.ReadBatch()
 }
 
-func (c *httpServerConn) writeJSON(ctx context.Context, v any) error {
-	return c.jc.writeJSON(ctx, v)
+func (c *httpServerConn) WriteJSON(ctx context.Context, v any) error {
+	return c.jc.WriteJSON(ctx, v)
 }
 
 func (c *httpServerConn) close() {
@@ -286,10 +286,6 @@ func (c *httpServerConn) closed() <-chan any {
 
 // Close does nothing and always returns nil.
 func (t *httpServerConn) Close() error { return nil }
-
-func (c *httpServerConn) remoteAddr() string {
-	return c.RemoteAddr()
-}
 
 // RemoteAddr returns the peer address of the underlying connection.
 func (t *httpServerConn) RemoteAddr() string {

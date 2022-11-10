@@ -198,8 +198,8 @@ func (wc *websocketCodec) PeerInfo() PeerInfo {
 	return wc.info
 }
 
-func (wc *websocketCodec) writeJSON(ctx context.Context, v any) error {
-	err := wc.jsonCodec.writeJSON(ctx, v)
+func (wc *websocketCodec) WriteJSON(ctx context.Context, v any) error {
+	err := wc.jsonCodec.WriteJSON(ctx, v)
 	if err == nil {
 		// Notify pingLoop to delay the next idle ping.
 		select {
