@@ -616,7 +616,7 @@ func (c *Client) drainRead() {
 // read decodes RPC messages from a codec, feeding them into dispatch.
 func (c *Client) read(codec ServerCodec) {
 	for {
-		msgs, batch, err := codec.readBatch()
+		msgs, batch, err := codec.ReadBatch()
 		if _, ok := err.(*json.SyntaxError); ok {
 			codec.writeJSON(context.Background(), errorMessage(&parseError{err.Error()}))
 		}

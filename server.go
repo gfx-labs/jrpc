@@ -79,7 +79,7 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 	defer h.close(io.EOF, nil)
 
 	// read the HTTP body
-	reqs, batch, err := codec.readBatch()
+	reqs, batch, err := codec.ReadBatch()
 	if err != nil {
 		if err != io.EOF {
 			codec.writeJSON(ctx, errorMessage(&invalidMessageError{"parse error"}))

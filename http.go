@@ -72,7 +72,7 @@ func (hc *httpConn) remoteAddr() string {
 	return hc.url
 }
 
-func (hc *httpConn) readBatch() ([]*jsonrpcMessage, bool, error) {
+func (hc *httpConn) ReadBatch() ([]*jsonrpcMessage, bool, error) {
 	<-hc.closeCh
 	return nil, false, io.EOF
 }
@@ -267,8 +267,8 @@ func (c *httpServerConn) PeerInfo() PeerInfo {
 	return c.pi
 }
 
-func (c *httpServerConn) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
-	return c.jc.readBatch()
+func (c *httpServerConn) ReadBatch() (messages []*jsonrpcMessage, batch bool, err error) {
+	return c.jc.ReadBatch()
 }
 
 func (c *httpServerConn) writeJSON(ctx context.Context, v any) error {

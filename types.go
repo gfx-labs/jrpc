@@ -29,7 +29,7 @@ import (
 // multiple go-routines concurrently.
 type ServerCodec interface {
 	PeerInfo() PeerInfo
-	readBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
+	ReadBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
 	close()
 
 	jsonWriter

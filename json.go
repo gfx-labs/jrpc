@@ -225,7 +225,7 @@ func (c *jsonCodec) remoteAddr() string {
 	return c.remote
 }
 
-func (c *jsonCodec) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
+func (c *jsonCodec) ReadBatch() (messages []*jsonrpcMessage, batch bool, err error) {
 	// Decode the next JSON object in the input stream.
 	// This verifies basic syntax, etc.
 	var rawmsg json.RawMessage
