@@ -194,7 +194,7 @@ func (wc *websocketCodec) close() {
 	wc.conn.CloseRead(context.Background())
 }
 
-func (wc *websocketCodec) peerInfo() PeerInfo {
+func (wc *websocketCodec) PeerInfo() PeerInfo {
 	return wc.info
 }
 

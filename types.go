@@ -28,7 +28,7 @@ import (
 // a RPC session. Implementations must be go-routine safe since the codec can be called in
 // multiple go-routines concurrently.
 type ServerCodec interface {
-	peerInfo() PeerInfo
+	PeerInfo() PeerInfo
 	readBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
 	close()
 

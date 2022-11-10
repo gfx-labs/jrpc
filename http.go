@@ -64,8 +64,8 @@ func (hc *httpConn) writeJSON(context.Context, any) error {
 	panic("writeJSON called on httpConn")
 }
 
-func (hc *httpConn) peerInfo() PeerInfo {
-	panic("peerInfo called on httpConn")
+func (hc *httpConn) PeerInfo() PeerInfo {
+	panic("PeerInfo called on httpConn")
 }
 
 func (hc *httpConn) remoteAddr() string {
@@ -263,7 +263,7 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) Serv
 	return c
 }
 
-func (c *httpServerConn) peerInfo() PeerInfo {
+func (c *httpServerConn) PeerInfo() PeerInfo {
 	return c.pi
 }
 
@@ -293,7 +293,7 @@ func (c *httpServerConn) remoteAddr() string {
 
 // RemoteAddr returns the peer address of the underlying connection.
 func (t *httpServerConn) RemoteAddr() string {
-	return t.peerInfo().RemoteAddr
+	return t.PeerInfo().RemoteAddr
 }
 
 // SetWriteDeadline does nothing and always returns nil.
