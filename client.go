@@ -69,7 +69,7 @@ type Client struct {
 	// writeConn is used for writing to the connection on the caller's goroutine. It should
 	// only be accessed outside of dispatch, with the write lock held. The write lock is
 	// taken by sending on reqInit and released by sending on reqSent.
-	writeConn jsonWriter
+	writeConn JsonWriter
 
 	// for dispatch
 	close       chan struct{}
@@ -109,7 +109,7 @@ func (c *Client) newClientConn(conn ServerCodec) *clientConn {
 
 func (cc *clientConn) close(err error, inflightReq *requestOp) {
 	cc.handler.close(err, inflightReq)
-	cc.codec.close()
+	cc.codec.Close()
 }
 
 type readOp struct {
@@ -233,15 +233,16 @@ func (c *Client) SupportedModules() (map[string]string, error) {
 }
 
 // Close closes the client, aborting any in-flight requests.
-func (c *Client) Close() {
+func (c *Client) Close() error {
 	if c.isHTTP {
-		return
+		return nil
 	}
 	select {
 	case c.close <- struct{}{}:
 		<-c.didClose
 	case <-c.didClose:
 	}
+	return nil
 }
 
 // SetHeader adds a custom HTTP header to the client's requests.
@@ -517,7 +518,7 @@ func (c *Client) reconnect(ctx context.Context) error {
 		c.writeConn = newconn
 		return nil
 	case <-c.didClose:
-		newconn.close()
+		newconn.Close()
 		return ErrClientQuit
 	}
 }

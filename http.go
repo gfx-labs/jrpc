@@ -77,11 +77,12 @@ func (hc *httpConn) ReadBatch() ([]*jsonrpcMessage, bool, error) {
 	return nil, false, io.EOF
 }
 
-func (hc *httpConn) close() {
+func (hc *httpConn) Close() error {
 	hc.closeOnce.Do(func() { close(hc.closeCh) })
+	return nil
 }
 
-func (hc *httpConn) closed() <-chan any {
+func (hc *httpConn) Closed() <-chan any {
 	return hc.closeCh
 }
 
@@ -275,17 +276,14 @@ func (c *httpServerConn) WriteJSON(ctx context.Context, v any) error {
 	return c.jc.WriteJSON(ctx, v)
 }
 
-func (c *httpServerConn) close() {
-	c.jc.close()
+func (c *httpServerConn) Close() error {
+	return nil
 }
 
 // Closed returns a channel which will be closed when Close is called
-func (c *httpServerConn) closed() <-chan any {
-	return c.jc.closed()
+func (c *httpServerConn) Closed() <-chan any {
+	return c.jc.Closed()
 }
-
-// Close does nothing and always returns nil.
-func (t *httpServerConn) Close() error { return nil }
 
 // RemoteAddr returns the peer address of the underlying connection.
 func (t *httpServerConn) RemoteAddr() string {
@@ -373,7 +371,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentType)
 
 	codec := newHTTPServerConn(r, w, connInfo)
-	defer codec.close()
+	defer codec.Close()
 	s.serveSingleRequest(ctx, codec)
 }
 

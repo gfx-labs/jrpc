@@ -30,17 +30,17 @@ import (
 type ServerCodec interface {
 	PeerInfo() PeerInfo
 	ReadBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
-	close()
+	Close() error
 
-	jsonWriter
+	JsonWriter
 }
 
 // jsonWriter can write JSON messages to its underlying connection.
 // Implementations must be safe for concurrent use.
-type jsonWriter interface {
+type JsonWriter interface {
 	WriteJSON(context.Context, any) error
 	// Closed returns a channel which is closed when the connection is closed.
-	closed() <-chan any
+	Closed() <-chan any
 	// RemoteAddr returns the peer address of the connection.
 	RemoteAddr() string
 }

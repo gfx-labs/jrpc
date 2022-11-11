@@ -189,9 +189,10 @@ func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req 
 	return wc
 }
 
-func (wc *websocketCodec) close() {
-	wc.jsonCodec.close()
+func (wc *websocketCodec) Close() error {
+	wc.jsonCodec.Close()
 	wc.conn.CloseRead(context.Background())
+	return nil
 }
 
 func (wc *websocketCodec) PeerInfo() PeerInfo {

@@ -54,7 +54,7 @@ type handler struct {
 	callWG     sync.WaitGroup        // pending call goroutines
 	rootCtx    context.Context       // canceled by close()
 	cancelRoot func()                // cancel function for rootCtx
-	conn       jsonWriter            // where responses will be sent
+	conn       JsonWriter            // where responses will be sent
 	log        *zlog.Logger
 
 	subLock       sync.RWMutex
@@ -70,7 +70,7 @@ type callProc struct {
 	notifiers []*Notifier
 }
 
-func newHandler(connCtx context.Context, conn jsonWriter, reg Router) *handler {
+func newHandler(connCtx context.Context, conn JsonWriter, reg Router) *handler {
 	rootCtx, cancelRoot := context.WithCancel(connCtx)
 	h := &handler{
 		peer:       PeerInfoFromContext(connCtx),

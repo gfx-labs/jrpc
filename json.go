@@ -255,15 +255,16 @@ func (c *jsonCodec) WriteJSON(ctx context.Context, v any) error {
 	return c.encode(v)
 }
 
-func (c *jsonCodec) close() {
+func (c *jsonCodec) Close() error {
 	c.closer.Do(func() {
 		close(c.closeCh)
 		c.conn.Close()
 	})
+	return nil
 }
 
 // Closed returns a channel which will be closed when Close is called
-func (c *jsonCodec) closed() <-chan any {
+func (c *jsonCodec) Closed() <-chan any {
 	return c.closeCh
 }
 

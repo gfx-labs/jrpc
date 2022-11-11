@@ -50,7 +50,7 @@ func (s *Server) Router() Router {
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
 func (s *Server) ServeCodec(codec ServerCodec) {
-	defer codec.close()
+	defer codec.Close()
 
 	// Don't serve if server is stopped.
 	if atomic.LoadInt32(&s.run) == 0 {
@@ -62,7 +62,7 @@ func (s *Server) ServeCodec(codec ServerCodec) {
 	defer s.codecs.Remove(codec)
 
 	c := initClient(codec, s.services)
-	<-codec.closed()
+	<-codec.Closed()
 	c.Close()
 }
 
@@ -100,7 +100,7 @@ func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
 		log.Debug().Msg("RPC server shutting down")
 		s.codecs.Each(func(c any) bool {
-			c.(ServerCodec).close()
+			c.(ServerCodec).Close()
 			return true
 		})
 	}
