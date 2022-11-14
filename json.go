@@ -99,24 +99,7 @@ func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	return &jsonrpcMessage{ID: msg.ID, Result: enc}
 }
 
-func errorMessage(err error) *jsonrpcMessage {
-	msg := &jsonrpcMessage{
-		ID: NewNullIDPtr(),
-		Error: &jsonError{
-			Code:    defaultErrorCode,
-			Message: err.Error(),
-		}}
-	ec, ok := err.(Error)
-	if ok {
-		msg.Error.Code = ec.ErrorCode()
-	}
-	de, ok := err.(DataError)
-	if ok {
-		msg.Error.Data = de.ErrorData()
-	}
-	return msg
-}
-
+// encapsulate json rpc error into struct
 type jsonError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -140,22 +123,29 @@ func (err *jsonError) ErrorData() any {
 	return err.Data
 }
 
+// error message produces json rpc message with error message
+func errorMessage(err error) *jsonrpcMessage {
+	msg := &jsonrpcMessage{
+		ID: NewNullIDPtr(),
+		Error: &jsonError{
+			Code:    defaultErrorCode,
+			Message: err.Error(),
+		}}
+	ec, ok := err.(Error)
+	if ok {
+		msg.Error.Code = ec.ErrorCode()
+	}
+	de, ok := err.(DataError)
+	if ok {
+		msg.Error.Data = de.ErrorData()
+	}
+	return msg
+}
+
 // Conn is a subset of the methods of net.Conn which are sufficient for ServerCodec.
 type Conn interface {
 	io.ReadWriteCloser
 	SetWriteDeadline(time.Time) error
-}
-
-type deadlineCloser interface {
-	io.Closer
-	SetWriteDeadline(time.Time) error
-}
-
-// ConnRemoteAddr wraps the RemoteAddr operation, which returns a description
-// of the peer address of a connection. If a Conn also implements ConnRemoteAddr, this
-// description is used in log messages.
-type ConnRemoteAddr interface {
-	RemoteAddr() string
 }
 
 // jsonCodec reads and writes JSON-RPC messages to the underlying connection. It also has
@@ -168,14 +158,14 @@ type jsonCodec struct {
 	decode    func(v any) error // decoder to allow multiple transports
 	encMu     sync.Mutex        // guards the encoder
 	encode    func(v any) error // encoder to allow multiple transports
-	conn      deadlineCloser
+	conn      Conn
 }
 
 // NewFuncCodec creates a codec which uses the given functions to read and write. If conn
 // implements ConnRemoteAddr, log messages will use it to include the remote address of
 // the connection.
 func NewFuncCodec(
-	conn deadlineCloser,
+	conn Conn,
 	encode, decode func(v any) error,
 	closeFunc func() error,
 ) ServerCodec {
@@ -186,7 +176,7 @@ func NewFuncCodec(
 		decode:    decode,
 		conn:      conn,
 	}
-	if ra, ok := conn.(ConnRemoteAddr); ok {
+	if ra, ok := conn.(interface{ RemoteAddr() string }); ok {
 		codec.remote = ra.RemoteAddr()
 	}
 	return codec
