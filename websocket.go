@@ -163,7 +163,7 @@ func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req 
 	}
 	conn := websocket.NetConn(ctx, c, websocket.MessageText)
 	wc := &websocketCodec{
-		jsonCodec: NewFuncCodec(conn, jsonWriter, jsonReader).(*jsonCodec),
+		jsonCodec: NewFuncCodec(conn, jsonWriter, jsonReader, func() error { return nil }).(*jsonCodec),
 		conn:      c,
 		pingReset: make(chan struct{}, 1),
 		info: PeerInfo{

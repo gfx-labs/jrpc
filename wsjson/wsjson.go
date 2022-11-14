@@ -69,15 +69,13 @@ func Write(ctx context.Context, c *websocket.Conn, v interface{}) error {
 	return write(ctx, c, v)
 }
 
-var jpool = jsoniter.NewStream(jzon, nil, 0).Pool()
-
 func write(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	w, err := c.Writer(ctx, websocket.MessageText)
 	if err != nil {
 		return err
 	}
-	st := jpool.BorrowStream(w)
-	defer jpool.ReturnStream(st)
+	st := jzon.BorrowStream(w)
+	defer jzon.ReturnStream(st)
 	st.WriteVal(v)
 	err = st.Flush()
 	if err != nil {

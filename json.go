@@ -64,15 +64,15 @@ func MakeCall(id int, method string, params []any) *JsonRpcMessage {
 type JsonRpcMessage = jsonrpcMessage
 
 func (msg *jsonrpcMessage) isNotification() bool {
-	return msg.ID == nil && msg.Method != ""
+	return msg.ID == nil && len(msg.Method) > 0
 }
 
 func (msg *jsonrpcMessage) isCall() bool {
-	return msg.hasValidID() && msg.Method != ""
+	return msg.hasValidID() && len(msg.Method) > 0
 }
 
 func (msg *jsonrpcMessage) isResponse() bool {
-	return msg.hasValidID() && msg.Method == "" && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
+	return msg.hasValidID() && len(msg.Method) == 0 && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
 }
 
 func (msg *jsonrpcMessage) hasValidID() bool {
@@ -182,24 +182,30 @@ type ConnRemoteAddr interface {
 // jsonCodec reads and writes JSON-RPC messages to the underlying connection. It also has
 // support for parsing arguments and serializing (result) objects.
 type jsonCodec struct {
-	remote  string
-	closer  sync.Once         // close closed channel once
-	closeCh chan any          // closed on Close
-	decode  func(v any) error // decoder to allow multiple transports
-	encMu   sync.Mutex        // guards the encoder
-	encode  func(v any) error // encoder to allow multiple transports
-	conn    deadlineCloser
+	remote    string
+	closer    sync.Once // close closed channel once
+	closeFunc func() error
+	closeCh   chan any          // closed on Close
+	decode    func(v any) error // decoder to allow multiple transports
+	encMu     sync.Mutex        // guards the encoder
+	encode    func(v any) error // encoder to allow multiple transports
+	conn      deadlineCloser
 }
 
 // NewFuncCodec creates a codec which uses the given functions to read and write. If conn
 // implements ConnRemoteAddr, log messages will use it to include the remote address of
 // the connection.
-func NewFuncCodec(conn deadlineCloser, encode, decode func(v any) error) ServerCodec {
+func NewFuncCodec(
+	conn deadlineCloser,
+	encode, decode func(v any) error,
+	closeFunc func() error,
+) ServerCodec {
 	codec := &jsonCodec{
-		closeCh: make(chan any),
-		encode:  encode,
-		decode:  decode,
-		conn:    conn,
+		closeFunc: closeFunc,
+		closeCh:   make(chan any),
+		encode:    encode,
+		decode:    decode,
+		conn:      conn,
 	}
 	if ra, ok := conn.(ConnRemoteAddr); ok {
 		codec.remote = ra.RemoteAddr()
@@ -210,10 +216,24 @@ func NewFuncCodec(conn deadlineCloser, encode, decode func(v any) error) ServerC
 // NewCodec creates a codec on the given connection. If conn implements ConnRemoteAddr, log
 // messages will use it to include the remote address of the connection.
 func NewCodec(conn Conn) ServerCodec {
-	enc := jzon.NewEncoder(conn)
+	// for some reason other json decoders are incompatible with our test suite
+	// pretty sure its how we handle EOFs and stuff
 	dec := json.NewDecoder(conn)
 	dec.UseNumber()
-	return NewFuncCodec(conn, enc.Encode, dec.Decode)
+	return NewFuncCodec(conn, func(v any) error {
+		enc := jzon.BorrowStream(conn)
+		defer jzon.ReturnStream(enc)
+		enc.WriteVal(v)
+		enc.WriteRaw("\n")
+		enc.Flush()
+		if enc.Error != nil {
+			return enc.Error
+		}
+		return nil
+		//	return jzon.NewEncoder(conn).Encode(v)
+	}, dec.Decode, func() error {
+		return nil
+	})
 }
 
 func (c *jsonCodec) PeerInfo() PeerInfo {
@@ -258,6 +278,9 @@ func (c *jsonCodec) WriteJSON(ctx context.Context, v any) error {
 func (c *jsonCodec) Close() error {
 	c.closer.Do(func() {
 		close(c.closeCh)
+		if c.closeFunc != nil {
+			c.closeFunc()
+		}
 		c.conn.Close()
 	})
 	return nil
@@ -292,7 +315,8 @@ func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 func isBatch(raw json.RawMessage) bool {
 	for _, c := range raw {
 		// skip insignificant whitespace (http://www.ietf.org/rfc/rfc4627.txt)
-		if c == 0x20 || c == 0x09 || c == 0x0a || c == 0x0d {
+		switch c {
+		case 0x20, 0x09, 0x0a, 0x0d:
 			continue
 		}
 		return c == '['
