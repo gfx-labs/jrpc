@@ -49,22 +49,18 @@ type JsonRpcMessage = jsonrpcMessage
 func (msg *jsonrpcMessage) isNotification() bool {
 	return msg.ID == nil && len(msg.Method) > 0
 }
-
 func (msg *jsonrpcMessage) isCall() bool {
 	return msg.hasValidID() && len(msg.Method) > 0
 }
-
 func (msg *jsonrpcMessage) isResponse() bool {
 	return msg.hasValidID() && len(msg.Method) == 0 && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
 }
-
 func (msg *jsonrpcMessage) hasValidID() bool {
 	return msg.ID != nil && !msg.ID.null
 }
 func (msg *jsonrpcMessage) isSubscribe() bool {
 	return strings.HasSuffix(msg.Method, subscribeMethodSuffix)
 }
-
 func (msg *jsonrpcMessage) isUnsubscribe() bool {
 	return strings.HasSuffix(msg.Method, unsubscribeMethodSuffix)
 }

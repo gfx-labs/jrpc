@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"git.tuxpa.in/a/zlog"
+	"tuxpa.in/a/zlog"
 )
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that

@@ -21,12 +21,13 @@ import (
 	"reflect"
 	"runtime"
 	"unicode"
+
+	"tuxpa.in/a/zlog/log"
 )
 
 var (
 	contextType = reflect.TypeOf((*context.Context)(nil)).Elem()
 	errorType   = reflect.TypeOf((*error)(nil)).Elem()
-	stringType  = reflect.TypeOf("")
 )
 
 // A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
@@ -101,7 +102,7 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			//log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
 			w.Send(nil, nil)
 			return

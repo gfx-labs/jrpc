@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"git.tuxpa.in/a/zlog"
-	"git.tuxpa.in/a/zlog/log"
+	"tuxpa.in/a/zlog"
+	"tuxpa.in/a/zlog/log"
 	"github.com/davecgh/go-spew/spew"
 )
 

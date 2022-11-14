@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"git.tuxpa.in/a/zlog/log"
+	"tuxpa.in/a/zlog/log"
 	mapset "github.com/deckarep/golang-set"
 )
 

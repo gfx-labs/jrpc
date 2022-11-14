@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"gfx.cafe/open/jrpc/wsjson"
-	"git.tuxpa.in/a/zlog/log"
+	"tuxpa.in/a/zlog/log"
 	"nhooyr.io/websocket"
 )
 

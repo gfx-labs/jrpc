@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.tuxpa.in/a/zlog/log"
+	"tuxpa.in/a/zlog/log"
 )
 
 var (

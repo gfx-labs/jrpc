@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"gfx.cafe/open/jrpc"
-	"git.tuxpa.in/a/zlog/log"
+	"tuxpa.in/a/zlog/log"
 )
 
 func Logger(next jrpc.Handler) jrpc.Handler {
