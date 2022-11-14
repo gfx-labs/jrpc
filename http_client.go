@@ -3,14 +3,17 @@ package jrpc
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 	"sync"
+
+	"github.com/goccy/go-json"
 )
 
 func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
+	// TODO:
+	// the jsoniter encoder performs a lot better here, not sure why. (nearly 10%? maybe more)
 	body, err := jzon.Marshal(msg)
 	if err != nil {
 		return nil, err

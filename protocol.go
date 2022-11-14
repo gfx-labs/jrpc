@@ -2,10 +2,10 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
+	json "github.com/goccy/go-json"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -36,7 +36,7 @@ type Request struct {
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
 	r := &Request{ctx: ctx}
-	pms, _ := jzon.Marshal(params)
+	pms, _ := json.Marshal(params)
 	r.msg = jsonrpcMessage{
 		ID:     NewStringIDPtr(id),
 		Method: method,
@@ -55,7 +55,7 @@ func (r *Request) Params() json.RawMessage {
 
 func (r *Request) ParamSlice() []any {
 	var params []any
-	jzon.Unmarshal(r.msg.Params, &params)
+	json.Unmarshal(r.msg.Params, &params)
 	return params
 }
 
@@ -69,10 +69,10 @@ func (r *Request) Iter(fn func(j *jsoniter.Iterator) error) error {
 
 func (r *Request) ParamArray(a ...any) error {
 	var params []json.RawMessage
-	jzon.Unmarshal(r.msg.Params, &params)
+	json.Unmarshal(r.msg.Params, &params)
 	for idx, v := range params {
 		if len(v) > idx {
-			err := jzon.Unmarshal(v, &a[idx])
+			err := json.Unmarshal(v, &a[idx])
 			if err != nil {
 				return err
 			}
@@ -84,7 +84,7 @@ func (r *Request) ParamArray(a ...any) error {
 }
 
 func (r *Request) ParamInto(v any) error {
-	return jzon.Unmarshal(r.msg.Params, &v)
+	return json.Unmarshal(r.msg.Params, &v)
 }
 
 func (r *Request) Context() context.Context {
@@ -126,7 +126,6 @@ type ResponseWriterMsg struct {
 }
 
 type options struct {
-	sorted bool
 }
 
 func UpgradeToSubscription(w ResponseWriter, r *Request) (*Subscription, error) {
@@ -151,12 +150,6 @@ func (w *ResponseWriterMsg) Header() http.Header {
 }
 
 func (w *ResponseWriterMsg) Option(k string, v any) {
-	switch k {
-	case "sorted":
-		w.options.sorted = true
-	case "unsorted":
-		w.options.sorted = false
-	}
 }
 
 func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
@@ -171,7 +164,6 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	default:
 	}
 	w.msg = cm.response(args)
-	w.msg.sortKeys = w.options.sorted
 	return nil
 }
 
@@ -179,7 +171,7 @@ func (w *ResponseWriterMsg) Notify(args any) (err error) {
 	if w.s == nil || w.n == nil {
 		return ErrSubscriptionNotFound
 	}
-	bts, _ := jzon.Marshal(args)
+	bts, _ := json.Marshal(args)
 	err = w.n.send(w.s, bts)
 	if err != nil {
 		return err

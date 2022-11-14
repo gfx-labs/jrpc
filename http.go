@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"gfx.cafe/util/go/bufpool"
+
+	json "github.com/goccy/go-json"
 )
 
 const (
@@ -108,7 +110,7 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) Serv
 			param = pb
 		}
 		buf := bufpool.GetStd()
-		jzon.NewEncoder(buf).Encode(jsonrpcMessage{
+		json.NewEncoder(buf).Encode(jsonrpcMessage{
 			ID:     NewStringIDPtr(id),
 			Method: method_up,
 			Params: param,

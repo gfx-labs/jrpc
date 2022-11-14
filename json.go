@@ -3,7 +3,6 @@ package jrpc
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,8 +12,10 @@ import (
 	"sync"
 	"time"
 
+	stdjson "encoding/json"
+
 	"gfx.cafe/open/jrpc/wsjson"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 var jzon = wsjson.JZON
@@ -35,8 +36,6 @@ type jsonrpcMessage struct {
 	Result  json.RawMessage `json:"result,omitempty"`
 
 	Error *jsonError `json:"error,omitempty"`
-
-	sortKeys bool
 }
 
 func MakeCall(id int, method string, params []any) *JsonRpcMessage {
@@ -76,7 +75,7 @@ func (msg *jsonrpcMessage) namespace() string {
 }
 
 func (msg *jsonrpcMessage) String() string {
-	b, _ := jzon.Marshal(msg)
+	b, _ := json.Marshal(msg)
 	return string(b)
 }
 
@@ -90,11 +89,7 @@ func (msg *jsonrpcMessage) errorResponse(err error) *jsonrpcMessage {
 
 func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	// do a funny marshaling
-	jz := jzon
-	if msg.sortKeys {
-		jz = wsjson.JSON
-	}
-	enc, err := jz.Marshal(result)
+	enc, err := jzon.Marshal(result)
 	if err != nil {
 		return msg.errorResponse(err)
 	}
@@ -200,11 +195,7 @@ func NewFuncCodec(
 // NewCodec creates a codec on the given connection. If conn implements ConnRemoteAddr, log
 // messages will use it to include the remote address of the connection.
 func NewCodec(conn Conn) ServerCodec {
-	// for some reason other json decoders are incompatible with our test suite
-	// pretty sure its how we handle EOFs and stuff
-	dec := json.NewDecoder(conn)
-	dec.UseNumber()
-	return NewFuncCodec(conn, func(v any) error {
+	encr := func(v any) error {
 		enc := jzon.BorrowStream(conn)
 		defer jzon.ReturnStream(enc)
 		enc.WriteVal(v)
@@ -214,8 +205,13 @@ func NewCodec(conn Conn) ServerCodec {
 			return enc.Error
 		}
 		return nil
-		//	return jzon.NewEncoder(conn).Encode(v)
-	}, dec.Decode, func() error {
+	}
+	// TODO:
+	// for some reason other json decoders are incompatible with our test suite
+	// pretty sure its how we handle EOFs and stuff
+	dec := stdjson.NewDecoder(conn)
+	dec.UseNumber()
+	return NewFuncCodec(conn, encr, dec.Decode, func() error {
 		return nil
 	})
 }
@@ -285,7 +281,10 @@ func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 		json.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
+	// TODO:
+	// for some reason other json decoders are incompatible with our test suite
+	// pretty sure its how we handle EOFs and stuff
+	dec := stdjson.NewDecoder(bytes.NewReader(raw))
 	dec.Token() // skip '['
 	var msgs []*jsonrpcMessage
 	for dec.More() {
@@ -336,11 +335,9 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	return args, nil
 }
 
-var jzpool = jsoniter.NewIterator(jzon).Pool()
-
 func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := jzpool.BorrowIterator(p)
-	defer jzpool.ReturnIterator(dec)
+	dec := jzon.BorrowIterator(p)
+	defer jzon.ReturnIterator(dec)
 	args := make([]reflect.Value, 0, len(types))
 	for i := 0; dec.ReadArray(); i++ {
 		if i >= len(types) {

@@ -11,6 +11,7 @@ require (
 	github.com/deckarep/golang-set v1.8.0
 	github.com/ethereum/go-ethereum v1.10.25
 	github.com/gobuffalo/packr/v2 v2.8.3
+	github.com/goccy/go-json v0.9.11
 	github.com/iancoleman/strcase v0.2.0
 	github.com/json-iterator/go v1.1.12
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0

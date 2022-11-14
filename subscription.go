@@ -4,13 +4,14 @@ import (
 	"container/list"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
 	"sync"
 
 	"gfx.cafe/util/go/frand"
+
+	json "github.com/goccy/go-json"
 )
 
 const (
@@ -107,7 +108,7 @@ func (n *Notifier) CreateSubscription() *Subscription {
 // Notify sends a notification to the client with the given data as payload.
 // If an error occurs the RPC connection is closed and the error is returned.
 func (n *Notifier) Notify(id SubID, data interface{}) error {
-	enc, err := jzon.Marshal(data)
+	enc, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (n *Notifier) activate() error {
 }
 
 func (n *Notifier) send(sub *Subscription, data json.RawMessage) error {
-	params, _ := jzon.Marshal(&subscriptionResult{ID: string(sub.ID), Result: data})
+	params, _ := json.Marshal(&subscriptionResult{ID: string(sub.ID), Result: data})
 	ctx := context.Background()
 	return n.h.conn.WriteJSON(ctx, &jsonrpcMessage{
 		Method: n.namespace + notificationMethodSuffix,
@@ -180,7 +181,7 @@ func (s *Subscription) Err() <-chan error {
 
 // MarshalJSON marshals a subscription as its ID.
 func (s *Subscription) MarshalJSON() ([]byte, error) {
-	return jzon.Marshal(s.ID)
+	return json.Marshal(s.ID)
 }
 
 // ClientSubscription is a subscription established through the Client's Subscribe or
@@ -303,7 +304,7 @@ func (sub *ClientSubscription) forward() (unsubscribeServer bool, err error) {
 
 func (sub *ClientSubscription) unmarshal(result json.RawMessage) (interface{}, error) {
 	val := reflect.New(sub.etype)
-	err := jzon.Unmarshal(result, val.Interface())
+	err := json.Unmarshal(result, val.Interface())
 	return val.Elem().Interface(), err
 }
 

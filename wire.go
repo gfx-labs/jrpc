@@ -1,8 +1,10 @@
 package jrpc
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
+
+	json "github.com/goccy/go-json"
 )
 
 // Version represents a JSON-RPC version.
@@ -21,13 +23,13 @@ var (
 
 // MarshalJSON implements json.Marshaler.
 func (version) MarshalJSON() ([]byte, error) {
-	return jzon.Marshal(Version)
+	return []byte(`"` + Version + `"`), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (version) UnmarshalJSON(data []byte) error {
 	version := ""
-	if err := jzon.Unmarshal(data, &version); err != nil {
+	if err := json.Unmarshal(data, &version); err != nil {
 		return fmt.Errorf("failed to Unmarshal: %w", err)
 	}
 	if version != Version {
@@ -89,43 +91,30 @@ func (id *ID) Format(f fmt.State, r rune) {
 
 // get the raw message
 func (id *ID) RawMessage() json.RawMessage {
+	if id == nil {
+		return null
+	}
 	if id.null {
 		return null
 	}
 	if id.name != "" {
-		ans, err := jzon.Marshal(id.name)
-		if err == nil {
-			return ans
-		}
+		return json.RawMessage(`"` + id.name + `"`)
 	}
-	ans, err := jzon.Marshal(id.number)
-	if err == nil {
-		return ans
-	}
-	return nil
+	return strconv.AppendInt(make([]byte, 0, 8), id.number, 10)
 }
 
 // MarshalJSON implements json.Marshaler.
 func (id *ID) MarshalJSON() ([]byte, error) {
-	if id == nil {
-		return null, nil
-	}
-	if id.null {
-		return null, nil
-	}
-	if id.name != "" {
-		return jzon.Marshal(id.name)
-	}
-	return jzon.Marshal(id.number)
+	return id.RawMessage(), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *ID) UnmarshalJSON(data []byte) error {
 	*id = ID{}
-	if err := jzon.Unmarshal(data, &id.number); err == nil {
+	if err := json.Unmarshal(data, &id.number); err == nil {
 		return nil
 	}
-	if err := jzon.Unmarshal(data, &id.name); err == nil {
+	if err := json.Unmarshal(data, &id.name); err == nil {
 		return nil
 	}
 	id.null = true

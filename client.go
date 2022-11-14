@@ -283,7 +283,7 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 	case result == nil:
 		return nil
 	default:
-		return jzon.Unmarshal(resp.Result, &result)
+		return json.Unmarshal(resp.Result, &result)
 	}
 }
 
@@ -383,7 +383,7 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 			elem.Error = ErrNoResult
 			continue
 		}
-		elem.Error = jzon.Unmarshal(resp.Result, elem.Result)
+		elem.Error = json.Unmarshal(resp.Result, elem.Result)
 	}
 
 	return err
@@ -442,20 +442,13 @@ func (c *Client) Subscribe(ctx context.Context, namespace string, channel interf
 }
 
 func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, error) {
-	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
-	if paramsIn != nil { // prevent sending "params":null
-		var err error
-		if msg.Params, err = jzon.Marshal(paramsIn); err != nil {
-			return nil, err
-		}
-	}
-	return msg, nil
+	return c.newMessageP(method, paramsIn)
 }
 func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error) {
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = jzon.Marshal(paramIn); err != nil {
+		if msg.Params, err = json.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}
