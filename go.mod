@@ -5,7 +5,6 @@ go 1.18
 require (
 	gfx.cafe/util/go/bufpool v0.0.0-20221003014715-6000e93338e0
 	gfx.cafe/util/go/frand v0.0.0-20221022080059-c522fd4b624d
-	git.tuxpa.in/a/zlog v1.32.0
 	github.com/alecthomas/kong v0.6.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
@@ -18,6 +17,7 @@ require (
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	nhooyr.io/websocket v1.8.7
 	sigs.k8s.io/yaml v1.3.0
+	tuxpa.in/a/zlog v1.50.0
 )
 
 require (
@@ -50,5 +50,4 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	tuxpa.in/a/zlog v1.50.0 // indirect
 )
