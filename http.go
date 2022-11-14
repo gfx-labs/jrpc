@@ -25,7 +25,6 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"gfx.cafe/util/go/bufpool"
@@ -152,36 +151,6 @@ func (t *httpServerConn) RemoteAddr() string {
 
 // SetWriteDeadline does nothing and always returns nil.
 func (t *httpServerConn) SetWriteDeadline(time.Time) error { return nil }
-
-type WebsocketServer struct {
-	s *Server
-}
-
-func (s *WebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if isWebsocket(r) {
-		s.s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
-		return
-	}
-	s.s.ServeHTTP(w, r)
-}
-
-func isWebsocket(r *http.Request) bool {
-	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket") &&
-		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
-}
-
-func (s *Server) ServeHTTPWithWss(cb func(r *http.Request)) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isWebsocket(r) {
-			if cb != nil {
-				cb(r)
-			}
-			s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
-			return
-		}
-		s.ServeHTTP(w, r)
-	})
-}
 
 // ServeHTTP serves JSON-RPC requests over HTTP.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
