@@ -43,7 +43,7 @@ func (version) UnmarshalJSON(data []byte) error {
 // alternatively, ID can be null
 type ID struct {
 	name   string
-	number int32
+	number int64
 
 	null bool
 }
@@ -56,7 +56,7 @@ var (
 )
 
 // NewNumberID returns a new number request ID.
-func NewNumberID(v int32) ID { return *NewNumberIDPtr(v) }
+func NewNumberID(v int64) ID { return *NewNumberIDPtr(v) }
 
 // NewStringID returns a new string request ID.
 func NewStringID(v string) ID { return *NewStringIDPtr(v) }
@@ -64,7 +64,7 @@ func NewStringID(v string) ID { return *NewStringIDPtr(v) }
 // NewStringID returns a new string request ID.
 func NewNullID() ID { return *NewNullIDPtr() }
 
-func NewNumberIDPtr(v int32) *ID  { return &ID{number: v} }
+func NewNumberIDPtr(v int64) *ID  { return &ID{number: v} }
 func NewStringIDPtr(v string) *ID { return &ID{name: v} }
 func NewNullIDPtr() *ID           { return &ID{null: true} }
 

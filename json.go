@@ -57,7 +57,7 @@ type jsonrpcMessage struct {
 
 func MakeCall(id int, method string, params []any) *JsonRpcMessage {
 	return &JsonRpcMessage{
-		ID: NewNumberIDPtr(int32(id)),
+		ID: NewNumberIDPtr(int64(id)),
 	}
 }
 

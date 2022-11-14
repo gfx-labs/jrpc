@@ -60,7 +60,7 @@ type BatchElem struct {
 type Client struct {
 	isHTTP bool // connection type: http, ws or ipc
 
-	idCounter uint32
+	idCounter uint64
 
 	r Router
 	// This function, if non-nil, is called when the connection is lost.
@@ -218,8 +218,8 @@ func initClient(conn ServerCodec, r Router) *Client {
 }
 
 func (c *Client) nextID() *ID {
-	id := atomic.AddUint32(&c.idCounter, 1)
-	return NewNumberIDPtr(int32(id))
+	id := atomic.AddUint64(&c.idCounter, 1)
+	return NewNumberIDPtr(int64(id))
 }
 
 // SupportedModules calls the rpc_modules method, retrieving the list of
