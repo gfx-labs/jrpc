@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	"tuxpa.in/a/zlog/log"
 )
 
@@ -448,7 +449,7 @@ func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = json.Marshal(paramIn); err != nil {
+		if msg.Params, err = jsoniter.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}
