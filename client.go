@@ -170,6 +170,8 @@ func DialContext(ctx context.Context, rawurl string) (*Client, error) {
 		return DialHTTP(rawurl)
 	case "ws", "wss":
 		return DialWebsocket(ctx, rawurl, "")
+	case "tcp":
+		return DialTCP(ctx, rawurl)
 	case "stdio":
 		return DialStdIO(ctx)
 	case "":

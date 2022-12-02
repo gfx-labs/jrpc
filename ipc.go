@@ -19,6 +19,7 @@ package jrpc
 import (
 	"context"
 	"net"
+	"net/url"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/netutil"
@@ -36,6 +37,41 @@ func (s *Server) ServeListener(l net.Listener) error {
 		}
 		log.Trace("Accepted RPC connection", "conn", conn.RemoteAddr())
 		go s.ServeCodec(NewCodec(conn))
+	}
+}
+
+// DialTCP create a new TCP client that connects to the given endpoint.
+//
+// The context is used for the initial connection establishment. It does not
+// affect subsequent interactions with the client.
+func DialTCP(ctx context.Context, endpoint string) (*Client, error) {
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	ans := make(chan *Client)
+	errc := make(chan error)
+	go func() {
+		client, err := newClient(ctx, func(ctx context.Context) (ServerCodec, error) {
+			conn, err := net.Dial("tcp", parsed.Host)
+			if err != nil {
+				return nil, err
+			}
+			return NewCodec(conn), nil
+		})
+		if err != nil {
+			errc <- err
+			return
+		}
+		ans <- client
+	}()
+	select {
+	case err := <-errc:
+		return nil, err
+	case a := <-ans:
+		return a, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 
