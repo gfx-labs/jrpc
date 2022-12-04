@@ -272,7 +272,7 @@ func (h *handler) handleCallMsg(ctx *callProc, r *Request) *Response {
 		return r.errorResponse(&invalidRequestError{"invalid request"})
 	default:
 		res := r.errorResponse(&invalidRequestError{"invalid request"})
-		res.ID = nil
+		res.ID = NewNullIDPtr()
 		return res
 	}
 }

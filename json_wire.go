@@ -48,6 +48,8 @@ type ID struct {
 	number int64
 
 	null bool
+
+	empty bool
 }
 
 // compile time check whether the ID implements a fmt.Formatter, json.Marshaler and json.Unmarshaler interfaces.
@@ -91,6 +93,9 @@ func (id *ID) Format(f fmt.State, r rune) {
 
 // get the raw message
 func (id *ID) RawMessage() json.RawMessage {
+	if id.empty {
+		return nil
+	}
 	if id == nil {
 		return null
 	}
