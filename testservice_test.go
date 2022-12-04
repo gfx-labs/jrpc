@@ -27,7 +27,7 @@ import (
 func newTestServer() *Server {
 	server := NewServer()
 	server.Router().HandleFunc("testservice_subscribe", func(w ResponseWriter, r *Request) {
-		log.Println(r.Params())
+		log.Println(r.Params)
 		sub, err := UpgradeToSubscription(w, r)
 		w.Send(sub, err)
 		if err != nil {

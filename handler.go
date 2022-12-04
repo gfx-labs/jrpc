@@ -306,7 +306,7 @@ func (h *handler) handleSubscribe(cp *callProc, msg *jsonrpcMessage) *jsonrpcMes
 	// Install notifier in context so the subscription handler can find it.
 	n := &Notifier{h: h, namespace: namespace, idgen: randomIDGenerator()}
 	cp.notifiers = append(cp.notifiers, n)
-	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
+	req := NewMsgRequest(cp.ctx, h.peer, *msg)
 	// now actually run the handler
 	req = req.WithContext(
 		context.WithValue(req.ctx, notifierKey{}, n),
@@ -356,7 +356,7 @@ func (h *handler) addSubscriptions(nn []*Notifier) {
 
 func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
 	callb := h.reg.Match(NewRouteContext(), msg.Method)
-	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
+	req := NewMsgRequest(cp.ctx, h.peer, *msg)
 	mw := NewReaderResponseWriterMsg(req)
 	if msg.isSubscribe() {
 		return h.handleSubscribe(cp, msg)

@@ -39,7 +39,7 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 }
 
 func (w *ResponseWriterMsg) Header() http.Header {
-	wh := w.r.Peer().HTTP.WriteHeaders
+	wh := w.r.Peer.HTTP.WriteHeaders
 	if wh == nil {
 		wh = http.Header{}
 	}

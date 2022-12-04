@@ -82,7 +82,7 @@ type callback struct {
 // callback handler implements handler for the original receiver style that geth used
 func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 	argTypes := append([]reflect.Type{}, e.argTypes...)
-	args, err := parsePositionalArguments(r.msg.Params, argTypes)
+	args, err := parsePositionalArguments(r.Params, argTypes)
 	if err != nil {
 		w.Send(nil, &invalidParamsError{err.Error()})
 		return
@@ -102,7 +102,7 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			log.Error().Str("method", r.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
 			w.Send(nil, nil)
 			return

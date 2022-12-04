@@ -365,7 +365,7 @@ func (mx *Mux) routeRPC(w ResponseWriter, r *Request) {
 	// The request routing path
 	routePath := rctx.RoutePath
 	if routePath == "" {
-		routePath = r.Method()
+		routePath = r.Method
 		if routePath == "" {
 			routePath = "_"
 		}
