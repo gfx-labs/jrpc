@@ -52,6 +52,13 @@ func (msg *jsonrpcMessage) isCall() bool {
 func (msg *jsonrpcMessage) isResponse() bool {
 	return msg.hasValidID() && len(msg.Method) == 0 && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
 }
+func (msg *jsonrpcMessage) toResponse() *Response {
+	return &Response{
+		ID:     msg.ID,
+		Result: msg.Result,
+		Error:  msg.Error,
+	}
+}
 func (msg *jsonrpcMessage) hasValidID() bool {
 	return msg.ID != nil && !msg.ID.null
 }

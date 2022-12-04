@@ -212,7 +212,7 @@ func (h *handler) handleImmediate(msg *jsonrpcMessage) bool {
 		}
 		return false
 	case msg.isResponse():
-		h.handleResponse(msg)
+		h.handleResponse(msg.toResponse())
 		h.log.Trace().Str("reqid", string(msg.ID.RawMessage())).Dur("duration", time.Since(start)).Msg("Handled RPC response")
 		return true
 	default:
@@ -231,8 +231,7 @@ func (h *handler) handleSubscriptionResult(msg *jsonrpcMessage) {
 	}
 }
 
-// handleResponse processes method call responses.
-func (h *handler) handleResponse(msg *jsonrpcMessage) {
+func (h *handler) handleResponse(msg *Response) {
 	op := h.respWait[string(msg.ID.RawMessage())]
 	if op == nil {
 		h.log.Debug().Str("reqid", string(msg.ID.RawMessage())).Msg("Unsolicited RPC response")
@@ -241,7 +240,7 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 	delete(h.respWait, string(msg.ID.RawMessage()))
 	if op.sub == nil {
 		// not a sub, so just send the msg back
-		op.resp <- msg
+		op.resp <- msg.Msg()
 		return
 	}
 	// For subscription responses, start the subscription if the server
