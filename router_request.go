@@ -9,13 +9,12 @@ import (
 )
 
 type Request struct {
-	ID     *ID             `json:"id,omitempty"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params"`
+	Version version         `json:"jsonrpc"`
+	ID      *ID             `json:"id,omitempty"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params"`
 
 	Peer PeerInfo `json:"-"`
-
-	Version version `json:"jsonrpc"`
 
 	ctx context.Context
 }
@@ -55,6 +54,11 @@ func (r *Request) makeError(err error) *jsonrpcMessage {
 func (r *Request) namespace() string {
 	elem := strings.SplitN(r.Method, serviceMethodSeparator, 2)
 	return elem[0]
+}
+func (r *Request) errorResponse(err error) *Response {
+	mw := NewReaderResponseWriterMsg(r)
+	mw.Send(nil, err)
+	return mw.Response()
 }
 
 func (r *Request) isSubscribe() bool {

@@ -117,7 +117,7 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 		for _, msg := range calls {
 			r := NewMsgRequest(cp.ctx, h.peer, *msg)
 			if answer := h.handleCallMsg(cp, r); answer != nil {
-				answers = append(answers, answer)
+				answers = append(answers, answer.Msg())
 			}
 		}
 		h.addSubscriptions(cp.notifiers)
@@ -260,7 +260,7 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 
 // handleCallMsg executes a call message and returns the answer.
 // TODO: export prometheus metrics maybe? also fix logging
-func (h *handler) handleCallMsg(ctx *callProc, r *Request) *jsonrpcMessage {
+func (h *handler) handleCallMsg(ctx *callProc, r *Request) *Response {
 	switch {
 	case r.isNotification():
 		go h.handleCall(ctx, r)
@@ -269,13 +269,15 @@ func (h *handler) handleCallMsg(ctx *callProc, r *Request) *jsonrpcMessage {
 		resp := h.handleCall(ctx, r)
 		return resp
 	case r.hasValidID():
-		return r.makeError(&invalidRequestError{"invalid request"})
+		return r.errorResponse(&invalidRequestError{"invalid request"})
 	default:
-		return errorMessage(&invalidRequestError{"invalid request"})
+		res := r.errorResponse(&invalidRequestError{"invalid request"})
+		res.ID = nil
+		return res
 	}
 }
 
-func (h *handler) handleCall(cp *callProc, r *Request) *jsonrpcMessage {
+func (h *handler) handleCall(cp *callProc, r *Request) *Response {
 	callb := h.reg.Match(NewRouteContext(), r.Method)
 	mw := NewReaderResponseWriterMsg(r)
 	if r.isSubscribe() {
@@ -283,34 +285,38 @@ func (h *handler) handleCall(cp *callProc, r *Request) *jsonrpcMessage {
 	}
 	if r.isUnsubscribe() {
 		h.unsubscribeCb.ServeRPC(mw, r)
-		return mw.Msg()
+		return mw.Response()
 	}
 	// no method found
-	msg := r.Msg()
 	if !callb {
-		return msg.errorResponse(&methodNotFoundError{method: r.Method})
+		mw.Send(nil, &methodNotFoundError{method: r.Method})
+		return mw.Response()
 	}
 	// now actually run the handler
 	h.reg.ServeRPC(mw, r)
-	return mw.Msg()
+	return mw.Response()
 }
 
 // handleSubscribe processes *_subscribe method calls.
-func (h *handler) handleSubscribe(cp *callProc, r *Request) *jsonrpcMessage {
+func (h *handler) handleSubscribe(cp *callProc, r *Request) *Response {
+	mw := NewReaderResponseWriterMsg(r.WithContext(cp.ctx))
 	switch h.peer.Transport {
 	case "http", "https":
-		return r.makeError(ErrNotificationsUnsupported)
+		mw.Send(nil, ErrNotificationsUnsupported)
+		return mw.Response()
 	}
 
 	// Subscription method name is first argument.
 	name, err := parseSubscriptionName(r.Params)
 	if err != nil {
-		return r.makeError(&invalidParamsError{err.Error()})
+		mw.Send(nil, &invalidParamsError{err.Error()})
+		return mw.Response()
 	}
 	namespace := r.namespace()
 	has := h.reg.Match(NewRouteContext(), r.Method)
 	if !has {
-		return r.makeError(&subscriptionNotFoundError{namespace, name})
+		mw.Send(nil, &subscriptionNotFoundError{namespace, name})
+		return mw.Response()
 	}
 	// Install notifier in context so the subscription handler can find it.
 	n := &Notifier{h: h, namespace: namespace, idgen: randomIDGenerator()}
@@ -320,9 +326,8 @@ func (h *handler) handleSubscribe(cp *callProc, r *Request) *jsonrpcMessage {
 	req = req.WithContext(
 		context.WithValue(req.ctx, notifierKey{}, n),
 	)
-	mw := NewReaderResponseWriterMsg(req)
 	h.reg.ServeRPC(mw, req)
-	return mw.Msg()
+	return mw.Response()
 }
 
 // parseSubscriptionName extracts the subscription name from an encoded argument array.

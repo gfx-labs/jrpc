@@ -7,15 +7,16 @@ import (
 )
 
 type Response struct {
-	ID      *ID             `json:"id,omitempty"`
 	Version version         `json:"jsonrpc,omitempty"`
+	ID      *ID             `json:"id,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
 	Error   *jsonError      `json:"error,omitempty"`
 }
 
 func (r *Response) Msg() *jsonrpcMessage {
-	out := &jsonrpcMessage{
-		ID: r.ID,
+	out := &jsonrpcMessage{}
+	if r.ID != nil {
+		out.ID = r.ID
 	}
 	if r.Error != nil {
 		out.Error = r.Error
@@ -121,7 +122,6 @@ func (w *ResponseWriterMsg) Notify(args any) (err error) {
 func (w *ResponseWriterMsg) Response() *Response {
 	return w.resp
 }
-
 func (w *ResponseWriterMsg) Msg() *jsonrpcMessage {
 	return w.resp.Msg()
 }
