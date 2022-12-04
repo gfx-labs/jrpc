@@ -41,7 +41,7 @@ type Error interface {
 
 // A DataError contains some data in addition to the error message.
 type DataError interface {
-	Error() string          // returns the message
+	Error() string  // returns the message
 	ErrorData() any // returns the error data
 }
 
@@ -57,6 +57,8 @@ var (
 )
 
 const defaultErrorCode = -32000
+
+const applicationErrorCode = -32080
 
 type methodNotFoundError struct{ method string }
 

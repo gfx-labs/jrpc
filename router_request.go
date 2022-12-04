@@ -2,6 +2,7 @@ package jrpc
 
 import (
 	"context"
+	"strings"
 
 	json "github.com/goccy/go-json"
 	jsoniter "github.com/json-iterator/go"
@@ -42,6 +43,37 @@ func (r *Request) ParamSlice() []any {
 	var params []any
 	json.Unmarshal(r.Params, &params)
 	return params
+}
+
+func (r *Request) makeError(err error) *jsonrpcMessage {
+	m := r.Msg()
+	return m.errorResponse(err)
+}
+
+// DEPRECATED
+// TODO: use our router to do this? jrpc.Namespace(string) (string, string) maybe?
+func (r *Request) namespace() string {
+	elem := strings.SplitN(r.Method, serviceMethodSeparator, 2)
+	return elem[0]
+}
+
+func (r *Request) isSubscribe() bool {
+	return strings.HasSuffix(r.Method, subscribeMethodSuffix)
+}
+func (r *Request) isUnsubscribe() bool {
+	return strings.HasSuffix(r.Method, unsubscribeMethodSuffix)
+}
+func (r *Request) isNotification() bool {
+	return r.ID == nil && len(r.Method) > 0
+}
+func (r *Request) isCall() bool {
+	return r.hasValidID() && len(r.Method) > 0
+}
+func (r *Request) isResponse() bool {
+	return false
+}
+func (r *Request) hasValidID() bool {
+	return r.ID != nil && !r.ID.null
 }
 
 func (r *Request) ParamArray(a ...any) error {
