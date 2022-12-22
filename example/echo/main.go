@@ -13,7 +13,7 @@ func main() {
 	srv := jrpc.NewServer(r)
 
 	r.HandleFunc("echo", func(w jrpc.ResponseWriter, r *jrpc.Request) {
-		w.Send(r.Params(), nil)
+		w.Send(r.Params, nil)
 	})
 
 	log.Println("running on 8855")
