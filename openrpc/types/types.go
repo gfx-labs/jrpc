@@ -93,7 +93,7 @@ type Tag struct {
 
 type ExternalDocumentation struct {
 	Description string `json:"description,omitempty"`
-	URL         string `json:"url"`
+	URL         string `json:"url,omitempty"`
 }
 
 type ExamplePairing struct {
