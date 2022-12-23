@@ -84,11 +84,11 @@ type Method struct {
 }
 
 type Tag struct {
-	Ref          string                `json:"$ref,omitempty"`
-	Name         string                `json:"name"`
-	Summary      string                `json:"summary,omitempty"`
-	Description  string                `json:"description,omitempty"`
-	ExternalDocs ExternalDocumentation `json:"externalDocs,omitempty"`
+	Ref          string                 `json:"$ref,omitempty"`
+	Name         string                 `json:"name"`
+	Summary      string                 `json:"summary,omitempty"`
+	Description  string                 `json:"description,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
 }
 
 type ExternalDocumentation struct {
