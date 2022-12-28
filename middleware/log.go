@@ -17,7 +17,7 @@ func Logger(next jrpc.Handler) jrpc.Handler {
 		log.Trace().
 			Stringer("time", time.Since(start)).
 			Str("remote", r.Remote()).
-			Str("method", r.Method()).
+			Str("method", r.Method).
 			Str("params", string(r.Msg().Params)).Msg("RPC Request")
 	}
 	return jrpc.HandlerFunc(fn)
