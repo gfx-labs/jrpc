@@ -26,8 +26,9 @@ type ServerVariable struct {
 }
 
 type Info struct {
-	Title   string `json:"title"`
-	Version string `json:"version"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
 }
 
 type Items []Schema
@@ -144,8 +145,9 @@ func NewOpenRPCSpec1() *OpenRPC {
 		Package: "main",
 		Version: "1.0.0",
 		Info: Info{
-			Title:   "gfx.cafe/open/jrpc/openrpc",
-			Version: "0.0.0",
+			Title:       "gfx.cafe/open/jrpc/openrpc",
+			Description: "",
+			Version:     "0.0.0",
 		},
 		Servers: make([]Server, 0),
 		Methods: make([]Method, 0),
