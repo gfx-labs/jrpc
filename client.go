@@ -299,6 +299,7 @@ func (c *Client) Do(result any, method string, param any) error {
 	ctx := context.Background()
 	return c.DoContext(ctx, result, method, param)
 }
+
 func (c *Client) DoContext(ctx context.Context, result any, method string, param any) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
@@ -310,12 +311,12 @@ func (c *Client) DoContext(ctx context.Context, result any, method string, param
 	return c.call(ctx, result, msg)
 }
 
-// Deprecated: use Do
+// Call calls Do, except accepts variadic parameters
 func (c *Client) Call(result any, method string, args ...any) error {
 	return c.Do(result, method, args)
 }
 
-// Deprecated: use DoContext
+// CallContext calls DoContext, except accepts variadic parameters
 func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
 	return c.DoContext(ctx, result, method, args)
 }
