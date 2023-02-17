@@ -4,6 +4,7 @@ import "context"
 
 type Conn interface {
 	Do(ctx context.Context, result any, method string, params any) error
+	Call(ctx context.Context, result any, method string, params ...any) error
 	BatchCall(b ...BatchElem) error
 }
 
