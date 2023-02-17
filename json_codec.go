@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// Conn is a subset of the methods of net.Conn which are sufficient for creating a jsonCodec
-type Conn interface {
+// DeadlineConn is a subset of the methods of net.Conn which are sufficient for creating a jsonCodec
+type DeadlineConn interface {
 	io.ReadWriteCloser
 	SetWriteDeadline(time.Time) error
 }
@@ -25,14 +25,14 @@ type jsonCodec struct {
 	decode    func(v any) error // decoder to allow multiple transports
 	encMu     sync.Mutex        // guards the encoder
 	encode    func(v any) error // encoder to allow multiple transports
-	conn      Conn
+	conn      DeadlineConn
 }
 
 // NewFuncCodec creates a codec which uses the given functions to read and write. If conn
 // implements ConnRemoteAddr, log messages will use it to include the remote address of
 // the connection.
 func NewFuncCodec(
-	conn Conn,
+	conn DeadlineConn,
 	encode, decode func(v any) error,
 	closeFunc func() error,
 ) ServerCodec {
@@ -51,7 +51,7 @@ func NewFuncCodec(
 
 // NewCodec creates a codec on the given connection. If conn implements ConnRemoteAddr, log
 // messages will use it to include the remote address of the connection.
-func NewCodec(conn Conn) ServerCodec {
+func NewCodec(conn DeadlineConn) ServerCodec {
 	encr := func(v any) error {
 		enc := jzon.BorrowStream(conn)
 		defer jzon.ReturnStream(enc)

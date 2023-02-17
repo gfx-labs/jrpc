@@ -57,6 +57,8 @@ type BatchElem struct {
 	Error error
 }
 
+var _ SubscriptionConn = (*Client)(nil)
+
 // Client represents a connection to an RPC server.
 type Client struct {
 	isHTTP bool // connection type: http, ws or ipc
@@ -295,11 +297,11 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 //
 // The result must be a pointer so that package json can unmarshal into it. You
 // can also pass nil, in which case the result is ignored.
-func (c *Client) Do(result any, method string, param any) error {
-	ctx := context.Background()
+func (c *Client) Do(ctx context.Context, result any, method string, param any) error {
 	return c.DoContext(ctx, result, method, param)
 }
 
+// DEPRECATED: use Do
 func (c *Client) DoContext(ctx context.Context, result any, method string, param any) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
@@ -312,11 +314,11 @@ func (c *Client) DoContext(ctx context.Context, result any, method string, param
 }
 
 // Call calls Do, except accepts variadic parameters
-func (c *Client) Call(result any, method string, args ...any) error {
-	return c.Do(result, method, args)
+func (c *Client) Call(ctx context.Context, result any, method string, args ...any) error {
+	return c.Do(ctx, result, method, args)
 }
 
-// CallContext calls DoContext, except accepts variadic parameters
+// DEPRECATED: use Call
 func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
 	return c.DoContext(ctx, result, method, args)
 }
@@ -328,20 +330,11 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 // a request is reported through the Error field of the corresponding BatchElem.
 //
 // Note that batch calls may not be executed atomically on the server side.
-func (c *Client) BatchCall(b []BatchElem) error {
-	ctx := context.Background()
+func (c *Client) BatchCall(ctx context.Context, b ...BatchElem) error {
 	return c.BatchCallContext(ctx, b)
 }
 
-// BatchCallContext sends all given requests as a single batch and waits for the server
-// to return a response for all of them. The wait duration is bounded by the
-// context's deadline.
-//
-// In contrast to CallContext, BatchCallContext only returns errors that have occurred
-// while sending the request. Any error specific to a request is reported through the
-// Error field of the corresponding BatchElem.
-//
-// Note that batch calls may not be executed atomically on the server side.
+// DEPRECATED: use BatchCall
 func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 	var (
 		msgs = make([]*jsonrpcMessage, len(b))
