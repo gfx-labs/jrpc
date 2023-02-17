@@ -27,7 +27,7 @@ func BenchmarkClientHTTPEcho(b *testing.B) {
 		eg.SetLimit(4)
 		for i := 0; i < 1000; i++ {
 			eg.Go(func() error {
-				return client.Call(nil, "test_echoAny", []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack})
+				return client.Call(nil, nil, "test_echoAny", []any{1, 2, 3, 4, 56, 6, wantBack, wantBack, wantBack})
 			})
 		}
 		eg.Wait()
@@ -48,7 +48,7 @@ func BenchmarkClientHTTPEchoEmpty(b *testing.B) {
 		eg.SetLimit(4)
 		for i := 0; i < 1000; i++ {
 			eg.Go(func() error {
-				return client.Call(nil, "test_echoAny", 0)
+				return client.Call(nil, nil, "test_echoAny", 0)
 			})
 		}
 		eg.Wait()
@@ -76,7 +76,7 @@ func BenchmarkClientWebsocketEcho(b *testing.B) {
 		eg.SetLimit(4)
 		for i := 0; i < 1000; i++ {
 			eg.Go(func() error {
-				return client.Call(nil, "test_echoAny", payload)
+				return client.Call(nil, nil, "test_echoAny", payload)
 			})
 		}
 		eg.Wait()
@@ -98,7 +98,7 @@ func BenchmarkClientWebsocketEchoEmpty(b *testing.B) {
 		eg.SetLimit(4)
 		for i := 0; i < 1000; i++ {
 			eg.Go(func() error {
-				return client.Call(nil, "test_echoAny", 0)
+				return client.Call(nil, nil, "test_echoAny", 0)
 			})
 		}
 		eg.Wait()

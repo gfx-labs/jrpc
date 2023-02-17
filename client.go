@@ -233,7 +233,7 @@ func (c *Client) SupportedModules() (map[string]string, error) {
 	var result map[string]string
 	ctx, cancel := context.WithTimeout(context.Background(), subscribeTimeout)
 	defer cancel()
-	err := c.CallContext(ctx, &result, "rpc_modules")
+	err := c.Call(ctx, &result, "rpc_modules")
 	return result, err
 }
 
@@ -297,18 +297,16 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 //
 // The result must be a pointer so that package json can unmarshal into it. You
 // can also pass nil, in which case the result is ignored.
-func (c *Client) Do(ctx context.Context, result any, method string, param any) error {
-	return c.DoContext(ctx, result, method, param)
-}
-
-// DEPRECATED: use Do
-func (c *Client) DoContext(ctx context.Context, result any, method string, param any) error {
+func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
-	msg, err := c.newMessageP(method, param)
+	msg, err := c.newMessageP(method, params)
 	if err != nil {
 		return err
+	}
+	if ctx == nil {
+		ctx = context.TODO()
 	}
 	return c.call(ctx, result, msg)
 }
@@ -316,11 +314,6 @@ func (c *Client) DoContext(ctx context.Context, result any, method string, param
 // Call calls Do, except accepts variadic parameters
 func (c *Client) Call(ctx context.Context, result any, method string, args ...any) error {
 	return c.Do(ctx, result, method, args)
-}
-
-// DEPRECATED: use Call
-func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
-	return c.DoContext(ctx, result, method, args)
 }
 
 // BatchCall sends all given requests as a single batch and waits for the server
@@ -331,15 +324,14 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 //
 // Note that batch calls may not be executed atomically on the server side.
 func (c *Client) BatchCall(ctx context.Context, b ...BatchElem) error {
-	return c.BatchCallContext(ctx, b)
-}
-
-// DEPRECATED: use BatchCall
-func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 	var (
 		msgs = make([]*jsonrpcMessage, len(b))
 		byID = make(map[string]int, len(b))
 	)
+
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	op := &requestOp{
 		ids:  make([]json.RawMessage, len(b)),
 		resp: make(chan *jsonrpcMessage, len(b)),

@@ -123,7 +123,7 @@ func (s *testService) CallMeBack(ctx context.Context, method string, args []any)
 		return nil, errors.New("no client")
 	}
 	var result any
-	err := c.Call(&result, method, args...)
+	err := c.Call(nil, &result, method, args...)
 	return result, err
 }
 
@@ -135,7 +135,7 @@ func (s *testService) CallMeBackLater(ctx context.Context, method string, args [
 	go func() {
 		<-ctx.Done()
 		var result any
-		c.Call(&result, method, args...)
+		c.Call(nil, &result, method, args...)
 	}()
 	return nil
 }

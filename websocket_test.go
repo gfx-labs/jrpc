@@ -93,7 +93,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 	// This call sends slightly less than the limit and should work.
 	var result echoResult
 	arg := strings.Repeat("x", maxRequestContentLength-200)
-	if err := client.Call(&result, "test_echo", arg, 1); err != nil {
+	if err := client.Call(nil, &result, "test_echo", arg, 1); err != nil {
 		t.Fatalf("valid call didn't work: %v", err)
 	}
 	if result.String != arg {
@@ -102,7 +102,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 
 	// This call sends twice the allowed size and shouldn't work.
 	arg = strings.Repeat("x", maxRequestContentLength*2)
-	err = client.Call(&result, "test_echo", arg)
+	err = client.Call(nil, &result, "test_echo", arg)
 	if err == nil {
 		t.Fatal("no error for too large call")
 	}
@@ -125,7 +125,7 @@ func TestWebsocketPeerInfo(t *testing.T) {
 
 	// Request peer information.
 	var connInfo PeerInfo
-	if err := c.Call(&connInfo, "test_peerInfo"); err != nil {
+	if err := c.Call(nil, &connInfo, "test_peerInfo"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +162,7 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 	}
 
 	var r string
-	if err := c.Call(&r, "test_largeResp"); err != nil {
+	if err := c.Call(nil, &r, "test_largeResp"); err != nil {
 		t.Fatal("call failed:", err)
 	}
 	if len(r) != respLength {
