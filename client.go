@@ -379,18 +379,15 @@ func (c *Client) BatchCall(ctx context.Context, b ...BatchElem) error {
 }
 
 func (c *Client) Notify(ctx context.Context, method string, args ...any) error {
-	return c.DoNotify(ctx, method, args)
-}
-
-// Notify sends a notification, i.e. a method call that doesn't expect a response.
-func (c *Client) DoNotify(ctx context.Context, method string, args any) error {
 	op := new(requestOp)
 	msg, err := c.newMessageP(method, args)
 	if err != nil {
 		return err
 	}
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	msg.ID = nil
-
 	if c.isHTTP {
 		return c.sendHTTP(ctx, op, msg)
 	}
