@@ -18,6 +18,7 @@ package jrpc
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"runtime"
 	"unicode"
@@ -104,7 +105,7 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 			buf = buf[:runtime.Stack(buf, false)]
 			log.Error().Str("method", r.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-			w.Send(nil, nil)
+			w.Send(nil, fmt.Errorf("%s", err))
 			return
 		}
 	}()
