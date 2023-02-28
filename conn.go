@@ -2,6 +2,8 @@ package jrpc
 
 import "context"
 
+var _ Conn = (*Client)(nil)
+
 type Conn interface {
 	Call(ctx context.Context, result any, method string, params ...any) error
 	BatchCall(ctx context.Context, b ...BatchElem) error
