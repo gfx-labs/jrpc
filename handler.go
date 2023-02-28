@@ -320,11 +320,11 @@ func (h *handler) handleSubscribe(cp *callProc, r *Request) *Response {
 	// Install notifier in context so the subscription handler can find it.
 	n := &Notifier{h: h, namespace: namespace, idgen: randomIDGenerator()}
 	cp.notifiers = append(cp.notifiers, n)
-	req := r.WithContext(cp.ctx)
 	// now actually run the handler
-	req = req.WithContext(
-		context.WithValue(req.ctx, notifierKey{}, n),
+	req := r.WithContext(
+		context.WithValue(r.ctx, notifierKey{}, n),
 	)
+	mw = NewReaderResponseWriterMsg(req)
 	h.reg.ServeRPC(mw, req)
 	return mw.Response()
 }

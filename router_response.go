@@ -108,6 +108,9 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 }
 
 func (w *ResponseWriterMsg) Notify(args any) (err error) {
+	if w.n == nil {
+		w.n, _ = NotifierFromContext(w.r.ctx)
+	}
 	if w.s == nil || w.n == nil {
 		return ErrSubscriptionNotFound
 	}
