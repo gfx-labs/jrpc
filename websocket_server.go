@@ -22,11 +22,13 @@ func isWebsocket(r *http.Request) bool {
 		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
 }
 
-func (s *Server) ServeHTTPWithWss(cb func(r *http.Request)) http.Handler {
+func (s *Server) ServeHTTPWithWss(cb func(w http.ResponseWriter, r *http.Request) bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isWebsocket(r) {
 			if cb != nil {
-				cb(r)
+				if cb(w, r) {
+					return
+				}
 			}
 			s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
 			return
