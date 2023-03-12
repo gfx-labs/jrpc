@@ -10,26 +10,26 @@ type WebsocketServer struct {
 }
 
 func (s *WebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if isWebsocket(r) {
+	if IsWebsocket(r) {
 		s.s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
 		return
 	}
 	s.s.ServeHTTP(w, r)
 }
 
-func isWebsocket(r *http.Request) bool {
+func IsWebsocket(r *http.Request) bool {
 	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket") &&
 		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
 }
 
 func (s *Server) ServeHTTPWithWss(cb func(w http.ResponseWriter, r *http.Request) bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isWebsocket(r) {
-			if cb != nil {
-				if cb(w, r) {
-					return
-				}
+		if cb != nil {
+			if cb(w, r) {
+				return
 			}
+		}
+		if IsWebsocket(r) {
 			s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
 			return
 		}
