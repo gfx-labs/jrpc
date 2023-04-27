@@ -2,51 +2,37 @@ package jrpc
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
+
+	"gfx.cafe/open/jrpc/codec"
 )
 
 type Response struct {
-	Version version         `json:"jsonrpc,omitempty"`
-	ID      *ID             `json:"id,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *jsonError      `json:"error,omitempty"`
+	Version codec.Version    `json:"jsonrpc,omitempty"`
+	ID      *codec.ID        `json:"id,omitempty"`
+	Result  json.RawMessage  `json:"result,omitempty"`
+	Error   *codec.JsonError `json:"error,omitempty"`
 }
 
-func (r *Response) Msg() *jsonrpcMessage {
-	out := &jsonrpcMessage{}
+func (r *Response) Msg() *codec.Message {
+	out := &codec.Message{}
 	if r.ID != nil {
 		out.ID = r.ID
 	}
 	if r.Error != nil {
 		out.Error = r.Error
-		return out
+	} else {
+		out.Result = r.Result
 	}
-	out.Result = r.Result
 	return out
 }
 
 type ResponseWriterMsg struct {
 	r    *Request
 	resp *Response
-	n    *Notifier
-	s    *Subscription
-
-	//TODO: add options
-	// currently there are no useful options so i havent added any
-	// find a use case to add
-	options options
 }
 
 type options struct {
-}
-
-func UpgradeToSubscription(w ResponseWriter, r *Request) (*Subscription, error) {
-	not, ok := NotifierFromContext(r.ctx)
-	if !ok || not == nil {
-		return nil, errors.New("subscription not supported")
-	}
-	return not.CreateSubscription(), nil
 }
 
 func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
@@ -56,12 +42,11 @@ func NewReaderResponseWriterMsg(r *Request) *ResponseWriterMsg {
 			ID: r.ID,
 		},
 	}
-	rw.n, _ = NotifierFromContext(r.ctx)
 	return rw
 }
 
 func (w *ResponseWriterMsg) Header() http.Header {
-	wh := w.r.Peer.HTTP.WriteHeaders
+	wh := w.r.Peer.HTTP.Headers
 	if wh == nil {
 		wh = http.Header{}
 	}
@@ -73,32 +58,27 @@ func (w *ResponseWriterMsg) Option(k string, v any) {
 
 func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	if e != nil {
-		if c, ok := e.(*jsonError); ok {
+		if c, ok := e.(*codec.JsonError); ok {
 			w.resp.Error = c
 		} else {
-			w.resp.Error = &jsonError{
-				Code:    applicationErrorCode,
+			w.resp.Error = &codec.JsonError{
+				Code:    codec.ErrorCodeApplication,
 				Message: e.Error(),
 			}
 		}
-		ec, ok := e.(Error)
+		ec, ok := e.(codec.Error)
 		if ok {
 			w.resp.Error.Code = ec.ErrorCode()
 		}
-		de, ok := e.(DataError)
+		de, ok := e.(codec.DataError)
 		if ok {
 			w.resp.Error.Data = de.ErrorData()
 		}
 		return nil
 	}
-	switch c := args.(type) {
-	case *Subscription:
-		w.s = c
-	default:
-	}
-	w.resp.Result, err = jzon.Marshal(args)
+	w.resp.Result, err = json.Marshal(args)
 	if err != nil {
-		w.resp.Error = &jsonError{
+		w.resp.Error = &codec.JsonError{
 			Code:    -32603,
 			Message: err.Error(),
 		}
@@ -107,24 +87,15 @@ func (w *ResponseWriterMsg) Send(args any, e error) (err error) {
 	return nil
 }
 
+// TODO: implement
 func (w *ResponseWriterMsg) Notify(args any) (err error) {
-	if w.n == nil {
-		w.n, _ = NotifierFromContext(w.r.ctx)
-	}
-	if w.s == nil || w.n == nil {
-		return ErrSubscriptionNotFound
-	}
-	bts, _ := json.Marshal(args)
-	err = w.n.send(w.s, bts)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 func (w *ResponseWriterMsg) Response() *Response {
 	return w.resp
 }
-func (w *ResponseWriterMsg) Msg() *jsonrpcMessage {
+
+func (w *ResponseWriterMsg) Msg() *codec.Message {
 	return w.resp.Msg()
 }

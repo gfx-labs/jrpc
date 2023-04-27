@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"time"
 
+	"gfx.cafe/open/jrpc/codec"
 	"gfx.cafe/util/go/bufpool"
 
 	json "github.com/goccy/go-json"
@@ -82,15 +83,15 @@ type httpServerConn struct {
 	io.Reader
 	io.Writer
 
-	jc ServerCodec
+	jc codec.ReaderWriter
 
 	r *http.Request
 	w http.ResponseWriter
 
-	pi PeerInfo
+	pi codec.PeerInfo
 }
 
-func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) ServerCodec {
+func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi codec.PeerInfo) codec.ReaderWriter {
 	c := &httpServerConn{Writer: w, r: r, pi: pi}
 	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters

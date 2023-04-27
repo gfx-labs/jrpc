@@ -2,8 +2,6 @@ package jrpc
 
 import "context"
 
-var _ Conn = (*Client)(nil)
-
 type Conn interface {
 	Do(ctx context.Context, result any, method string, params any) error
 	BatchCall(ctx context.Context, b ...BatchElem) error
@@ -11,11 +9,10 @@ type Conn interface {
 	Close() error
 }
 
-type SubscriptionConn interface {
+type StreamingConn interface {
 	Conn
 
 	Notify(ctx context.Context, method string, args ...any) error
-	Subscribe(ctx context.Context, namespace string, channel any, args ...any) (*ClientSubscription, error)
 }
 
 // BatchElem is an element in a batch request.

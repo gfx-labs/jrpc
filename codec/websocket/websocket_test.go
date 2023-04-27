@@ -1,20 +1,4 @@
-// Copyright 2018 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package jrpc
+package websocket_test
 
 import (
 	"context"
@@ -22,12 +6,18 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/codec"
+	"gfx.cafe/open/jrpc/codec/websocket"
+	"gfx.cafe/open/jrpc/jmux"
+	"gfx.cafe/open/jrpc/jrpctest"
 )
 
 func TestWebsocketClientHeaders(t *testing.T) {
 	t.Parallel()
 
-	endpoint, header, err := wsClientHeaders("wss://testuser:test-PASS_01@example.com:1234", "https://example.com")
+	endpoint, header, err := websocket.WsClientHeaders("wss://testuser:test-PASS_01@example.com:1234", "https://example.com")
 	if err != nil {
 		t.Fatalf("wsGetConfig failed: %s", err)
 	}
@@ -47,25 +37,25 @@ func TestWebsocketOriginCheck(t *testing.T) {
 	t.Parallel()
 
 	var (
-		srv     = newTestServer()
-		httpsrv = httptest.NewServer(srv.WebsocketHandler([]string{"http://example.com"}))
+		srv     = jrpctest.NewTestServer()
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"http://example.com"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	client, err := DialWebsocket(context.Background(), wsURL, "http://ekzample.com")
+	client, err := websocket.DialWebsocket(context.Background(), wsURL, "http://ekzample.com")
 	if err == nil {
 		client.Close()
 		t.Fatal("no error for wrong origin")
 	}
-	wantErr := wsHandshakeError{errors.New("403"), "403 Forbidden"}
+	wantErr := websocket.NewHandshakeError(errors.New("403"), "403 Forbidden")
 	if !strings.Contains(err.Error(), wantErr.Error()) {
 		t.Fatalf("wrong error for wrong origin: got: '%q', want: '%s'", err, wantErr)
 	}
 
 	// Connections without origin header should work.
-	client, err = DialWebsocket(context.Background(), wsURL, "")
+	client, err = websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatalf("error for empty origin: %v", err)
 	}
@@ -77,23 +67,23 @@ func TestWebsocketLargeCall(t *testing.T) {
 	t.Parallel()
 
 	var (
-		srv     = newTestServer()
-		httpsrv = httptest.NewServer(srv.WebsocketHandler([]string{"*"}))
+		srv     = jrpctest.NewTestServer()
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"*"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	client, err := DialWebsocket(context.Background(), wsURL, "")
+	client, err := websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatalf("can't dial: %v", err)
 	}
 	defer client.Close()
 
 	// This call sends slightly less than the limit and should work.
-	var result echoResult
-	arg := strings.Repeat("x", maxRequestContentLength-200)
-	if err := client.Call(nil, &result, "test_echo", arg, 1); err != nil {
+	var result jrpctest.EchoResult
+	arg := strings.Repeat("x", websocket.MaxRequestContentLength-200)
+	if err := client.Do(nil, &result, "test_echo", []any{arg, 1}); err != nil {
 		t.Fatalf("valid call didn't work: %v", err)
 	}
 	if result.String != arg {
@@ -101,8 +91,8 @@ func TestWebsocketLargeCall(t *testing.T) {
 	}
 
 	// This call sends twice the allowed size and shouldn't work.
-	arg = strings.Repeat("x", maxRequestContentLength*2)
-	err = client.Call(nil, &result, "test_echo", arg)
+	arg = strings.Repeat("x", websocket.MaxRequestContentLength*2)
+	err = client.Do(nil, &result, "test_echo", []any{arg})
 	if err == nil {
 		t.Fatal("no error for too large call")
 	}
@@ -110,22 +100,22 @@ func TestWebsocketLargeCall(t *testing.T) {
 
 func TestWebsocketPeerInfo(t *testing.T) {
 	var (
-		s     = newTestServer()
-		ts    = httptest.NewServer(s.WebsocketHandler([]string{"origin.example.com"}))
+		s     = jrpctest.NewTestServer()
+		ts    = httptest.NewServer(websocket.WebsocketHandler(s, []string{"origin.example.com"}))
 		tsurl = "ws:" + strings.TrimPrefix(ts.URL, "http:")
 	)
 	defer s.Stop()
 	defer ts.Close()
 
 	ctx := context.Background()
-	c, err := DialWebsocket(ctx, tsurl, "http://origin.example.com")
+	c, err := websocket.DialWebsocket(ctx, tsurl, "http://origin.example.com")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Request peer information.
-	var connInfo PeerInfo
-	if err := c.Call(nil, &connInfo, "test_peerInfo"); err != nil {
+	var connInfo codec.PeerInfo
+	if err := c.Do(nil, &connInfo, "test_peerInfo", []any{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,24 +135,25 @@ func TestWebsocketPeerInfo(t *testing.T) {
 
 // This checks that the websocket transport can deal with large messages.
 func TestClientWebsocketLargeMessage(t *testing.T) {
+	mux := jmux.NewMux()
 	var (
-		srv     = NewServer()
-		httpsrv = httptest.NewServer(srv.WebsocketHandler(nil))
+		srv     = jrpc.NewServer(mux)
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, nil))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	respLength := wsMessageSizeLimit - 50
-	srv.Router().RegisterStruct("test", largeRespService{respLength})
+	respLength := websocket.WsMessageSizeLimit - 50
+	mux.RegisterStruct("test", jrpctest.LargeRespService{Length: respLength})
 
-	c, err := DialWebsocket(context.Background(), wsURL, "")
+	c, err := websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var r string
-	if err := c.Call(nil, &r, "test_largeResp"); err != nil {
+	if err := c.Do(nil, &r, "test_largeResp", nil); err != nil {
 		t.Fatal("call failed:", err)
 	}
 	if len(r) != respLength {

@@ -1,4 +1,4 @@
-package jrpc
+package codec
 
 import (
 	"fmt"
@@ -8,31 +8,31 @@ import (
 )
 
 // Version represents a JSON-RPC version.
-const Version = "2.0"
+const VersionString = "2.0"
 
 // version is a special 0 sized struct that encodes as the jsonrpc version tag.
 //
 // It will fail during decode if it is not the correct version tag in the stream.
-type version struct{}
+type Version struct{}
 
 // compile time check whether the version implements a json.Marshaler and json.Unmarshaler interfaces.
 var (
-	_ json.Marshaler   = (*version)(nil)
-	_ json.Unmarshaler = (*version)(nil)
+	_ json.Marshaler   = (*Version)(nil)
+	_ json.Unmarshaler = (*Version)(nil)
 )
 
 // MarshalJSON implements json.Marshaler.
-func (version) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + Version + `"`), nil
+func (Version) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + VersionString + `"`), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
-func (version) UnmarshalJSON(data []byte) error {
+func (Version) UnmarshalJSON(data []byte) error {
 	version := ""
 	if err := json.Unmarshal(data, &version); err != nil {
 		return fmt.Errorf("failed to Unmarshal: %w", err)
 	}
-	if version != Version {
+	if version != VersionString {
 		return fmt.Errorf("invalid RPC version %v", version)
 	}
 	return nil
@@ -90,6 +90,12 @@ func (id *ID) Format(f fmt.State, r rune) {
 		fmt.Fprintf(f, numF, id.number)
 	}
 }
+func (id *ID) IsNull() bool {
+	if id == nil {
+		return true
+	}
+	return id.null
+}
 
 // get the raw message
 func (id *ID) RawMessage() json.RawMessage {
@@ -97,10 +103,10 @@ func (id *ID) RawMessage() json.RawMessage {
 		return nil
 	}
 	if id == nil {
-		return null
+		return Null
 	}
 	if id.null {
-		return null
+		return Null
 	}
 	if id.name != "" {
 		return json.RawMessage(`"` + id.name + `"`)

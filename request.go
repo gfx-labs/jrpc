@@ -2,82 +2,54 @@ package jrpc
 
 import (
 	"context"
-	"strings"
 
+	"gfx.cafe/open/jrpc/codec"
 	json "github.com/goccy/go-json"
 	jsoniter "github.com/json-iterator/go"
 )
 
+var jpool = jsoniter.NewIterator(jsoniter.ConfigCompatibleWithStandardLibrary).Pool()
+
 type Request struct {
-	Version version         `json:"jsonrpc"`
-	ID      *ID             `json:"id,omitempty"`
+	Version codec.Version   `json:"jsonrpc"`
+	ID      *codec.ID       `json:"id,omitempty"`
 	Method  string          `json:"method"`
 	Params  json.RawMessage `json:"params"`
-
-	Peer PeerInfo `json:"-"`
+	Peer    codec.PeerInfo  `json:"-"`
 
 	ctx context.Context
-}
-
-func NewMsgRequest(ctx context.Context, peer PeerInfo, msg jsonrpcMessage) *Request {
-	r := &Request{ctx: ctx}
-	r.ID = msg.ID
-	r.Method = msg.Method
-	r.Params = msg.Params
-	r.Peer = peer
-	r.ctx = ctx
-	return r
 }
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
-	r.ID = NewStringIDPtr(id)
+	r.ID = codec.NewStringIDPtr(id)
 	r.Method = method
 	r.Params = pms
 	return r
 }
 
-func (r *Request) ParamSlice() []any {
-	var params []any
-	json.Unmarshal(r.Params, &params)
-	return params
-}
-
-func (r *Request) makeError(err error) *jsonrpcMessage {
+func (r *Request) makeError(err error) *codec.Message {
 	m := r.Msg()
-	return m.errorResponse(err)
+	return m.ErrorResponse(err)
 }
 
-// DEPRECATED
-// TODO: use our router to do this? jrpc.Namespace(string) (string, string) maybe?
-func (r *Request) namespace() string {
-	elem := strings.SplitN(r.Method, serviceMethodSeparator, 2)
-	return elem[0]
-}
 func (r *Request) errorResponse(err error) *Response {
 	mw := NewReaderResponseWriterMsg(r)
 	mw.Send(nil, err)
 	return mw.Response()
 }
 
-func (r *Request) isSubscribe() bool {
-	return strings.HasSuffix(r.Method, subscribeMethodSuffix)
-}
-func (r *Request) isUnsubscribe() bool {
-	return strings.HasSuffix(r.Method, unsubscribeMethodSuffix)
-}
 func (r *Request) isNotification() bool {
 	return r.ID == nil && len(r.Method) > 0
 }
+
 func (r *Request) isCall() bool {
 	return r.hasValidID() && len(r.Method) > 0
 }
-func (r *Request) isResponse() bool {
-	return false
-}
+
 func (r *Request) hasValidID() bool {
-	return r.ID != nil && !r.ID.null
+	return r.ID != nil && !r.ID.IsNull()
 }
 
 func (r *Request) ParamArray(a ...any) error {
@@ -104,8 +76,8 @@ func (r *Request) Context() context.Context {
 	return r.ctx
 }
 
-func (r *Request) Msg() jsonrpcMessage {
-	return jsonrpcMessage{
+func (r *Request) Msg() codec.Message {
+	return codec.Message{
 		ID:     r.ID,
 		Method: r.Method,
 		Params: r.Params,
@@ -130,8 +102,6 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.Peer = r.Peer
 	return r2
 }
-
-var jpool = jsoniter.NewIterator(jsoniter.ConfigCompatibleWithStandardLibrary).Pool()
 
 func (r *Request) Iter(fn func(j *jsoniter.Iterator) error) error {
 	it := jpool.BorrowIterator(r.Params)
