@@ -6,7 +6,6 @@ import (
 
 	"gfx.cafe/open/jrpc/codec"
 	mapset "github.com/deckarep/golang-set"
-	"tuxpa.in/a/zlog/log"
 )
 
 // Server is an RPC server.
@@ -53,7 +52,6 @@ func (s *Server) ServeCodec(codec codec.ReaderWriter) {
 // subscriptions.
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		log.Debug().Msg("RPC server shutting down")
 		s.codecs.Each(func(c any) bool {
 			c.(codec.ReaderWriter).Close()
 			return true

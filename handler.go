@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc/codec"
-	"tuxpa.in/a/zlog"
 )
 
 type requestOp struct {
@@ -38,7 +37,6 @@ type handler struct {
 	rootCtx    context.Context       // canceled by close()
 	cancelRoot func()                // cancel function for rootCtx
 	conn       codec.Writer          // where responses will be sent
-	log        *zlog.Logger
 
 	peer codec.PeerInfo
 }
@@ -56,11 +54,6 @@ func newHandler(connCtx context.Context, conn codec.Writer, reg Handler) *handle
 		respWait:   make(map[string]*requestOp),
 		rootCtx:    rootCtx,
 		cancelRoot: cancelRoot,
-		log:        zlog.Ctx(connCtx),
-	}
-	if h.peer.RemoteAddr != "" {
-		cl := h.log.With().Str("conn", conn.RemoteAddr()).Logger()
-		h.log = &cl
 	}
 	return h
 }
@@ -90,7 +83,7 @@ func (h *handler) handleBatch(msgs []json.RawMessage) {
 	h.startCallProc(func(cp *callProc) {
 		answers := make([]*json.RawMessage, 0, len(msgs))
 		for _, msg := range calls {
-			h.log.Info().Any("payload", msg).Msg("received call")
+			_ = msg
 		}
 		if len(answers) > 0 {
 			h.conn.WriteJSON(cp.ctx, answers)

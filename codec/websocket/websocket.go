@@ -1,19 +1,3 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package websocket
 
 import (
@@ -28,7 +12,6 @@ import (
 	"gfx.cafe/open/jrpc/codec"
 	"gfx.cafe/open/jrpc/codec/websocket/wsjson"
 	"nhooyr.io/websocket"
-	"tuxpa.in/a/zlog/log"
 )
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
@@ -43,7 +26,6 @@ func WebsocketHandler(s *jrpc.Server, allowedOrigins []string) http.Handler {
 			CompressionThreshold: 4096,
 		})
 		if err != nil {
-			log.Debug().Err(err).Msg("WebSocket upgrade failed")
 			return
 		}
 		codec := newWebsocketCodec(r.Context(), conn, r.Host, r.Header)

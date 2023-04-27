@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"gfx.cafe/open/jrpc"
-	"tuxpa.in/a/zlog/log"
+	"gfx.cafe/open/jrpc/codec"
 )
 
 var (
@@ -55,7 +55,7 @@ func (e *callback) ServeRPC(w jrpc.ResponseWriter, r *jrpc.Request) {
 	argTypes := append([]reflect.Type{}, e.argTypes...)
 	args, err := parsePositionalArguments(r.Params, argTypes)
 	if err != nil {
-		w.Send(nil, jrpc.NewInvalidParamsError(err.Error()))
+		w.Send(nil, codec.NewInvalidParamsError(err.Error()))
 		return
 	}
 	// Create the argument slice.
@@ -73,7 +73,7 @@ func (e *callback) ServeRPC(w jrpc.ResponseWriter, r *jrpc.Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Error().Str("method", r.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
 			w.Send(nil, fmt.Errorf("%s", err))
 			return
