@@ -1,4 +1,4 @@
-package jrpc
+package jmux
 
 // Radix tree implementation below is a based on chi
 // https://github.com/go-chi/chi/blob/master/tree.go

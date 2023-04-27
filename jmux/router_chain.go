@@ -1,4 +1,4 @@
-package jrpc
+package jmux
 
 // Chain returns a Middlewares type from a slice of middleware handlers.
 func Chain(middlewares ...func(Handler) Handler) Middlewares {

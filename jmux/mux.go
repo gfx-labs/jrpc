@@ -1,4 +1,4 @@
-package jrpc
+package jmux
 
 import (
 	"context"
@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+
+	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/argreflect"
 )
 
 var _ Router = &Mux{}
@@ -21,13 +24,13 @@ var _ Router = &Mux{}
 type Mux struct {
 	// The computed mux handler made of the chained middleware stack and
 	// the tree router
-	handler Handler
+	handler jrpc.Handler
 
 	// The radix trie router
 	tree *node
 
 	// Custom method not allowed handler
-	methodNotAllowedHandler HandlerFunc
+	methodNotAllowedHandler jrpc.HandlerFunc
 
 	// A reference to the parent mux used by subrouters when mounting
 	// to a parent mux
@@ -37,10 +40,10 @@ type Mux struct {
 	pool *sync.Pool
 
 	// Custom route not found handler
-	notFoundHandler HandlerFunc
+	notFoundHandler jrpc.HandlerFunc
 
 	// The middleware stack
-	middlewares []func(Handler) Handler
+	middlewares []func(jrpc.Handler) jrpc.Handler
 
 	// Controls the behaviour of middleware chain generation when a mux
 	// is registered as an inline group inside another mux.
@@ -62,7 +65,7 @@ func (m *Mux) RegisterStruct(name string, rcvr any) error {
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	callbacks := suitableCallbacks(rcvrVal)
+	callbacks := argreflect.SuitableCallbacks(rcvrVal)
 	if len(callbacks) == 0 {
 		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
 	}
@@ -78,7 +81,7 @@ func (m *Mux) RegisterFunc(name string, rcvr any) error {
 	if name == "" {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
-	cb := newCallback(reflect.ValueOf(nil), rcvrVal)
+	cb := argreflect.NewCallback(reflect.ValueOf(nil), rcvrVal)
 	if cb == nil {
 		return fmt.Errorf("invalid function registeration for %s", name)
 	}
@@ -89,7 +92,7 @@ func (m *Mux) RegisterFunc(name string, rcvr any) error {
 // ServeRPC is the single method of the Handler interface that makes
 // Mux interoperable with the standard library. It uses a sync.Pool to get and
 // reuse routing contexts for each request.
-func (mx *Mux) ServeRPC(w ResponseWriter, r *Request) {
+func (mx *Mux) ServeRPC(w jrpc.ResponseWriter, r *jrpc.Request) {
 	// Ensure the mux has some routes defined on the mux
 	if mx.handler == nil {
 		mx.NotFoundHandler().ServeRPC(w, r)
@@ -126,28 +129,28 @@ func (mx *Mux) ServeRPC(w ResponseWriter, r *Request) {
 // route to a specific handler, which provides opportunity to respond early,
 // change the course of the request execution, or set request-scoped values for
 // the next Handler.
-func (mx *Mux) Use(middlewares ...func(Handler) Handler) {
+func (mx *Mux) Use(middlewares ...func(jrpc.Handler) jrpc.Handler) {
 	if mx.handler != nil {
 		panic("chi: all middlewares must be defined before routes on a mux")
 	}
 	mx.middlewares = append(mx.middlewares, middlewares...)
 }
 
-// Handle adds the route `pattern` that matches any http method to
+// Handle adds the route `pattern` that matches any jrpc method to
 // execute the `handler` Handler.
-func (mx *Mux) Handle(pattern string, handler Handler) {
+func (mx *Mux) Handle(pattern string, handler jrpc.Handler) {
 	mx.handle(pattern, handler)
 }
 
-// HandleFunc adds the route `pattern` that matches any http method to
+// HandleFunc adds the route `pattern` that matches any jrpc method to
 // execute the `handlerFn` HandlerFunc.
-func (mx *Mux) HandleFunc(pattern string, handlerFn HandlerFunc) {
+func (mx *Mux) HandleFunc(pattern string, handlerFn jrpc.HandlerFunc) {
 	mx.handle(pattern, handlerFn)
 }
 
 // NotFound sets a custom HandlerFunc for routing paths that could
 // not be found. The default 404 handler is `NotFound`.
-func (mx *Mux) NotFound(handlerFn HandlerFunc) {
+func (mx *Mux) NotFound(handlerFn jrpc.HandlerFunc) {
 	// Build NotFound handler chain
 	m := mx
 	hFn := handlerFn
@@ -167,7 +170,7 @@ func (mx *Mux) NotFound(handlerFn HandlerFunc) {
 
 // MethodNotAllowed sets a custom HandlerFunc for routing paths where the
 // method is unresolved. The default handler returns a 405 with an empty body.
-func (mx *Mux) MethodNotAllowed(handlerFn HandlerFunc) {
+func (mx *Mux) MethodNotAllowed(handlerFn jrpc.HandlerFunc) {
 	// Build MethodNotAllowed handler chain
 	m := mx
 	hFn := handlerFn
@@ -186,7 +189,7 @@ func (mx *Mux) MethodNotAllowed(handlerFn HandlerFunc) {
 }
 
 // With adds inline middlewares for an endpoint handler.
-func (mx *Mux) With(middlewares ...func(Handler) Handler) Router {
+func (mx *Mux) With(middlewares ...func(jrpc.Handler) jrpc.Handler) Router {
 	// Similarly as in handle(), we must build the mux handler once additional
 	// middleware registration isn't allowed for this stack, like now.
 	if !mx.inline && mx.handler == nil {
@@ -239,7 +242,7 @@ func (mx *Mux) Route(pattern string, fn func(r Router)) Router {
 // Note that Mount() simply sets a wildcard along the `pattern` that will continue
 // routing at the `handler`, which in most cases is another chi.Router. As a result,
 // if you define two Mount() routes on the exact same pattern the mount will panic.
-func (mx *Mux) Mount(pattern string, handler Handler) {
+func (mx *Mux) Mount(pattern string, handler jrpc.Handler) {
 	if handler == nil {
 		panic(fmt.Sprintf("chi: attempting to Mount() a nil handler on '%s'", pattern))
 	}
@@ -259,7 +262,7 @@ func (mx *Mux) Mount(pattern string, handler Handler) {
 		subr.MethodNotAllowed(mx.methodNotAllowedHandler)
 	}
 
-	mountHandler := HandlerFunc(func(w ResponseWriter, r *Request) {
+	mountHandler := jrpc.HandlerFunc(func(w jrpc.ResponseWriter, r *jrpc.Request) {
 		rctx := RouteContext(r.Context())
 
 		// shift the url path past the previous subrouter
@@ -299,7 +302,7 @@ func (mx *Mux) Middlewares() Middlewares {
 }
 
 // Match searches the routing tree for a handler that matches the method/path.
-// It's similar to routing a http request, but without executing the handler
+// It's similar to routing a jrpc request, but without executing the handler
 // thereafter.
 //
 // Note: the *Context state is updated during execution, so manage
@@ -315,7 +318,7 @@ func (mx *Mux) Match(rctx *Context, path string) bool {
 
 // NotFoundHandler returns the default Mux 404 responder whenever a route
 // cannot be found.
-func (mx *Mux) NotFoundHandler() HandlerFunc {
+func (mx *Mux) NotFoundHandler() jrpc.HandlerFunc {
 	if mx.notFoundHandler != nil {
 		return mx.notFoundHandler
 	}
@@ -324,16 +327,16 @@ func (mx *Mux) NotFoundHandler() HandlerFunc {
 
 // MethodNotAllowedHandler returns the default Mux 405 responder whenever
 // a method cannot be resolved for a route.
-func (mx *Mux) MethodNotAllowedHandler() HandlerFunc {
+func (mx *Mux) MethodNotAllowedHandler() jrpc.HandlerFunc {
 	if mx.methodNotAllowedHandler != nil {
 		return mx.methodNotAllowedHandler
 	}
 	return methodNotAllowedHandler
 }
 
-// handle registers a Handler in the routing tree for a particular http method
+// handle registers a Handler in the routing tree for a particular jrpc method
 // and routing pattern.
-func (mx *Mux) handle(pattern string, handler Handler) *node {
+func (mx *Mux) handle(pattern string, handler jrpc.Handler) *node {
 	if len(pattern) == 0 {
 		panic(fmt.Sprintf("rpc: routing pattern must not be empty in '%s'", pattern))
 	}
@@ -344,9 +347,9 @@ func (mx *Mux) handle(pattern string, handler Handler) *node {
 	}
 
 	// Build endpoint handler with inline middlewares for the route
-	var h Handler
+	var h jrpc.Handler
 	if mx.inline {
-		mx.handler = HandlerFunc(mx.routeRPC)
+		mx.handler = jrpc.HandlerFunc(mx.routeRPC)
 		h = Chain(mx.middlewares...).Handler(handler)
 	} else {
 		h = handler
@@ -357,8 +360,8 @@ func (mx *Mux) handle(pattern string, handler Handler) *node {
 }
 
 // routeJRPC routes a Request through the Mux routing tree to serve
-// the matching handler for a particular http method.
-func (mx *Mux) routeRPC(w ResponseWriter, r *Request) {
+// the matching handler for a particular jrpc method.
+func (mx *Mux) routeRPC(w jrpc.ResponseWriter, r *jrpc.Request) {
 	// Grab the route context object
 	rctx := r.Context().Value(RouteCtxKey).(*Context)
 
@@ -410,15 +413,15 @@ func (mx *Mux) updateSubRoutes(fn func(subMux *Mux)) {
 // point, no other middlewares can be registered on this Mux's stack. But you can still
 // compose additional middlewares via Group()'s or using a chained middleware handler.
 func (mx *Mux) updateRouteHandler() {
-	mx.handler = chain(mx.middlewares, HandlerFunc(mx.routeRPC))
+	mx.handler = chain(mx.middlewares, jrpc.HandlerFunc(mx.routeRPC))
 }
 
 // methodNotAllowedHandler is a helper function to respond with a 405,
 // method not allowed.
-func methodNotAllowedHandler(w ResponseWriter, r *Request) {
+func methodNotAllowedHandler(w jrpc.ResponseWriter, r *jrpc.Request) {
 	w.Send(nil, errors.New("forbidden"))
 }
 
-func NotFound(w ResponseWriter, r *Request) {
+func NotFound(w jrpc.ResponseWriter, r *jrpc.Request) {
 	w.Send(nil, errors.New("not found"))
 }

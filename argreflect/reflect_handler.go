@@ -1,20 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package jrpc
+package argreflect
 
 import (
 	"context"
@@ -23,6 +7,7 @@ import (
 	"runtime"
 	"unicode"
 
+	"gfx.cafe/open/jrpc"
 	"tuxpa.in/a/zlog/log"
 )
 
@@ -31,31 +16,16 @@ var (
 	errorType   = reflect.TypeOf((*error)(nil)).Elem()
 )
 
-// A helper function that mimics the behavior of the handlers in the go-ethereum rpc package
-// if you don't know how to use this, just use the chi-like interface instead.
-//func RegisterStruct(r Router, name string, rcvr any) error {
-//	rcvrVal := reflect.ValueOf(rcvr)
-//	if name == "" {
-//		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
-//	}
-//	callbacks := suitableCallbacks(rcvrVal)
-//	if len(callbacks) == 0 {
-//		return fmt.Errorf("service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
-//	}
-//	r.Route(name, func(r Router) {
-//		for nm, cb := range callbacks {
-//			r.Handle(nm, cb)
-//		}
-//	})
-//	return nil
-//}
+func SuitableCallbacks(receiver reflect.Value) map[string]jrpc.Handler {
+	return suitableCallbacks(receiver)
+}
 
 // suitableCallbacks iterates over the methods of the given type. It determines if a method
 // satisfies the criteria for a RPC callback or a subscription callback and adds it to the
 // collection of callbacks. See server documentation for a summary of these criteria.
-func suitableCallbacks(receiver reflect.Value) map[string]Handler {
+func suitableCallbacks(receiver reflect.Value) map[string]jrpc.Handler {
 	typ := receiver.Type()
-	callbacks := make(map[string]Handler)
+	callbacks := make(map[string]jrpc.Handler)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		if method.PkgPath != "" {
@@ -81,11 +51,11 @@ type callback struct {
 }
 
 // callback handler implements handler for the original receiver style that geth used
-func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
+func (e *callback) ServeRPC(w jrpc.ResponseWriter, r *jrpc.Request) {
 	argTypes := append([]reflect.Type{}, e.argTypes...)
 	args, err := parsePositionalArguments(r.Params, argTypes)
 	if err != nil {
-		w.Send(nil, &invalidParamsError{err.Error()})
+		w.Send(nil, jrpc.NewInvalidParamsError(err.Error()))
 		return
 	}
 	// Create the argument slice.
@@ -94,7 +64,7 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 		fullargs = append(fullargs, e.rcvr)
 	}
 	if e.hasCtx {
-		fullargs = append(fullargs, reflect.ValueOf(r.ctx))
+		fullargs = append(fullargs, reflect.ValueOf(r.Context()))
 	}
 	fullargs = append(fullargs, args...)
 	//Catch panic while running the callback.
@@ -120,7 +90,7 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 	w.Send(results[0].Interface(), nil)
 }
 
-func NewCallback(receiver, fn reflect.Value) Handler {
+func NewCallback(receiver, fn reflect.Value) jrpc.Handler {
 	return newCallback(receiver, fn)
 }
 

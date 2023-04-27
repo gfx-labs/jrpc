@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"tuxpa.in/a/zlog/log"
 	mapset "github.com/deckarep/golang-set"
+	"tuxpa.in/a/zlog/log"
 )
 
 const (
@@ -19,31 +19,21 @@ const (
 
 // Server is an RPC server.
 type Server struct {
-	services Router
+	services Handler
 	run      int32
 	codecs   mapset.Set
 }
 
 // NewServer creates a new server instance with no registered handlers.
-func NewServer(r ...Router) *Server {
+func NewServer(r Handler) *Server {
 	server := &Server{
 		codecs: mapset.NewSet(),
 		run:    1,
 	}
-	if len(r) > 0 {
-		server.services = r[0]
-	} else {
-		server.services = NewRouter()
-	}
+	server.services = r
 	// Register the default service providing meta information about the RPC service such
 	// as the services and methods it offers.
-	rpcService := &RPCService{server}
-	server.services.RegisterStruct(MetadataApi, rpcService)
 	return server
-}
-
-func (s *Server) Router() Router {
-	return s.services
 }
 
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
@@ -110,15 +100,6 @@ func (s *Server) Stop() {
 // e.g. gives information about the loaded modules.
 type RPCService struct {
 	server *Server
-}
-
-// Deprecated: Modules returns the list of RPC services with their version number
-func (s *RPCService) Modules() map[string]string {
-	modules := make(map[string]string)
-	for _, route := range s.server.services.Routes() {
-		modules[route.Pattern] = "1.0"
-	}
-	return modules
 }
 
 // PeerInfo contains information about the remote end of the network connection.

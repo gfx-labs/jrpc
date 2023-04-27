@@ -1,12 +1,14 @@
-package jrpc
+package jmux
 
 import (
 	"context"
 	"strings"
+
+	"gfx.cafe/open/jrpc"
 )
 
 // MethodParam returns the url parameter from a Request object.
-func MethodParam(r *Request, key string) string {
+func MethodParam(r *jrpc.Request, key string) string {
 	if rctx := RouteContext(r.Context()); rctx != nil {
 		return rctx.MethodParam(key)
 	}

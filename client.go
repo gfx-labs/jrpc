@@ -44,19 +44,6 @@ const (
 	subscribeTimeout   = 5 * time.Second  // overall timeout eth_subscribe, rpc_modules calls
 )
 
-// BatchElem is an element in a batch request.
-type BatchElem struct {
-	Method string
-	Args   []any
-	// The result is unmarshaled into this field. Result must be set to a
-	// non-nil pointer value of the desired type, otherwise the response will be
-	// discarded.
-	Result any
-	// Error is set if the server returns an error for this request, or if
-	// unmarshaling into Result fails. It is not set for I/O errors.
-	Error error
-}
-
 var _ SubscriptionConn = (*Client)(nil)
 
 // Client represents a connection to an RPC server.
@@ -65,7 +52,7 @@ type Client struct {
 
 	idCounter uint64
 
-	r Router
+	r Handler
 	// This function, if non-nil, is called when the connection is lost.
 	reconnectFunc reconnectFunc
 
@@ -84,13 +71,6 @@ type Client struct {
 	reqInit     chan *requestOp  // register response IDs, takes write lock
 	reqSent     chan error       // signals write completion, releases write lock
 	reqTimeout  chan *requestOp  // removes response IDs when call timeout expires
-}
-
-func (c *Client) Router() Router {
-	if c.r == nil {
-		c.r = NewMux()
-	}
-	return c.r
 }
 
 type reconnectFunc func(ctx context.Context) (ServerCodec, error)
@@ -195,12 +175,12 @@ func newClient(initctx context.Context, connect reconnectFunc) (*Client, error) 
 	if err != nil {
 		return nil, err
 	}
-	c := initClient(conn, NewMux())
+	c := initClient(conn, HandlerFunc(func(w ResponseWriter, r *Request) {}))
 	c.reconnectFunc = connect
 	return c, nil
 }
 
-func initClient(conn ServerCodec, r Router) *Client {
+func initClient(conn ServerCodec, r Handler) *Client {
 	_, isHTTP := conn.(*httpConn)
 	c := &Client{
 		r:           r,
@@ -337,7 +317,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...BatchElem) error {
 		resp: make(chan *jsonrpcMessage, len(b)),
 	}
 	for i, elem := range b {
-		msg, err := c.newMessage(elem.Method, elem.Args...)
+		msg, err := c.newMessageP(elem.Method, elem.Args)
 		if err != nil {
 			return err
 		}
@@ -433,9 +413,13 @@ func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, er
 func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error) {
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
-		var err error
-		if msg.Params, err = jsoniter.Marshal(paramIn); err != nil {
-			return nil, err
+		if cast, ok := paramIn.(json.RawMessage); ok {
+			msg.Params = cast
+		} else {
+			var err error
+			if msg.Params, err = jsoniter.Marshal(paramIn); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return msg, nil
@@ -527,7 +511,7 @@ func (c *Client) dispatch(codec ServerCodec) {
 		select {
 		case <-c.close:
 			return
-		// Read path:
+			// Read path:
 		case op := <-c.readOp:
 			if op.batch {
 				conn.handler.handleBatch(op.msgs)
@@ -540,7 +524,7 @@ func (c *Client) dispatch(codec ServerCodec) {
 			conn.close(err, lastOp)
 			reading = false
 
-		// Reconnect:
+			// Reconnect:
 		case newcodec := <-c.reconnected:
 			log.Debug().Bool("reading", reading).Str("conn", newcodec.RemoteAddr()).Msg("RPC client reconnected")
 			if reading {
@@ -559,7 +543,7 @@ func (c *Client) dispatch(codec ServerCodec) {
 			// because that's where it will be sent.
 			conn.handler.addRequestOp(lastOp)
 
-		// Send path:
+			// Send path:
 		case op := <-reqInitLock:
 			// Stop listening for further requests until the current one has been sent.
 			reqInitLock = nil
