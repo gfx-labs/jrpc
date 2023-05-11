@@ -1,7 +1,11 @@
 package codec
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+
+	"github.com/go-faster/jx"
 )
 
 // HTTPError is returned by client operations when the HTTP status code of the
@@ -28,7 +32,34 @@ type Error interface {
 // A DataError contains some data in addition to the error message.
 type DataError interface {
 	Error() string  // returns the message
+	ErrorCode() int // returns the error code
 	ErrorData() any // returns the error data
+}
+
+func EncodeError(i io.Writer, err error) error {
+	enc := jx.GetEncoder()
+	defer jx.PutEncoder(enc)
+	enc.Obj(func(e *jx.Encoder) {
+		switch er := err.(type) {
+		case Error:
+			e.Field("code", func(e *jx.Encoder) { e.Int(er.ErrorCode()) })
+			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
+		case DataError:
+			data, err := json.Marshal(er.ErrorData())
+			if err != nil {
+				data = []byte(`"failed to marshal error data"`)
+			}
+			e.Field("code", func(e *jx.Encoder) { e.Int(er.ErrorCode()) })
+			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
+			e.Field("data", func(e *jx.Encoder) {
+				e.Raw(data)
+			})
+		default:
+			e.Field("code", func(e *jx.Encoder) { e.Int(-32000) })
+			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
+		}
+	})
+	return nil
 }
 
 type JrpcErr struct {

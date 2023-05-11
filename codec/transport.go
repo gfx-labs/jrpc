@@ -3,6 +3,7 @@ package codec
 import (
 	"context"
 	"encoding/json"
+	"io"
 )
 
 type ReaderWriter interface {
@@ -21,11 +22,11 @@ type Reader interface {
 	Close() error
 }
 
-// Writer can write JSON messages to its underlying connection.
+// Writer can write bytes messages to their underlying connection.
 // Implementations must be safe for concurrent use.
 type Writer interface {
 	// write json blob to stream
-	WriteJSON(context.Context, any) error
+	io.Writer
 	// Closed returns a channel which is closed when the connection is closed.
 	Closed() <-chan any
 	// RemoteAddr returns the peer address of the connection.
