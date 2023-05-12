@@ -11,8 +11,6 @@ type Conn interface {
 
 type StreamingConn interface {
 	Conn
-
-	Notify(ctx context.Context, method string, params any) error
 	Handler
 }
 

@@ -74,7 +74,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 func (c *Client) BatchCall(ctx context.Context, b ...*jrpc.BatchElem) error {
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
-	reqs := make([]*jrpc.Request, 0)
+	reqs := make([]*jrpc.Request, 0, len(b))
 	ids := make([]int, 0, len(b))
 	for _, v := range b {
 		id := c.p.NextId()
@@ -93,6 +93,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*jrpc.BatchElem) error {
 	for i := range ids {
 		idx := i
 		go func() {
+			defer wg.Done()
 			ans, err := c.p.Ask(ctx, ids[idx])
 			if err != nil {
 				b[idx].Error = err
@@ -105,7 +106,6 @@ func (c *Client) BatchCall(ctx context.Context, b ...*jrpc.BatchElem) error {
 					return
 				}
 			}
-			defer wg.Done()
 		}()
 	}
 	wg.Wait()
