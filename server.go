@@ -111,13 +111,15 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 				} else {
 					defer wg.Done()
 				}
-				s.services.ServeRPC(vv, &Request{
-					ctx:     ctx,
-					ID:      v.msg.ID,
-					Version: v.msg.Version,
-					Method:  v.msg.Method,
-					Params:  v.msg.Params,
-					Peer:    remote.PeerInfo(),
+				s.services.ServeRPC(v, &Request{
+					ctx: ctx,
+					RequestMarshaling: RequestMarshaling{
+						ID:      v.msg.ID,
+						Version: v.msg.Version,
+						Method:  v.msg.Method,
+						Params:  v.msg.Params,
+						Peer:    remote.PeerInfo(),
+					},
 				})
 			}()
 		}
@@ -168,7 +170,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 			return err
 		}
 	} else {
-		enc.FieldStart("data")
+		enc.FieldStart("result")
 		enc.Raw(buf.Bytes())
 	}
 	enc.ObjEnd()
@@ -183,13 +185,14 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
 	enc := jx.GetEncoder()
-	enc.ResetWriter(c.remote)
+	enc.Reset()
+	//enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	if env.batch {
 		enc.ArrStart()
 	}
 	for _, v := range env.responses {
-		if v.skip {
+		if v.msg.ID == nil {
 			continue
 		}
 		buf.Reset()
@@ -198,23 +201,30 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		enc.Str("2.0")
 		enc.FieldStart("id")
 		enc.Raw(v.msg.ID.RawMessage())
-		err := v.dat(buf)
+		err := v.err
+		if err == nil && v.dat != nil {
+			err = v.dat(buf)
+			if err != nil {
+				enc.FieldStart("result")
+				enc.Raw(buf.Bytes())
+			}
+		} else {
+			err = codec.NewMethodNotFoundError(v.msg.Method)
+		}
 		if err != nil {
 			enc.FieldStart("error")
 			err := codec.EncodeError(enc, err)
 			if err != nil {
 				return err
 			}
-		} else {
-			enc.FieldStart("data")
-			enc.Raw(buf.Bytes())
 		}
 		enc.ObjEnd()
 	}
 	if env.batch {
 		enc.ArrEnd()
 	}
-	err := enc.Close()
+	//err := enc.Close()
+	_, err := enc.WriteTo(c.remote)
 	if err != nil {
 		return err
 	}

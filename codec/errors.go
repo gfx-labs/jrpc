@@ -3,7 +3,6 @@ package codec
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 
 	"github.com/go-faster/jx"
 )
@@ -36,14 +35,14 @@ type DataError interface {
 	ErrorData() any // returns the error data
 }
 
-func EncodeError(i io.Writer, err error) error {
-	enc := jx.GetEncoder()
-	defer jx.PutEncoder(enc)
+func EncodeError(enc *jx.Encoder, err error) error {
 	enc.Obj(func(e *jx.Encoder) {
 		switch er := err.(type) {
 		case Error:
-			e.Field("code", func(e *jx.Encoder) { e.Int(er.ErrorCode()) })
-			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
+			e.FieldStart("code")
+			e.Int(er.ErrorCode())
+			e.FieldStart("message")
+			e.Str(er.Error())
 		case DataError:
 			data, err := json.Marshal(er.ErrorData())
 			if err != nil {
@@ -112,6 +111,12 @@ func (e *ErrorMethodNotFound) ErrorCode() int { return -32601 }
 
 func (e *ErrorMethodNotFound) Error() string {
 	return fmt.Sprintf("the method %s does not exist/is not available", e.method)
+}
+
+func NewMethodNotFoundError(method string) *ErrorMethodNotFound {
+	return &ErrorMethodNotFound{
+		method: method,
+	}
 }
 
 type ErrorSubscriptionNotFound struct{ namespace, subscription string }

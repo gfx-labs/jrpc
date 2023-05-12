@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"gfx.cafe/open/jrpc"
 )
 
 type nodeTyp uint8
@@ -48,7 +50,7 @@ type node struct {
 
 type endpoint struct {
 	// endpoint handler
-	handler Handler
+	handler jrpc.Handler
 
 	// pattern is the routing pattern for handler nodes
 	pattern string
@@ -57,7 +59,7 @@ type endpoint struct {
 	paramKeys []string
 }
 
-func (n *node) InsertRoute(pattern string, handler Handler) *node {
+func (n *node) InsertRoute(pattern string, handler jrpc.Handler) *node {
 	var parent *node
 	search := pattern
 	for {
@@ -261,7 +263,7 @@ func (n *node) getEdge(ntyp nodeTyp, label, tail byte, prefix string) *node {
 	return nil
 }
 
-func (n *node) setEndpoint(handler Handler, pattern string) {
+func (n *node) setEndpoint(handler jrpc.Handler, pattern string) {
 	paramKeys := patParamKeys(pattern)
 	n.endpoint = &endpoint{
 		handler:   handler,
@@ -270,7 +272,7 @@ func (n *node) setEndpoint(handler Handler, pattern string) {
 	}
 }
 
-func (n *node) FindRoute(rctx *Context, path string) (*node, *endpoint, Handler) {
+func (n *node) FindRoute(rctx *Context, path string) (*node, *endpoint, jrpc.Handler) {
 	// Reset the context routing pattern and params
 	rctx.routePattern = ""
 	rctx.routeParams.Keys = rctx.routeParams.Keys[:0]
@@ -681,21 +683,21 @@ func (ns nodes) findEdge(label byte) *node {
 // Route describes the details of a routing handler.
 type Route struct {
 	SubRoutes Routes
-	Handler   Handler
+	Handler   jrpc.Handler
 	Pattern   string
 }
 
 // WalkFunc is the type of the function called for each method and route visited by Walk.
-type WalkFunc func(route string, handler Handler, middlewares ...func(Handler) Handler) error
+type WalkFunc func(route string, handler jrpc.Handler, middlewares ...func(jrpc.Handler) jrpc.Handler) error
 
 // Walk walks any router tree that implements Routes interface.
 func Walk(r Routes, walkFn WalkFunc) error {
 	return walk(r, walkFn, "")
 }
 
-func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(Handler) Handler) error {
+func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(jrpc.Handler) jrpc.Handler) error {
 	for _, route := range r.Routes() {
-		mws := make([]func(Handler) Handler, len(parentMw))
+		mws := make([]func(jrpc.Handler) jrpc.Handler, len(parentMw))
 		copy(mws, parentMw)
 		mws = append(mws, r.Middlewares()...)
 

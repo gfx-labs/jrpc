@@ -68,9 +68,25 @@ func NewStringID(v string) ID { return *NewStringIDPtr(v) }
 // NewStringID returns a new string request ID.
 func NewNullID() ID { return *NewNullIDPtr() }
 
-func NewNumberIDPtr(v int64) *ID  { return &ID{number: v} }
-func NewStringIDPtr(v string) *ID { return &ID{name: v} }
-func NewNullIDPtr() *ID           { return &ID{null: true} }
+func NewNumberIDPtr(v int64) *ID { return &ID{number: v} }
+func NewStringIDPtr(v string) *ID {
+	if v == "" {
+		return nil
+	}
+	return &ID{name: v}
+}
+func NewNullIDPtr() *ID { return &ID{null: true} }
+
+func (id *ID) Number() int {
+	if id == nil {
+		return 0
+	}
+	if id.number == 0 {
+		ans, _ := strconv.Atoi(id.name)
+		return ans
+	}
+	return int(id.number)
+}
 
 // Format writes the ID to the formatter.
 //

@@ -11,13 +11,34 @@ import (
 var jpool = jsoniter.NewIterator(jsoniter.ConfigCompatibleWithStandardLibrary).Pool()
 
 type Request struct {
+	RequestMarshaling
+
+	ctx context.Context
+}
+
+func (r *Request) UnmarshalJSON(xs []byte) error {
+	return json.Unmarshal(xs, &r.RequestMarshaling)
+}
+
+func (r *Request) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.RequestMarshaling)
+}
+
+type RequestMarshaling struct {
 	Version codec.Version   `json:"jsonrpc"`
 	ID      *codec.ID       `json:"id,omitempty"`
 	Method  string          `json:"method"`
 	Params  json.RawMessage `json:"params"`
 	Peer    codec.PeerInfo  `json:"-"`
+}
 
-	ctx context.Context
+func NewRequestInt(ctx context.Context, id int, method string, params any) *Request {
+	r := &Request{ctx: ctx}
+	pms, _ := json.Marshal(params)
+	r.ID = codec.NewNumberIDPtr(int64(id))
+	r.Method = method
+	r.Params = pms
+	return r
 }
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {

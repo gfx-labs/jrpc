@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"gfx.cafe/open/jrpc/codec/websocket/wsjson"
 )
+
+var jzon = wsjson.JZON
 
 // parsePositionalArguments tries to parse the given args to an array of values with the
 // given types. It returns the parsed values or an error when the args could not be
