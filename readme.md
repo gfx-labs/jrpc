@@ -2,7 +2,7 @@
 
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 
-structure:
+many packages are unused / incomplete. the one which are done i have put below in the readme
 
 ```
 conn.go        -  defines the interface a json rpc client
