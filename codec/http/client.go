@@ -67,8 +67,19 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return err
 	}
 	defer resp.Body.Close()
+	msg := &codec.Message{}
+	err = json.NewDecoder(resp.Body).Decode(&msg)
+	if err != nil {
+		return err
+	}
+	if msg.Error != nil {
+		return err
+	}
 	if result != nil {
-		json.NewDecoder(resp.Body).Decode(&result)
+		err = json.Unmarshal(msg.Result, &msg)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -123,6 +134,10 @@ func (c *Client) BatchCall(ctx context.Context, b ...*jrpc.BatchElem) error {
 		ans, ok := answers[i]
 		if !ok {
 			b[idx].Error = fmt.Errorf("No response found")
+			continue
+		}
+		if ans.Error != nil {
+			b[idx].Error = ans.Error
 			continue
 		}
 		if b[idx].Result == nil {

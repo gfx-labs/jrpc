@@ -1,7 +1,6 @@
 package jrpc
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -10,45 +9,6 @@ import (
 
 	"github.com/goccy/go-json"
 )
-
-func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
-	// TODO:
-	// the jsoniter encoder performs a lot better here, not sure why. (nearly 10%? maybe more)
-	body, err := jzon.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST", hc.url, io.NopCloser(bytes.NewReader(body)))
-	if err != nil {
-		return nil, err
-	}
-	req.ContentLength = int64(len(body))
-	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
-
-	// set headers
-	hc.mu.Lock()
-	req.Header = hc.headers.Clone()
-	hc.mu.Unlock()
-
-	// do request
-	resp, err := hc.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var buf bytes.Buffer
-		var body []byte
-		if _, err := buf.ReadFrom(resp.Body); err == nil {
-			body = buf.Bytes()
-		}
-		return nil, HTTPError{
-			Status:     resp.Status,
-			StatusCode: resp.StatusCode,
-			Body:       body,
-		}
-	}
-	return resp.Body, nil
-}
 
 // DialHTTPWithClient creates a new RPC client that connects to an RPC server over HTTP
 // using the provided HTTP Client.
