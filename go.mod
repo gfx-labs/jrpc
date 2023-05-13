@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	gfx.cafe/util/go/bufpool v0.0.0-20230121041905-80dafb1e973e
-	gfx.cafe/util/go/bytepool v0.0.0-20230502013805-237fcc25d586
 	gfx.cafe/util/go/frand v0.0.0-20230121041905-80dafb1e973e
+	gfx.cafe/util/go/generic v0.0.0-20230502013805-237fcc25d586
 	github.com/alecthomas/kong v0.7.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
