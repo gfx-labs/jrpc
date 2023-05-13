@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 
@@ -40,16 +41,15 @@ func (Version) UnmarshalJSON(data []byte) error {
 
 // ID is a Request identifier.
 //
-// Only one of either the Name or Number members will be set, using the
-// number form if the Name is the empty string.
 // alternatively, ID can be null
-type ID struct {
-	name   string
-	number int64
+type ID json.RawMessage
 
-	null bool
-
-	empty bool
+func (i *ID) Format(f fmt.State, verb rune) {
+	if i == nil {
+		f.Write(Null)
+		return
+	}
+	f.Write(*i)
 }
 
 // compile time check whether the ID implements a fmt.Formatter, json.Marshaler and json.Unmarshaler interfaces.
@@ -68,66 +68,47 @@ func NewStringID(v string) ID { return *NewStringIDPtr(v) }
 // NewStringID returns a new string request ID.
 func NewNullID() ID { return *NewNullIDPtr() }
 
-func NewNumberIDPtr(v int64) *ID { return &ID{number: v} }
+func NewNumberIDPtr(v int64) *ID {
+	o := ID(strconv.Itoa(int(v)))
+	return &o
+}
 func NewStringIDPtr(v string) *ID {
 	if v == "" {
 		return nil
 	}
-	return &ID{name: v}
+	o := ID(`"` + v + `"`)
+	return &o
 }
-func NewNullIDPtr() *ID { return &ID{null: true} }
+func NewNullIDPtr() *ID {
+	o := ID("null")
+	return &o
+}
 
 func (id *ID) Number() int {
 	if id == nil {
 		return 0
 	}
-	if id.number == 0 {
-		ans, _ := strconv.Atoi(id.name)
-		return ans
-	}
-	return int(id.number)
+	ans, _ := strconv.Atoi(string(bytes.Trim(*id, `"'`)))
+	return ans
 }
 
-// Format writes the ID to the formatter.
-//
-// If the rune is q the representation is non ambiguous,
-// string forms are quoted, number forms are preceded by a #.
-func (id *ID) Format(f fmt.State, r rune) {
-	numF, strF := `%d`, `%s`
-	if r == 'q' {
-		numF, strF = `#%d`, `%q`
-	}
-
-	id.null = false
-	switch {
-	case id.name != "":
-		fmt.Fprintf(f, strF, id.name)
-	default:
-		fmt.Fprintf(f, numF, id.number)
-	}
-}
 func (id *ID) IsNull() bool {
 	if id == nil {
-		return true
+		return false
 	}
-	return id.null
+	return len(*id) == 4 &&
+		(*id)[0] == 'n' &&
+		(*id)[1] == 'u' &&
+		(*id)[2] == 'l' &&
+		(*id)[3] == 'l'
 }
 
 // get the raw message
 func (id *ID) RawMessage() json.RawMessage {
-	if id.empty {
-		return nil
-	}
 	if id == nil {
 		return Null
 	}
-	if id.null {
-		return Null
-	}
-	if id.name != "" {
-		return json.RawMessage(`"` + id.name + `"`)
-	}
-	return strconv.AppendInt(make([]byte, 0, 8), id.number, 10)
+	return json.RawMessage(*id)
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -137,13 +118,9 @@ func (id *ID) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *ID) UnmarshalJSON(data []byte) error {
-	*id = ID{}
-	if err := json.Unmarshal(data, &id.number); err == nil {
+	if len(data) == 0 {
 		return nil
 	}
-	if err := json.Unmarshal(data, &id.name); err == nil {
-		return nil
-	}
-	id.null = true
+	*id = data
 	return nil
 }

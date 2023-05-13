@@ -10,7 +10,8 @@ import (
 )
 
 type Codec struct {
-	done chan any
+	ctx context.Context
+	cn  func()
 
 	rd   io.Reader
 	wr   io.Writer
@@ -19,8 +20,10 @@ type Codec struct {
 
 func NewCodec() *Codec {
 	rd, wr := io.Pipe()
+	ctx, cn := context.WithCancel(context.TODO())
 	return &Codec{
-		done: make(chan interface{}),
+		ctx:  ctx,
+		cn:   cn,
 		rd:   bufio.NewReader(rd),
 		wr:   wr,
 		msgs: make(chan json.RawMessage, 8),
@@ -43,12 +46,14 @@ func (c *Codec) ReadBatch(ctx context.Context) (msgs json.RawMessage, err error)
 		return ans, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-c.ctx.Done():
+		return nil, c.ctx.Err()
 	}
 }
 
 // closes the connection
 func (c *Codec) Close() error {
-	close(c.done)
+	c.cn()
 	return nil
 }
 
@@ -57,8 +62,8 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 }
 
 // Closed returns a channel which is closed when the connection is closed.
-func (c *Codec) Closed() <-chan any {
-	return c.done
+func (c *Codec) Closed() <-chan struct{} {
+	return c.ctx.Done()
 }
 
 // RemoteAddr returns the peer address of the connection.

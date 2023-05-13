@@ -41,9 +41,10 @@ func NewServer(r Handler) *Server {
 
 func (s *Server) printError(remote codec.ReaderWriter, err error) {
 	if err != nil {
-		if s.Tracing.ErrorLogger != nil {
-			s.Tracing.ErrorLogger(remote, err)
-		}
+		return
+	}
+	if s.Tracing.ErrorLogger != nil {
+		s.Tracing.ErrorLogger(remote, err)
 	}
 }
 
@@ -82,6 +83,13 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 		}
 	}()
 
+	go func() {
+		select {
+		case <-ctx.Done():
+			remote.Close()
+		}
+	}()
+
 	for {
 		msgs, err := remote.ReadBatch(ctx)
 		if err != nil {
@@ -100,7 +108,6 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 			}
 			env.responses = append(env.responses, rw)
 		}
-
 		wg := sync.WaitGroup{}
 		wg.Add(len(msg))
 		for _, vv := range env.responses {

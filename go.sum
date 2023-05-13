@@ -39,6 +39,8 @@ cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gfx.cafe/util/go/bufpool v0.0.0-20230121041905-80dafb1e973e h1:cx35whzZb3wcLhmOUOiqz0N4f6o9ZWVnRe386rW9R5c=
 gfx.cafe/util/go/bufpool v0.0.0-20230121041905-80dafb1e973e/go.mod h1:+DiyiCOBGS9O9Ce4ewHQO3Y59h66WSWAbgZZ2O2AYYw=
+gfx.cafe/util/go/bytepool v0.0.0-20230502013805-237fcc25d586 h1:M+l4yPLky17DgDUoAof+btd98EWGPYwWjOKPStPuhvU=
+gfx.cafe/util/go/bytepool v0.0.0-20230502013805-237fcc25d586/go.mod h1:DEhDlgHR0UUZmqiF4bSm4Big/fV0bTUcOSim1WeXVvs=
 gfx.cafe/util/go/frand v0.0.0-20230121041905-80dafb1e973e h1:A62zlsu3HkEAVRIb+cCpRIpSTmd047+ABV1KC2RsI2U=
 gfx.cafe/util/go/frand v0.0.0-20230121041905-80dafb1e973e/go.mod h1:LNHxMJl0WnIr5+OChYxlVopxk+j7qxZv0XvWCzB6uGE=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

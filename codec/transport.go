@@ -28,7 +28,7 @@ type Writer interface {
 	// write json blob to stream
 	io.Writer
 	// Closed returns a channel which is closed when the connection is closed.
-	Closed() <-chan any
+	Closed() <-chan struct{}
 	// RemoteAddr returns the peer address of the connection.
 	RemoteAddr() string
 }

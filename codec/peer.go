@@ -2,14 +2,8 @@ package codec
 
 import "net/http"
 
-// PeerInfo contains information about the remote end of the network connection.
-//
-// This is available within RPC method handlers through the context. Call
-// PeerInfoFromContext to get information about the client connection related to
-// the current method call.
 type PeerInfo struct {
 	// Transport is name of the protocol used by the client.
-	// This can be "http", "ws" or "ipc".
 	Transport string
 
 	// Address of client. This will usually contain the IP address and port.

@@ -17,20 +17,19 @@
 package jrpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"time"
 
+	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/codec"
 	"gfx.cafe/util/go/bufpool"
-
-	json "github.com/goccy/go-json"
 )
 
 const (
@@ -79,102 +78,27 @@ var DefaultHTTPTimeouts = HTTPTimeouts{
 }
 
 // httpServerConn turns a HTTP connection into a Conn.
-type httpServerConn struct {
-	io.Reader
-	io.Writer
-
-	jc codec.ReaderWriter
-
+type requestCodec struct {
 	r *http.Request
 	w http.ResponseWriter
 
-	pi codec.PeerInfo
+	ctx context.Context
+	cn  func()
+
+	requestBuffer *bytes.Buffer
+	pi            codec.PeerInfo
 }
 
-func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi codec.PeerInfo) codec.ReaderWriter {
-	c := &httpServerConn{Writer: w, r: r, pi: pi}
-	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
-	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters
-	// we however allow for non base64 encoded parameters to be passed
-	if r.Method == http.MethodGet {
-		// default id 1
-		id := `1`
-		id_up := r.URL.Query().Get("id")
-		if id_up != "" {
-			id = id_up
-		}
-		method_up := r.URL.Query().Get("method")
-		params, _ := url.QueryUnescape(r.URL.Query().Get("params"))
-		param := []byte(params)
-		if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
-			param = pb
-		}
-		buf := bufpool.GetStd()
-		json.NewEncoder(buf).Encode(jsonrpcMessage{
-			ID:     NewStringIDPtr(id),
-			Method: method_up,
-			Params: param,
-		})
-		c.Reader = buf
-	} else {
-		// it's a post request or whatever, so just process it like normal
-		c.Reader = io.LimitReader(r.Body, maxRequestContentLength)
-	}
-	c.jc = NewCodec(c)
-	return c
-}
-
-func (c *httpServerConn) PeerInfo() PeerInfo {
-	return c.pi
-}
-
-func (c *httpServerConn) ReadBatch() (messages []*jsonrpcMessage, batch bool, err error) {
-	return c.jc.ReadBatch()
-}
-
-func (c *httpServerConn) WriteJSON(ctx context.Context, v any) error {
-	return c.jc.WriteJSON(ctx, v)
-}
-
-func (c *httpServerConn) Close() error {
-	return nil
-}
-
-// Closed returns a channel which will be closed when Close is called
-func (c *httpServerConn) Closed() <-chan any {
-	return c.jc.Closed()
-}
-
-// RemoteAddr returns the peer address of the underlying connection.
-func (t *httpServerConn) RemoteAddr() string {
-	return t.PeerInfo().RemoteAddr
-}
-
-// SetWriteDeadline does nothing and always returns nil.
-func (t *httpServerConn) SetWriteDeadline(time.Time) error { return nil }
-
-// ServeHTTP serves JSON-RPC requests over HTTP.
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Permit dumb empty requests for remote health-checks (AWS)
-	if r.Method == http.MethodGet && r.ContentLength == 0 && r.URL.RawQuery == "" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	if code, err := validateRequest(r); err != nil {
-		http.Error(w, err.Error(), code)
-		return
-	}
-
+func NewRequestCodec(r *http.Request, w http.ResponseWriter) *requestCodec {
 	// Create request-scoped context.
-	connInfo := PeerInfo{
+	connInfo := codec.PeerInfo{
 		Transport:  "http",
 		RemoteAddr: r.RemoteAddr,
-		HTTP: HttpInfo{
-			Version:      r.Proto,
-			UserAgent:    r.UserAgent(),
-			Host:         r.Host,
-			Headers:      r.Header.Clone(),
-			WriteHeaders: w.Header(),
+		HTTP: codec.HttpInfo{
+			Version:   r.Proto,
+			UserAgent: r.UserAgent(),
+			Host:      r.Host,
+			Headers:   r.Header.Clone(),
 		},
 	}
 	connInfo.HTTP.Version = r.Proto
@@ -191,44 +115,80 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// the headers used
 	connInfo.HTTP.Headers = r.Header
+	buf := bufpool.GetStd()
 
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, peerInfoContextKey{}, connInfo)
+	ctx, cn := context.WithCancel(r.Context())
 
-	// All checks passed, create a codec that reads directly from the request body
-	// until EOF, writes the response to w, and orders the server to process a
-	// single request.
-	w.Header().Set("content-type", contentType)
+	return &requestCodec{
+		ctx:           ctx,
+		cn:            cn,
+		r:             r,
+		w:             w,
+		pi:            connInfo,
+		requestBuffer: buf,
+	}
 
-	codec := newHTTPServerConn(r, w, connInfo)
-	defer codec.Close()
-	s.serveSingleRequest(ctx, codec)
 }
 
-// validateRequest returns a non-zero response code and error message if the
-// request is invalid.
-func validateRequest(r *http.Request) (int, error) {
-	if r.Method == http.MethodPut || r.Method == http.MethodDelete {
-		return http.StatusMethodNotAllowed, errors.New("method not allowed")
+// gets the peer info
+func (r *requestCodec) PeerInfo() codec.PeerInfo {
+	return r.pi
+}
+
+// json.RawMessage can be an array of requests. if it is, then it is a batch request
+func (r *requestCodec) ReadBatch(ctx context.Context) (msgs json.RawMessage, err error) {
+	if r.r.Method == http.MethodGet {
+		return r.readBatchGet(ctx)
 	}
-	if r.ContentLength > maxRequestContentLength {
-		err := fmt.Errorf("content length too large (%d>%d)", r.ContentLength, maxRequestContentLength)
-		return http.StatusRequestEntityTooLarge, err
+	if r.r.Method == http.MethodPost {
+		return r.readBatch(ctx)
 	}
-	// Allow OPTIONS (regardless of content-type)
-	if r.Method == http.MethodOptions {
-		return 0, nil
+	return nil, fmt.Errorf("invalid request")
+}
+
+func (r *requestCodec) readBatchGet(ctx context.Context) (msgs json.RawMessage, err error) {
+	method_up := r.r.URL.Query().Get("method")
+	params, _ := url.QueryUnescape(r.r.URL.Query().Get("params"))
+	param := []byte(params)
+	if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
+		param = pb
 	}
-	// Check content-type
-	if mt, _, err := mime.ParseMediaType(r.Header.Get("content-type")); err == nil {
-		for _, accepted := range acceptedContentTypes {
-			if accepted == mt {
-				return 0, nil
-			}
-		}
+	req := jrpc.NewRequestInt(ctx, 1, method_up, json.RawMessage(param))
+	return req.MarshalJSON()
+}
+
+func (r *requestCodec) readBatch(ctx context.Context) (msgs json.RawMessage, err error) {
+	rd := io.LimitReader(r.r.Body, maxRequestContentLength)
+	_, err = io.Copy(r.requestBuffer, rd)
+	if err != nil {
+		return nil, err
 	}
-	// Invalid content-type ignored for now
-	return 0, nil
-	//err := fmt.Errorf("invalid content type, only %s is supported", contentType)
-	//return http.StatusUnsupportedMediaType, err
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-r.ctx.Done():
+		return nil, r.ctx.Err()
+	}
+	return json.RawMessage(r.requestBuffer.Bytes()), nil
+}
+
+// closes the connection
+func (r *requestCodec) Close() error {
+	r.cn()
+	bufpool.PutStd(r.requestBuffer)
+	return nil
+}
+
+func (r *requestCodec) Write(p []byte) (n int, err error) {
+	return r.w.Write(p)
+}
+
+// Closed returns a channel which is closed when the connection is closed.
+func (r *requestCodec) Closed() <-chan struct{} {
+	return r.r.Context().Done()
+}
+
+// RemoteAddr returns the peer address of the connection.
+func (r *requestCodec) RemoteAddr() string {
+	return r.pi.RemoteAddr
 }

@@ -55,12 +55,6 @@ func (r *Request) makeError(err error) *codec.Message {
 	return m.ErrorResponse(err)
 }
 
-func (r *Request) errorResponse(err error) *Response {
-	mw := NewReaderResponseWriterMsg(r)
-	mw.Send(nil, err)
-	return mw.Response()
-}
-
 func (r *Request) isNotification() bool {
 	return r.ID == nil && len(r.Method) > 0
 }
