@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"tuxpa.in/a/zlog/log"
 	mapset "github.com/deckarep/golang-set"
 )
 
@@ -98,7 +97,6 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 // subscriptions.
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		log.Debug().Msg("RPC server shutting down")
 		s.codecs.Each(func(c any) bool {
 			c.(ServerCodec).Close()
 			return true

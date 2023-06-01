@@ -103,14 +103,18 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Error().Str("method", r.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			log.Error().Str("method", r.Method).Interface("err", fmt.Sprintf("%s", err)).Stack().Msg("reflect handler crashed")
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-			w.Send(nil, fmt.Errorf("%s", err))
+			w.Send(nil, fmt.Errorf("recover: %s", err))
 			return
 		}
 	}()
 	// Run the callback.
 	results := e.fn.Call(fullargs)
+	if len(results) == 0 {
+		w.Send(nil, nil)
+		return
+	}
 	if e.errPos >= 0 && !results[e.errPos].IsNil() {
 		// Method has returned non-nil error value.
 		err := results[e.errPos].Interface().(error)

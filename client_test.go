@@ -36,7 +36,7 @@ import (
 )
 
 func init() {
-	zlog.SetGlobalLevel(zlog.FatalLevel)
+	zlog.SetGlobalLevel(zlog.TraceLevel)
 }
 
 func TestClientRequest(t *testing.T) {

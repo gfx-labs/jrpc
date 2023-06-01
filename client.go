@@ -18,7 +18,7 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
+	gojson "encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"tuxpa.in/a/zlog/log"
 )
 
@@ -288,7 +288,7 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 	case result == nil:
 		return nil
 	default:
-		return json.Unmarshal(resp.Result, &result)
+		return json.Unmarshal(resp.Result, result)
 	}
 }
 
@@ -434,7 +434,7 @@ func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = jsoniter.Marshal(paramIn); err != nil {
+		if msg.Params, err = json.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}
@@ -598,6 +598,9 @@ func (c *Client) read(codec ServerCodec) {
 	for {
 		msgs, batch, err := codec.ReadBatch()
 		if _, ok := err.(*json.SyntaxError); ok {
+			codec.WriteJSON(context.Background(), errorMessage(&parseError{err.Error()}))
+		}
+		if _, ok := err.(*gojson.SyntaxError); ok {
 			codec.WriteJSON(context.Background(), errorMessage(&parseError{err.Error()}))
 		}
 		if err != nil {
