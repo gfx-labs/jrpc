@@ -2,11 +2,11 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
-	stdjson "encoding/json"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/goccy/go-json"
 )
 
 // DeadlineConn is a subset of the methods of net.Conn which are sufficient for creating a jsonCodec
@@ -66,7 +66,7 @@ func NewCodec(conn DeadlineConn) ServerCodec {
 	// TODO:
 	// for some reason other json decoders are incompatible with our test suite
 	// pretty sure its how we handle EOFs and stuff
-	dec := stdjson.NewDecoder(conn)
+	dec := json.NewDecoder(conn)
 	dec.UseNumber()
 	return NewFuncCodec(conn, encr, dec.Decode, func() error {
 		return nil
