@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/contrib/handlers/argreflect"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"reflect"
 	"sync"
+
+	"gfx.cafe/open/jrpc/contrib/handlers/argreflect"
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 var _ Router = &Mux{}
@@ -422,5 +423,5 @@ func methodNotAllowedHandler(w codec.ResponseWriter, r *codec.Request) {
 }
 
 func NotFound(w codec.ResponseWriter, r *codec.Request) {
-	w.Send(nil, errors.New("not found"))
+	w.Send(nil, errors.New("not found: does not exist"))
 }

@@ -3,8 +3,9 @@ package codec
 import (
 	"bytes"
 	"encoding/json"
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 	"strconv"
+
+	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 )
 
 var jzon = wsjson.JZON
@@ -93,6 +94,9 @@ func (err *JsonError) ErrorData() any {
 
 // error message produces json rpc message with error message
 func ErrorMessage(err error) *Message {
+	if err == nil {
+		return nil
+	}
 	msg := &Message{
 		ID: NewNullIDPtr(),
 		Error: &JsonError{

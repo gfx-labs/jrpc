@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"sync"
+
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/codec"
-	"sync"
 )
 
 type Client struct {
@@ -34,7 +35,8 @@ func (c *Client) listen() error {
 			return err
 		}
 		msgs, _ := codec.ParseMessage(msg)
-		for _, v := range msgs {
+		for i := range msgs {
+			v := msgs[i]
 			id := v.ID.Number()
 			if id == 0 {
 				//if c.handler != nil {
@@ -42,21 +44,32 @@ func (c *Client) listen() error {
 				//}
 				continue
 			}
-			c.p.Resolve(id, v.Result, v.Error)
+			var err error
+			if v.Error != nil {
+				err = v.Error
+			}
+			c.p.Resolve(id, v.Result, err)
 		}
 	}
 
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	id := c.p.NextId()
 	req := codec.NewRequestInt(ctx, id, method, params)
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
-	c.c.msgs <- fwd
-	ans, err := c.p.Ask(ctx, id)
+	select {
+	case c.c.msgs <- fwd:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	ans, err := c.p.Ask(req.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -70,6 +83,9 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 }
 
 func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	reqs := make([]*codec.Request, 0, len(b))
@@ -92,7 +108,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 		idx := i
 		go func() {
 			defer wg.Done()
-			ans, err := c.p.Ask(ctx, ids[idx])
+			ans, err := c.p.Ask(reqs[idx].Context(), ids[idx])
 			if err != nil {
 				b[idx].Error = err
 				return
@@ -119,11 +135,18 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	req := codec.NewRequest(ctx, "", method, params)
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
-	c.c.msgs <- fwd
+	select {
+	case c.c.msgs <- fwd:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 	return nil
 }

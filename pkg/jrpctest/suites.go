@@ -55,15 +55,12 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	})
 
 	makeTest("ResponseType", func(t *testing.T, server *server.Server, client codec.Conn) {
-		if err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
-			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
-		}
+		err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"})
+		assert.NoErrorf(t, err, "passing nil as result should be ok")
 		var resultVar EchoResult
 		// Note: passing the var, not a ref
-		err := codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
-		if err == nil {
-			t.Error("Passing a var as result should be an error")
-		}
+		err = codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
+		assert.Error(t, err, "passing var as nil gives error")
 	})
 
 	makeTest("BatchRequest", func(t *testing.T, server *server.Server, client codec.Conn) {
