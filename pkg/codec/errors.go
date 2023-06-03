@@ -38,11 +38,6 @@ type DataError interface {
 func EncodeError(enc *jx.Encoder, err error) error {
 	enc.Obj(func(e *jx.Encoder) {
 		switch er := err.(type) {
-		case Error:
-			e.FieldStart("code")
-			e.Int(er.ErrorCode())
-			e.FieldStart("message")
-			e.Str(er.Error())
 		case DataError:
 			data, err := json.Marshal(er.ErrorData())
 			if err != nil {
@@ -53,6 +48,11 @@ func EncodeError(enc *jx.Encoder, err error) error {
 			e.Field("data", func(e *jx.Encoder) {
 				e.Raw(data)
 			})
+		case Error:
+			e.FieldStart("code")
+			e.Int(er.ErrorCode())
+			e.FieldStart("message")
+			e.Str(er.Error())
 		default:
 			e.Field("code", func(e *jx.Encoder) { e.Int(-32000) })
 			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })

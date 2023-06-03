@@ -79,10 +79,10 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return fmt.Errorf("decode json: %w", err)
 	}
 	if msg.Error != nil {
-		return err
+		return msg.Error
 	}
 	if result != nil && len(msg.Result) > 0 {
-		err = json.Unmarshal(msg.Result, &result)
+		err = json.Unmarshal(msg.Result, result)
 		if err != nil {
 			return err
 		}

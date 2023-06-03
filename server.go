@@ -214,15 +214,17 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		enc.FieldStart("id")
 		enc.Raw(v.msg.ID.RawMessage())
 		err := v.err
-		if err == nil && v.dat != nil {
-			buf.Reset()
-			err = v.dat(buf)
-			if err == nil {
-				enc.FieldStart("result")
-				enc.Raw(buf.Bytes())
+		if err == nil {
+			if v.dat != nil {
+				buf.Reset()
+				err = v.dat(buf)
+				if err == nil {
+					enc.FieldStart("result")
+					enc.Raw(buf.Bytes())
+				}
+			} else {
+				err = codec.NewMethodNotFoundError(v.msg.Method)
 			}
-		} else {
-			err = codec.NewMethodNotFoundError(v.msg.Method)
 		}
 		if err != nil {
 			enc.FieldStart("error")

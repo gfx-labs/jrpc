@@ -1,6 +1,8 @@
 package jrpc
 
-import "context"
+import (
+	"context"
+)
 
 func Do[T any](ctx context.Context, c Conn, method string, args any) (*T, error) {
 	var t T
@@ -18,4 +20,12 @@ func Call[T any](ctx context.Context, c Conn, method string, args ...any) (*T, e
 		return nil, err
 	}
 	return &t, nil
+}
+
+func CallInto(ctx context.Context, c Conn, result any, method string, args ...any) error {
+	err := c.Do(ctx, result, method, args)
+	if err != nil {
+		return err
+	}
+	return nil
 }

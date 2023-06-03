@@ -19,8 +19,10 @@ package http
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -203,5 +205,51 @@ func TestHTTPPeerInfo(t *testing.T) {
 	}
 	if info.HTTP.Origin != "origin.example.com" {
 		t.Errorf("wrong HTTP.Origin %q", info.HTTP.UserAgent)
+	}
+}
+func TestClientHTTP(t *testing.T) {
+	s := jrpctest.NewServer()
+	defer s.Stop()
+	ts := httptest.NewServer(&Server{Server: s})
+	defer ts.Close()
+	c, err := DialHTTP(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+
+	// Launch concurrent requests.
+	var (
+		results    = make([]jrpctest.EchoResult, 100)
+		errc       = make(chan error, len(results))
+		wantResult = jrpctest.EchoResult{String: "a", Int: 0, Args: new(jrpctest.EchoArgs)}
+	)
+	defer ts.Close()
+	for i := range results {
+		i := i
+		go func() {
+			errc <- jrpc.CallInto(nil, c, &results[i], "test_echo", wantResult.String, wantResult.Int, wantResult.Args)
+		}()
+	}
+
+	// Wait for all of them to complete.
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+	for i := range results {
+		select {
+		case err := <-errc:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-timeout.C:
+			t.Fatalf("timeout (got %d/%d) results)", i+1, len(results))
+		}
+	}
+
+	// Check results.
+	for i := range results {
+		if !reflect.DeepEqual(results[i], wantResult) {
+			t.Errorf("result %d mismatch: got %#v, want %#v", i, results[i], wantResult)
+		}
 	}
 }
