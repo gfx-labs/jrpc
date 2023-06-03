@@ -2,7 +2,7 @@
 
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 
-many packages are unused / incomplete. the one which are done i have put below in the readme
+packages which are incomplete are marked as such (WIP)
 
 ```
 exports.go       - export things in subpackages to jrpc namespace, cleaning up the public use package
@@ -23,12 +23,19 @@ pkg/             - packages for implementing jrpc
   jrpctest/        - utilities for testing client and server.
     suite.go         - implementors of client and server should pass this
 contrib/         - packages that add to jrpc
+  codecs/          - client and server transport implementations
+    codecs.go        - dialers for all finished codecs
+    http/              - http based codec
+    websocket/         - WIP: websocket basec codec
+    inproc/            - WIP: inproc based codec
+    ipc/               - WIP: ipc based codec
+    stdio/             - WIP: stdio based codec (variation of ipc)
+
   jmux/            - a chi based router which satisfies the jrpc.Handler interface
   handlers/        - special jrpc handlers
     argreflect/      - go-ethereum style struct reflection
   middleware/      - pre implemented middleware
   openrpc/         - openapi specification implementation
-  subscription     - WIP: subscription engine for go-ethereum style subs
-
+  subscription/    - WIP: subscription engine for go-ethereum style subs
 
 ```
