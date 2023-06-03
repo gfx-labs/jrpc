@@ -3,10 +3,11 @@ package argreflect
 import (
 	"context"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"reflect"
 	"runtime"
 	"unicode"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 var (
@@ -71,7 +72,7 @@ func (e *callback) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
+			//fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
 			w.Send(nil, fmt.Errorf("%s", err))
 			return
