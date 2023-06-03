@@ -2,19 +2,18 @@ package jrpc
 
 import (
 	"encoding/json"
-
-	"gfx.cafe/open/jrpc/codec"
+	codec2 "gfx.cafe/open/jrpc/pkg/codec"
 )
 
 type Response struct {
-	Version codec.Version    `json:"jsonrpc,omitempty"`
-	ID      *codec.ID        `json:"id,omitempty"`
-	Result  json.RawMessage  `json:"result,omitempty"`
-	Error   *codec.JsonError `json:"error,omitempty"`
+	Version codec2.Version    `json:"jsonrpc,omitempty"`
+	ID      *codec2.ID        `json:"id,omitempty"`
+	Result  json.RawMessage   `json:"result,omitempty"`
+	Error   *codec2.JsonError `json:"error,omitempty"`
 }
 
-func (r *Response) Msg() *codec.Message {
-	out := &codec.Message{}
+func (r *Response) Msg() *codec2.Message {
+	out := &codec2.Message{}
 	if r.ID != nil {
 		out.ID = r.ID
 	}

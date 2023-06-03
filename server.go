@@ -2,12 +2,12 @@ package jrpc
 
 import (
 	"context"
+	codec2 "gfx.cafe/open/jrpc/pkg/codec"
 	"io"
 	"net/http"
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/codec"
 	"gfx.cafe/util/go/bufpool"
 
 	mapset "github.com/deckarep/golang-set"
@@ -24,7 +24,7 @@ type Server struct {
 }
 
 type Tracing struct {
-	ErrorLogger func(remote codec.ReaderWriter, err error)
+	ErrorLogger func(remote codec2.ReaderWriter, err error)
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -39,7 +39,7 @@ func NewServer(r Handler) *Server {
 	return server
 }
 
-func (s *Server) printError(remote codec.ReaderWriter, err error) {
+func (s *Server) printError(remote codec2.ReaderWriter, err error) {
 	if err != nil {
 		return
 	}
@@ -51,7 +51,7 @@ func (s *Server) printError(remote codec.ReaderWriter, err error) {
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
-func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
+func (s *Server) ServeCodec(pctx context.Context, remote codec2.ReaderWriter) {
 	defer remote.Close()
 
 	// Don't serve if server is stopped.
@@ -96,7 +96,7 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 			s.printError(remote, err)
 			return
 		}
-		msg, batch := codec.ParseMessage(msgs)
+		msg, batch := codec2.ParseMessage(msgs)
 		env := &callEnv{
 			batch: batch,
 		}
@@ -138,7 +138,7 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 type callResponder struct {
 	toSend   chan *callEnv
 	toNotify chan *notifyEnv
-	remote   codec.ReaderWriter
+	remote   codec2.ReaderWriter
 }
 
 func (c *callResponder) run(ctx context.Context) error {
@@ -172,7 +172,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	err := env.dat(buf)
 	if err != nil {
 		enc.FieldStart("error")
-		err := codec.EncodeError(enc, err)
+		err := codec2.EncodeError(enc, err)
 		if err != nil {
 			return err
 		}
@@ -216,11 +216,11 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 				enc.Raw(buf.Bytes())
 			}
 		} else {
-			err = codec.NewMethodNotFoundError(v.msg.Method)
+			err = codec2.NewMethodNotFoundError(v.msg.Method)
 		}
 		if err != nil {
 			enc.FieldStart("error")
-			err := codec.EncodeError(enc, err)
+			err := codec2.EncodeError(enc, err)
 			if err != nil {
 				return err
 			}
@@ -248,7 +248,7 @@ type notifyEnv struct {
 }
 
 type callRespWriter struct {
-	msg    *codec.Message
+	msg    *codec2.Message
 	dat    func(io.Writer) error
 	err    error
 	skip   bool
@@ -291,7 +291,7 @@ func (c *callRespWriter) Notify(v any) error {
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
 		s.codecs.Each(func(c any) bool {
-			c.(codec.ReaderWriter).Close()
+			c.(codec2.ReaderWriter).Close()
 			return true
 		})
 	}
@@ -303,7 +303,7 @@ type peerInfoContextKey struct{}
 // Use this with the context passed to RPC method handler functions.
 //
 // The zero value is returned if no connection info is present in ctx.
-func PeerInfoFromContext(ctx context.Context) codec.PeerInfo {
-	info, _ := ctx.Value(peerInfoContextKey{}).(codec.PeerInfo)
+func PeerInfoFromContext(ctx context.Context) codec2.PeerInfo {
+	info, _ := ctx.Value(peerInfoContextKey{}).(codec2.PeerInfo)
 	return info
 }

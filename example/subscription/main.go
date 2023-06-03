@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"gfx.cafe/open/jrpc/contrib/middleware"
 	"log"
 	"net/http"
 	"time"
 
 	"gfx.cafe/open/jrpc"
-	"gfx.cafe/open/jrpc/middleware"
 )
 
 func main() {

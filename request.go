@@ -2,8 +2,8 @@ package jrpc
 
 import (
 	"context"
+	codec2 "gfx.cafe/open/jrpc/pkg/codec"
 
-	"gfx.cafe/open/jrpc/codec"
 	json "github.com/goccy/go-json"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -25,17 +25,17 @@ func (r *Request) MarshalJSON() ([]byte, error) {
 }
 
 type RequestMarshaling struct {
-	Version codec.Version   `json:"jsonrpc"`
-	ID      *codec.ID       `json:"id,omitempty"`
+	Version codec2.Version  `json:"jsonrpc"`
+	ID      *codec2.ID      `json:"id,omitempty"`
 	Method  string          `json:"method"`
 	Params  json.RawMessage `json:"params"`
-	Peer    codec.PeerInfo  `json:"-"`
+	Peer    codec2.PeerInfo `json:"-"`
 }
 
 func NewRequestInt(ctx context.Context, id int, method string, params any) *Request {
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
-	r.ID = codec.NewNumberIDPtr(int64(id))
+	r.ID = codec2.NewNumberIDPtr(int64(id))
 	r.Method = method
 	r.Params = pms
 	return r
@@ -44,13 +44,13 @@ func NewRequestInt(ctx context.Context, id int, method string, params any) *Requ
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
-	r.ID = codec.NewStringIDPtr(id)
+	r.ID = codec2.NewStringIDPtr(id)
 	r.Method = method
 	r.Params = pms
 	return r
 }
 
-func (r *Request) makeError(err error) *codec.Message {
+func (r *Request) makeError(err error) *codec2.Message {
 	m := r.Msg()
 	return m.ErrorResponse(err)
 }
@@ -91,8 +91,8 @@ func (r *Request) Context() context.Context {
 	return r.ctx
 }
 
-func (r *Request) Msg() codec.Message {
-	return codec.Message{
+func (r *Request) Msg() codec2.Message {
+	return codec2.Message{
 		ID:     r.ID,
 		Method: r.Method,
 		Params: r.Params,

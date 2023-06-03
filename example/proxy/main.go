@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"gfx.cafe/open/jrpc/contrib/middleware"
 	"log"
 	"net/http"
 
 	"gfx.cafe/open/jrpc"
-	"gfx.cafe/open/jrpc/middleware"
 )
 
 func main() {
