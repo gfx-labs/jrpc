@@ -3,12 +3,10 @@ package jrpctest
 import (
 	"context"
 	"errors"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 	"strings"
 	"time"
-
-	"gfx.cafe/open/jrpc/pkg/codec"
-
-	"gfx.cafe/open/jrpc"
 )
 
 type testService struct{}
@@ -44,7 +42,7 @@ func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *
 }
 
 func (s *testService) PeerInfo(ctx context.Context) codec.PeerInfo {
-	return jrpc.PeerInfoFromContext(ctx)
+	return server.PeerInfoFromContext(ctx)
 }
 
 func (s *testService) Sleep(ctx context.Context, duration time.Duration) {
@@ -78,7 +76,7 @@ func (s *testService) ReturnError() error {
 }
 
 func (s *testService) CallMeBack(ctx context.Context, method string, args []any) (any, error) {
-	c, ok := jrpc.ConnFromContext(ctx)
+	c, ok := codec.ConnFromContext(ctx)
 	if !ok {
 		return nil, errors.New("no client")
 	}
@@ -88,7 +86,7 @@ func (s *testService) CallMeBack(ctx context.Context, method string, args []any)
 }
 
 func (s *testService) CallMeBackLater(ctx context.Context, method string, args []any) error {
-	c, ok := jrpc.ConnFromContext(ctx)
+	c, ok := codec.ConnFromContext(ctx)
 	if !ok {
 		return errors.New("no client")
 	}

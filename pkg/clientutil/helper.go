@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gfx.cafe/open/jrpc/pkg/codec"
-
-	"gfx.cafe/open/jrpc"
 	"gfx.cafe/util/go/generic"
 )
 
@@ -23,7 +21,7 @@ func PutMessage(x *codec.Message) {
 	msgPool.Put(x)
 }
 
-func FillBatch(ids []int, msgs []*codec.Message, b []*jrpc.BatchElem) {
+func FillBatch(ids []int, msgs []*codec.Message, b []*codec.BatchElem) {
 	answers := map[int]*codec.Message{}
 	for _, v := range msgs {
 		answers[v.ID.Number()] = v

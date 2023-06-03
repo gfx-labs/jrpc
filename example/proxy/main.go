@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"gfx.cafe/open/jrpc/contrib/middleware"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 	"log"
 	"net/http"
 
@@ -18,7 +20,7 @@ func main() {
 		panic(err)
 	}
 
-	r.HandleFunc("eth_*", func(w jrpc.ResponseWriter, r *jrpc.Request) {
+	r.HandleFunc("eth_*", func(w codec.ResponseWriter, r *codec.Request) {
 		var res json.RawMessage
 		err := c.Call(&res, r.Method(), r.ParamSlice()...)
 		w.Send(res, err)
@@ -26,7 +28,7 @@ func main() {
 
 	log.Println("running on 8855")
 
-	srv := jrpc.NewServer(r)
+	srv := server.NewServer(r)
 	log.Println(http.ListenAndServe(":8855", srv))
 }
 

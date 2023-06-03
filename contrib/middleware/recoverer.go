@@ -7,12 +7,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"gfx.cafe/open/jrpc/pkg/codec"
 	"io"
 	"os"
 	"runtime/debug"
 	"strings"
-
-	"gfx.cafe/open/jrpc"
 )
 
 // Recoverer is a middleware that recovers from panics, logs the panic (and a
@@ -20,8 +19,8 @@ import (
 // possible. Recoverer prints a request ID if one is provided.
 //
 // Alternatively, look at jrpcs://github.com/go-chi/jrpclog middleware pkgs.
-func Recoverer(next jrpc.Handler) jrpc.Handler {
-	fn := func(w jrpc.ResponseWriter, r *jrpc.Request) {
+func Recoverer(next codec.Handler) codec.Handler {
+	fn := func(w codec.ResponseWriter, r *codec.Request) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				PrintPrettyStack(rvr)
@@ -32,7 +31,7 @@ func Recoverer(next jrpc.Handler) jrpc.Handler {
 		next.ServeRPC(w, r)
 	}
 
-	return jrpc.HandlerFunc(fn)
+	return codec.HandlerFunc(fn)
 }
 
 // for ability to test the PrintPrettyStack function

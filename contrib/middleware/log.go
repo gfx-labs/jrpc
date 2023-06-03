@@ -2,9 +2,9 @@ package middleware
 
 import (
 	"context"
+	"gfx.cafe/open/jrpc/pkg/codec"
 	"time"
 
-	"gfx.cafe/open/jrpc"
 	"tuxpa.in/a/zlog"
 	"tuxpa.in/a/zlog/log"
 )
@@ -15,8 +15,8 @@ type ctxKeyLogger int
 // RequestIDKey is the key that holds the unique request ID in a request context.
 const LoggerKey ctxKeyLogger = 76
 
-func Logger(next jrpc.Handler) jrpc.Handler {
-	fn := func(w jrpc.ResponseWriter, r *jrpc.Request) {
+func Logger(next codec.Handler) codec.Handler {
+	fn := func(w codec.ResponseWriter, r *codec.Request) {
 		start := time.Now()
 		l := log.Trace().
 			Str("remote", r.Remote()).
@@ -29,7 +29,7 @@ func Logger(next jrpc.Handler) jrpc.Handler {
 		l = l.Stringer("dur", time.Since(start))
 		l.Msg("RPC Request")
 	}
-	return jrpc.HandlerFunc(fn)
+	return codec.HandlerFunc(fn)
 }
 
 func GetLogger(ctx context.Context) *zlog.Event {

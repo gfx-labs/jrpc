@@ -3,7 +3,7 @@ package codec
 import (
 	"bytes"
 	"encoding/json"
-	"gfx.cafe/open/jrpc/pkg/codec/codecs/websocket/wsjson"
+	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 	"strconv"
 )
 

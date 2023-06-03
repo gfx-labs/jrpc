@@ -8,20 +8,21 @@ import (
 	"testing"
 	"time"
 
-	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type ClientMaker func() jrpc.Conn
-type ServerMaker func() (*jrpc.Server, ClientMaker, func())
+type ClientMaker func() codec.Conn
+type ServerMaker func() (*server.Server, ClientMaker, func())
 
 type BasicTestSuiteArgs struct {
 	ServerMaker ServerMaker
 }
 
-type TestContext func(t *testing.T, server *jrpc.Server, client jrpc.Conn)
+type TestContext func(t *testing.T, server *server.Server, client codec.Conn)
 
 func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	var executeTest = func(t *testing.T, c TestContext) {
@@ -40,7 +41,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	}
 
 	t.Parallel()
-	makeTest("Request", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
+	makeTest("Request", func(t *testing.T, server *server.Server, client codec.Conn) {
 		var resp EchoResult
 		err := client.Do(nil, &resp, "test_echo", []any{"hello", 10, &EchoArgs{"world"}})
 		require.NoError(t, err)
@@ -49,20 +50,20 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResponseType", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
-		if err := jrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
+	makeTest("ResponseType", func(t *testing.T, server *server.Server, client codec.Conn) {
+		if err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 		}
 		var resultVar EchoResult
 		// Note: passing the var, not a ref
-		err := jrpc.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
+		err := codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
 		if err == nil {
 			t.Error("Passing a var as result should be an error")
 		}
 	})
 
-	makeTest("BatchRequest", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
-		batch := []*jrpc.BatchElem{
+	makeTest("BatchRequest", func(t *testing.T, server *server.Server, client codec.Conn) {
+		batch := []*codec.BatchElem{
 			{
 				Method: "test_echo",
 				Params: []any{"hello", 10, &EchoArgs{"world"}},
@@ -82,7 +83,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		if err := client.BatchCall(nil, batch...); err != nil {
 			t.Fatal(err)
 		}
-		wantResult := []*jrpc.BatchElem{
+		wantResult := []*codec.BatchElem{
 			{
 				Method: "test_echo",
 				Params: []any{"hello", 10, &EchoArgs{"world"}},
@@ -113,21 +114,21 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResposeType", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
-		if err := jrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
+	makeTest("ResposeType", func(t *testing.T, server *server.Server, client codec.Conn) {
+		if err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 		}
 		var resultVar EchoResult
 		// Note: passing the var, not a ref
-		err := jrpc.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
+		err := codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
 		if err == nil {
 			t.Error("Passing a var as result should be an error")
 		}
 	})
 
-	makeTest("ErrorReturnType", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
+	makeTest("ErrorReturnType", func(t *testing.T, server *server.Server, client codec.Conn) {
 		var resp any
-		err := jrpc.CallInto(nil, client, &resp, "test_returnError")
+		err := codec.CallInto(nil, client, &resp, "test_returnError")
 		require.Error(t, err)
 
 		// Check code.
@@ -143,13 +144,13 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 			t.Fatalf("wrong error data %#v, want %#v", e.ErrorData(), testError{}.ErrorData())
 		}
 	})
-	makeTest("Notify", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
+	makeTest("Notify", func(t *testing.T, server *server.Server, client codec.Conn) {
 		if err := client.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	makeTest("context cancel", func(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
+	makeTest("context cancel", func(t *testing.T, server *server.Server, client codec.Conn) {
 		maxContextCancelTimeout := 300 * time.Millisecond
 		// The actual test starts here.
 		var (
@@ -179,7 +180,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 
 				// Now perform a call with the context.
 				// The key thing here is that no call will ever complete successfully.
-				err := jrpc.CallInto(ctx, client, nil, "test_block")
+				err := codec.CallInto(ctx, client, nil, "test_block")
 				switch {
 				case err == nil:
 					_, hasDeadline := ctx.Deadline()
@@ -198,7 +199,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	})
 }
 
-type ServerRemaker func(address string) (*jrpc.Server, ClientMaker, func())
+type ServerRemaker func(address string) (*server.Server, ClientMaker, func())
 
 type ReconnectTestSuiteArgs struct {
 	ServerMaker ServerMaker
@@ -215,7 +216,7 @@ func RunReconnectSuite(t *testing.T, args BasicTestSuiteArgs) {
 
 // This test checks that requests made through Call can be canceled by canceling
 // the context.
-func cancelTester(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
+func cancelTester(t *testing.T, server *server.Server, client codec.Conn) {
 	maxContextCancelTimeout := 300 * time.Millisecond
 
 	// The actual test starts here.
@@ -246,7 +247,7 @@ func cancelTester(t *testing.T, server *jrpc.Server, client jrpc.Conn) {
 
 			// Now perform a call with the context.
 			// The key thing here is that no call will ever complete successfully.
-			err := jrpc.CallInto(ctx, client, nil, "test_block")
+			err := codec.CallInto(ctx, client, nil, "test_block")
 			switch {
 			case err == nil:
 				_, hasDeadline := ctx.Deadline()

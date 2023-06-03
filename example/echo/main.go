@@ -1,6 +1,8 @@
 package main
 
 import (
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 	"log"
 	"net/http"
 
@@ -10,9 +12,9 @@ import (
 func main() {
 
 	r := jrpc.NewRouter()
-	srv := jrpc.NewServer(r)
+	srv := server.NewServer(r)
 
-	r.HandleFunc("echo", func(w jrpc.ResponseWriter, r *jrpc.Request) {
+	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
 		w.Send(r.Params, nil)
 	})
 

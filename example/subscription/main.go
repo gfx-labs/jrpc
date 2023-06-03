@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"gfx.cafe/open/jrpc/contrib/middleware"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 	"log"
 	"net/http"
 	"time"
@@ -14,13 +16,13 @@ func main() {
 
 	r := jrpc.NewRouter()
 	r.Use(middleware.Logger)
-	srv := jrpc.NewServer(r)
+	srv := server.NewServer(r)
 
-	r.HandleFunc("echo", func(w jrpc.ResponseWriter, r *jrpc.Request) {
+	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
 		w.Send(r.Params(), nil)
 	})
 
-	r.HandleFunc("testservice_subscribe", func(w jrpc.ResponseWriter, r *jrpc.Request) {
+	r.HandleFunc("testservice_subscribe", func(w codec.ResponseWriter, r *codec.Request) {
 		sub, err := jrpc.UpgradeToSubscription(w, r)
 		w.Send(sub, err)
 		if err != nil {
