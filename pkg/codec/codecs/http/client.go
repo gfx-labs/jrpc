@@ -1,31 +1,16 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package jrpc
+package http
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"gfx.cafe/open/jrpc/pkg/clientutil"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"gfx.cafe/open/jrpc/pkg/clientutil"
+	"gfx.cafe/open/jrpc/pkg/codec"
 
 	"gfx.cafe/open/jrpc"
 )
@@ -43,6 +28,8 @@ const (
 	defaultDialTimeout = 10 * time.Second // used if context has no deadline
 	subscribeTimeout   = 5 * time.Second  // overall timeout eth_subscribe, rpc_modules calls
 )
+
+var _ jrpc.Conn = (*Client)(nil)
 
 // Client represents a connection to an RPC server.
 type Client struct {
@@ -86,7 +73,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	return nil
 }
 
-func (c *Client) Notify(ctx context.Context, result any, method string, params any) error {
+func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	req := jrpc.NewRequestInt(ctx, int(c.id.Add(1)), method, params)
 	dat, err := req.MarshalJSON()
 	if err != nil {

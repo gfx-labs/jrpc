@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	codec2 "gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/codec/websocket/wsjson"
+	"gfx.cafe/open/jrpc/pkg/codec/codecs/websocket/wsjson"
 	"net/http"
 	"net/url"
 	"time"

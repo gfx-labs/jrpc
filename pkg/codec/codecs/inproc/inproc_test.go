@@ -2,7 +2,7 @@ package inproc_test
 
 import (
 	"context"
-	inproc2 "gfx.cafe/open/jrpc/pkg/codec/inproc"
+	"gfx.cafe/open/jrpc/pkg/codec/codecs/inproc"
 	"gfx.cafe/open/jrpc/pkg/jmux"
 	"testing"
 
@@ -16,8 +16,8 @@ func TestInprocSetup(t *testing.T) {
 
 	ctx := context.Background()
 
-	clientCodec := inproc2.NewCodec()
-	client := inproc2.NewClient(clientCodec, nil)
+	clientCodec := inproc.NewCodec()
+	client := inproc.NewClient(clientCodec, nil)
 	go func() {
 		srv.ServeCodec(ctx, clientCodec)
 	}()

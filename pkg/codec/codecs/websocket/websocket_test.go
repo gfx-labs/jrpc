@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"gfx.cafe/open/jrpc/pkg/codec"
-	websocket2 "gfx.cafe/open/jrpc/pkg/codec/websocket"
+	"gfx.cafe/open/jrpc/pkg/codec/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/jmux"
 	jrpctest2 "gfx.cafe/open/jrpc/pkg/jrpctest"
 	"net/http/httptest"
@@ -17,7 +17,7 @@ import (
 func TestWebsocketClientHeaders(t *testing.T) {
 	t.Parallel()
 
-	endpoint, header, err := websocket2.WsClientHeaders("wss://testuser:test-PASS_01@example.com:1234", "https://example.com")
+	endpoint, header, err := websocket.WsClientHeaders("wss://testuser:test-PASS_01@example.com:1234", "https://example.com")
 	if err != nil {
 		t.Fatalf("wsGetConfig failed: %s", err)
 	}
@@ -38,24 +38,24 @@ func TestWebsocketOriginCheck(t *testing.T) {
 
 	var (
 		srv     = jrpctest2.NewTestServer()
-		httpsrv = httptest.NewServer(websocket2.WebsocketHandler(srv, []string{"http://example.com"}))
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"http://example.com"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	client, err := websocket2.DialWebsocket(context.Background(), wsURL, "http://ekzample.com")
+	client, err := websocket.DialWebsocket(context.Background(), wsURL, "http://ekzample.com")
 	if err == nil {
 		client.Close()
 		t.Fatal("no error for wrong origin")
 	}
-	wantErr := websocket2.NewHandshakeError(errors.New("403"), "403 Forbidden")
+	wantErr := websocket.NewHandshakeError(errors.New("403"), "403 Forbidden")
 	if !strings.Contains(err.Error(), wantErr.Error()) {
 		t.Fatalf("wrong error for wrong origin: got: '%q', want: '%s'", err, wantErr)
 	}
 
 	// Connections without origin header should work.
-	client, err = websocket2.DialWebsocket(context.Background(), wsURL, "")
+	client, err = websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatalf("error for empty origin: %v", err)
 	}
@@ -68,13 +68,13 @@ func TestWebsocketLargeCall(t *testing.T) {
 
 	var (
 		srv     = jrpctest2.NewTestServer()
-		httpsrv = httptest.NewServer(websocket2.WebsocketHandler(srv, []string{"*"}))
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"*"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	client, err := websocket2.DialWebsocket(context.Background(), wsURL, "")
+	client, err := websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatalf("can't dial: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 
 	// This call sends slightly less than the limit and should work.
 	var result jrpctest2.EchoResult
-	arg := strings.Repeat("x", websocket2.MaxRequestContentLength-200)
+	arg := strings.Repeat("x", websocket.MaxRequestContentLength-200)
 	if err := client.Do(nil, &result, "test_echo", []any{arg, 1}); err != nil {
 		t.Fatalf("valid call didn't work: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 	}
 
 	// This call sends twice the allowed size and shouldn't work.
-	arg = strings.Repeat("x", websocket2.MaxRequestContentLength*2)
+	arg = strings.Repeat("x", websocket.MaxRequestContentLength*2)
 	err = client.Do(nil, &result, "test_echo", []any{arg})
 	if err == nil {
 		t.Fatal("no error for too large call")
@@ -101,14 +101,14 @@ func TestWebsocketLargeCall(t *testing.T) {
 func TestWebsocketPeerInfo(t *testing.T) {
 	var (
 		s     = jrpctest2.NewTestServer()
-		ts    = httptest.NewServer(websocket2.WebsocketHandler(s, []string{"origin.example.com"}))
+		ts    = httptest.NewServer(websocket.WebsocketHandler(s, []string{"origin.example.com"}))
 		tsurl = "ws:" + strings.TrimPrefix(ts.URL, "http:")
 	)
 	defer s.Stop()
 	defer ts.Close()
 
 	ctx := context.Background()
-	c, err := websocket2.DialWebsocket(ctx, tsurl, "http://origin.example.com")
+	c, err := websocket.DialWebsocket(ctx, tsurl, "http://origin.example.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,16 +138,16 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 	mux := jmux.NewMux()
 	var (
 		srv     = jrpc.NewServer(mux)
-		httpsrv = httptest.NewServer(websocket2.WebsocketHandler(srv, nil))
+		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, nil))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
 	defer srv.Stop()
 	defer httpsrv.Close()
 
-	respLength := websocket2.WsMessageSizeLimit - 50
+	respLength := websocket.WsMessageSizeLimit - 50
 	mux.RegisterStruct("test", jrpctest2.LargeRespService{Length: respLength})
 
-	c, err := websocket2.DialWebsocket(context.Background(), wsURL, "")
+	c, err := websocket.DialWebsocket(context.Background(), wsURL, "")
 	if err != nil {
 		t.Fatal(err)
 	}

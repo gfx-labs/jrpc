@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec/websocket/wsjson"
+	"gfx.cafe/open/jrpc/pkg/codec/codecs/websocket/wsjson"
 	"reflect"
 )
 

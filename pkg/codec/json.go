@@ -3,9 +3,8 @@ package codec
 import (
 	"bytes"
 	"encoding/json"
+	"gfx.cafe/open/jrpc/pkg/codec/codecs/websocket/wsjson"
 	"strconv"
-
-	"gfx.cafe/open/jrpc/pkg/codec/websocket/wsjson"
 )
 
 var jzon = wsjson.JZON
