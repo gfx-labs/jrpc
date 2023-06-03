@@ -10,15 +10,16 @@ pkg/             - packages for implementing jrpc
   clientutil/      - common utilities for client implementations to use
     idreply.go       - generalizes making a request with an incrementing id, then waiting on it
     helper.go        - helpers for decoding messages, etc
-  codec/           - codec related things. used by client and server implementations
+  codec/           - codec related things. to implement new codecs, use this package
     errors.go        - jsonrpc2 error codes and marshaling
     json.go          - jsonrpc2 json rules, encoding, decoding
     peer.go          - peerinfo
     transport.go     - define ReaderWriter interface
     wire.go          - jsonrpc2 wire protocol marshaling, like ID and Version
-    server.go        - a server server implementation that uses the codec
     jrpc.go          - define the Handler, HandlerFunc, and ResponseWriter
     reqresp.go       - define Request, Response, along with json marshaling for the request
+  server/            - server implementation
+    server.go        - a simple server implementation that uses a codec.ReaderWriter
   jrpctest/        - utilities for testing client and server.
     suite.go         - implementors of client and server should pass this
 contrib/         - packages that add to jrpc
