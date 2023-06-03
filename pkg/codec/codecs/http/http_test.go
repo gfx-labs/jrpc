@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2018 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,7 +21,14 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jmux"
+	"gfx.cafe/open/jrpc/pkg/jrpctest"
 )
+
+const respLength = maxRequestContentLength * 3
 
 func confirmStatusCode(t *testing.T, got, want int) {
 	t.Helper()
@@ -42,7 +49,7 @@ func confirmRequestValidationCode(t *testing.T, method, contentType, body string
 	if len(contentType) > 0 {
 		request.Header.Set("Content-Type", contentType)
 	}
-	code, err := validateRequest(request)
+	code, err := ValidateRequest(request)
 	if code == 0 {
 		if err != nil {
 			t.Errorf("validation: got error %v, expected nil", err)
@@ -79,8 +86,9 @@ func TestHTTPErrorResponseWithValidRequest(t *testing.T) {
 
 func confirmHTTPRequestYieldsStatusCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
 	t.Helper()
-	s := Server{}
-	ts := httptest.NewServer(&s)
+	s := jrpc.NewServer(jmux.NewMux())
+	defer s.Stop()
+	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
 	request, err := http.NewRequest(method, ts.URL, strings.NewReader(body))
@@ -103,12 +111,9 @@ func TestHTTPResponseWithEmptyGet(t *testing.T) {
 
 // This checks that maxRequestContentLength is not applied to the response of a request.
 func TestHTTPRespBodyUnlimited(t *testing.T) {
-	const respLength = maxRequestContentLength * 3
-
-	s := NewServer()
+	s := jrpctest.NewServer()
 	defer s.Stop()
-	s.Router().RegisterStruct("test", largeRespService{respLength})
-	ts := httptest.NewServer(s)
+	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
 	c, err := DialHTTP(ts.URL)
@@ -118,7 +123,7 @@ func TestHTTPRespBodyUnlimited(t *testing.T) {
 	defer c.Close()
 
 	var r string
-	if err := c.Call(nil, &r, "test_largeResp"); err != nil {
+	if err := c.Do(nil, &r, "large_largeResp", nil); err != nil {
 		t.Fatal(err)
 	}
 	if len(r) != respLength {
@@ -140,12 +145,12 @@ func TestHTTPErrorResponse(t *testing.T) {
 	}
 
 	var r string
-	err = c.Call(nil, &r, "test_method")
+	err = c.Do(nil, &r, "test_method", nil)
 	if err == nil {
 		t.Fatal("error was expected")
 	}
 
-	httpErr, ok := err.(HTTPError)
+	httpErr, ok := err.(*codec.HTTPError)
 	if !ok {
 		t.Fatalf("unexpected error type %T", err)
 	}
@@ -166,12 +171,12 @@ func TestHTTPErrorResponse(t *testing.T) {
 }
 
 func TestHTTPPeerInfo(t *testing.T) {
-	s := newTestServer()
+	s := jrpctest.NewServer()
 	defer s.Stop()
-	ts := httptest.NewServer(s)
+	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
-	c, err := Dial(ts.URL)
+	c, err := DialHTTP(ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,8 +184,8 @@ func TestHTTPPeerInfo(t *testing.T) {
 	c.SetHeader("x-forwarded-for", "origin.example.com")
 
 	// Request peer information.
-	var info PeerInfo
-	if err := c.Call(nil, &info, "test_peerInfo"); err != nil {
+	var info codec.PeerInfo
+	if err := c.Do(nil, &info, "test_peerInfo", nil); err != nil {
 		t.Fatal(err)
 	}
 

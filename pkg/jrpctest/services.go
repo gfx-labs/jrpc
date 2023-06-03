@@ -3,23 +3,24 @@ package jrpctest
 import (
 	"context"
 	"errors"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"strings"
 	"time"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 
 	"gfx.cafe/open/jrpc"
 )
 
 type testService struct{}
 
-type echoArgs struct {
+type EchoArgs struct {
 	S string
 }
 
 type EchoResult struct {
 	String string
 	Int    int
-	Args   *echoArgs
+	Args   *EchoArgs
 }
 
 type testError struct{}
@@ -34,11 +35,11 @@ func (s *testService) EchoAny(n any) any {
 	return n
 }
 
-func (s *testService) Echo(str string, i int, args *echoArgs) EchoResult {
+func (s *testService) Echo(str string, i int, args *EchoArgs) EchoResult {
 	return EchoResult{str, i, args}
 }
 
-func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *echoArgs) EchoResult {
+func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *EchoArgs) EchoResult {
 	return EchoResult{str, i, args}
 }
 
@@ -77,24 +78,24 @@ func (s *testService) ReturnError() error {
 }
 
 func (s *testService) CallMeBack(ctx context.Context, method string, args []any) (any, error) {
-	c, ok := jrpc.ClientFromContext(ctx)
+	c, ok := jrpc.ConnFromContext(ctx)
 	if !ok {
 		return nil, errors.New("no client")
 	}
 	var result any
-	err := c.Call(nil, &result, method, args...)
+	err := c.Do(nil, &result, method, args)
 	return result, err
 }
 
 func (s *testService) CallMeBackLater(ctx context.Context, method string, args []any) error {
-	c, ok := jrpc.ClientFromContext(ctx)
+	c, ok := jrpc.ConnFromContext(ctx)
 	if !ok {
 		return errors.New("no client")
 	}
 	go func() {
 		<-ctx.Done()
 		var result any
-		c.Call(nil, &result, method, args...)
+		c.Do(nil, &result, method, args)
 	}()
 	return nil
 }

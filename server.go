@@ -2,11 +2,12 @@ package jrpc
 
 import (
 	"context"
-	codec2 "gfx.cafe/open/jrpc/pkg/codec"
 	"io"
 	"net/http"
 	"sync"
 	"sync/atomic"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 
 	"gfx.cafe/util/go/bufpool"
 
@@ -24,7 +25,7 @@ type Server struct {
 }
 
 type Tracing struct {
-	ErrorLogger func(remote codec2.ReaderWriter, err error)
+	ErrorLogger func(remote codec.ReaderWriter, err error)
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -39,7 +40,7 @@ func NewServer(r Handler) *Server {
 	return server
 }
 
-func (s *Server) printError(remote codec2.ReaderWriter, err error) {
+func (s *Server) printError(remote codec.ReaderWriter, err error) {
 	if err != nil {
 		return
 	}
@@ -51,7 +52,7 @@ func (s *Server) printError(remote codec2.ReaderWriter, err error) {
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
-func (s *Server) ServeCodec(pctx context.Context, remote codec2.ReaderWriter) {
+func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 	defer remote.Close()
 
 	// Don't serve if server is stopped.
@@ -70,6 +71,7 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec2.ReaderWriter) {
 
 	ctx, cn := context.WithCancel(pctx)
 	defer cn()
+	ctx = ContextWithPeerInfo(ctx, remote.PeerInfo())
 	go func() {
 		defer cn()
 		err := responder.run(ctx)
@@ -93,10 +95,11 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec2.ReaderWriter) {
 	for {
 		msgs, err := remote.ReadBatch(ctx)
 		if err != nil {
+			remote.Flush()
 			s.printError(remote, err)
 			return
 		}
-		msg, batch := codec2.ParseMessage(msgs)
+		msg, batch := codec.ParseMessage(msgs)
 		env := &callEnv{
 			batch: batch,
 		}
@@ -138,7 +141,7 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec2.ReaderWriter) {
 type callResponder struct {
 	toSend   chan *callEnv
 	toNotify chan *notifyEnv
-	remote   codec2.ReaderWriter
+	remote   codec.ReaderWriter
 }
 
 func (c *callResponder) run(ctx context.Context) error {
@@ -157,6 +160,9 @@ func (c *callResponder) run(ctx context.Context) error {
 				return err
 			}
 		}
+		if c.remote != nil {
+			c.remote.Flush()
+		}
 	}
 }
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
@@ -172,7 +178,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	err := env.dat(buf)
 	if err != nil {
 		enc.FieldStart("error")
-		err := codec2.EncodeError(enc, err)
+		err := codec.EncodeError(enc, err)
 		if err != nil {
 			return err
 		}
@@ -202,7 +208,6 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		if v.msg.ID == nil {
 			continue
 		}
-		buf.Reset()
 		enc.ObjStart()
 		enc.FieldStart("jsonrpc")
 		enc.Str("2.0")
@@ -210,17 +215,18 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		enc.Raw(v.msg.ID.RawMessage())
 		err := v.err
 		if err == nil && v.dat != nil {
+			buf.Reset()
 			err = v.dat(buf)
-			if err != nil {
+			if err == nil {
 				enc.FieldStart("result")
 				enc.Raw(buf.Bytes())
 			}
 		} else {
-			err = codec2.NewMethodNotFoundError(v.msg.Method)
+			err = codec.NewMethodNotFoundError(v.msg.Method)
 		}
 		if err != nil {
 			enc.FieldStart("error")
-			err := codec2.EncodeError(enc, err)
+			err := codec.EncodeError(enc, err)
 			if err != nil {
 				return err
 			}
@@ -248,7 +254,7 @@ type notifyEnv struct {
 }
 
 type callRespWriter struct {
-	msg    *codec2.Message
+	msg    *codec.Message
 	dat    func(io.Writer) error
 	err    error
 	skip   bool
@@ -291,7 +297,7 @@ func (c *callRespWriter) Notify(v any) error {
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
 		s.codecs.Each(func(c any) bool {
-			c.(codec2.ReaderWriter).Close()
+			c.(codec.ReaderWriter).Close()
 			return true
 		})
 	}
@@ -303,7 +309,10 @@ type peerInfoContextKey struct{}
 // Use this with the context passed to RPC method handler functions.
 //
 // The zero value is returned if no connection info is present in ctx.
-func PeerInfoFromContext(ctx context.Context) codec2.PeerInfo {
-	info, _ := ctx.Value(peerInfoContextKey{}).(codec2.PeerInfo)
+func PeerInfoFromContext(ctx context.Context) codec.PeerInfo {
+	info, _ := ctx.Value(peerInfoContextKey{}).(codec.PeerInfo)
 	return info
+}
+func ContextWithPeerInfo(ctx context.Context, c codec.PeerInfo) context.Context {
+	return context.WithValue(ctx, peerInfoContextKey{}, c)
 }

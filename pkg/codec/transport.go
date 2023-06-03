@@ -27,6 +27,9 @@ type Reader interface {
 type Writer interface {
 	// write json blob to stream
 	io.Writer
+	// Flush flushes the writer to the stream  between messages
+	Flush() error
+
 	// Closed returns a channel which is closed when the connection is closed.
 	Closed() <-chan struct{}
 	// RemoteAddr returns the peer address of the connection.

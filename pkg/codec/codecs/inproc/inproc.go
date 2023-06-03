@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"io"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 type Codec struct {
@@ -13,7 +14,7 @@ type Codec struct {
 	cn  func()
 
 	rd   io.Reader
-	wr   io.Writer
+	wr   *bufio.Writer
 	msgs chan json.RawMessage
 }
 
@@ -24,7 +25,7 @@ func NewCodec() *Codec {
 		ctx:  ctx,
 		cn:   cn,
 		rd:   bufio.NewReader(rd),
-		wr:   wr,
+		wr:   bufio.NewWriter(wr),
 		msgs: make(chan json.RawMessage, 8),
 	}
 }
@@ -58,6 +59,10 @@ func (c *Codec) Close() error {
 
 func (c *Codec) Write(p []byte) (n int, err error) {
 	return c.wr.Write(p)
+}
+
+func (c *Codec) Flush() (err error) {
+	return c.wr.Flush()
 }
 
 // Closed returns a channel which is closed when the connection is closed.

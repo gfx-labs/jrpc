@@ -31,6 +31,9 @@ type RequestMarshaling struct {
 }
 
 func NewRequestInt(ctx context.Context, id int, method string, params any) *Request {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
 	r.ID = codec2.NewNumberIDPtr(int64(id))
@@ -40,9 +43,24 @@ func NewRequestInt(ctx context.Context, id int, method string, params any) *Requ
 }
 
 func NewRequest(ctx context.Context, id string, method string, params any) *Request {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	r := &Request{ctx: ctx}
 	pms, _ := json.Marshal(params)
 	r.ID = codec2.NewStringIDPtr(id)
+	r.Method = method
+	r.Params = pms
+	return r
+}
+
+func NewNotification(ctx context.Context, method string, params any) *Request {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	r := &Request{ctx: ctx}
+	pms, _ := json.Marshal(params)
+	r.ID = nil
 	r.Method = method
 	r.Params = pms
 	return r

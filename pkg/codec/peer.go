@@ -1,6 +1,8 @@
 package codec
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type PeerInfo struct {
 	// Transport is name of the protocol used by the client.

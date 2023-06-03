@@ -5,12 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/util/go/bufpool"
 
 	"gfx.cafe/open/jrpc"
 )
@@ -37,35 +40,49 @@ type Client struct {
 	c      *http.Client
 
 	id atomic.Int64
+
+	headers http.Header
+}
+
+func DialHTTP(target string) (*Client, error) {
+	return Dial(nil, http.DefaultClient, target)
 }
 
 func Dial(ctx context.Context, client *http.Client, target string) (*Client, error) {
-	return &Client{remote: target, c: client}, nil
+	return &Client{remote: target, c: client, headers: http.Header{}}, nil
+}
+
+func (c *Client) SetHeader(key string, value string) {
+	c.headers.Set(key, value)
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	req := jrpc.NewRequestInt(ctx, int(c.id.Add(1)), method, params)
-	dat, err := req.MarshalJSON()
-	if err != nil {
-		return err
-	}
-	resp, err := c.c.Post(c.remote, "application/json", bytes.NewBuffer(dat))
+	resp, err := c.post(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		return &codec.HTTPError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       b,
+		}
+	}
 	// TODO: this can be reused
 	msg := clientutil.GetMessage()
 	defer clientutil.PutMessage(msg)
 	err = json.NewDecoder(resp.Body).Decode(&msg)
 	if err != nil {
-		return err
+		return fmt.Errorf("decode json: %w", err)
 	}
 	if msg.Error != nil {
 		return err
 	}
-	if result != nil {
-		err = json.Unmarshal(msg.Result, &msg)
+	if result != nil && len(msg.Result) > 0 {
+		err = json.Unmarshal(msg.Result, &result)
 		if err != nil {
 			return err
 		}
@@ -73,16 +90,34 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	return nil
 }
 
+func (c *Client) post(req *jrpc.Request) (*http.Response, error) {
+	//TODO: use buffer for this
+	buf := bufpool.GetStd()
+	defer bufpool.PutStd(buf)
+	buf.Reset()
+	err := json.NewEncoder(buf).Encode(req)
+	if err != nil {
+		return nil, err
+	}
+	hreq, err := http.NewRequestWithContext(req.Context(), http.MethodPost, c.remote, buf)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range c.headers {
+		for _, vv := range v {
+			hreq.Header.Add(k, vv)
+		}
+	}
+	return c.c.Do(hreq)
+}
+
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
-	req := jrpc.NewRequestInt(ctx, int(c.id.Add(1)), method, params)
-	dat, err := req.MarshalJSON()
+	req := jrpc.NewNotification(ctx, method, params)
+	resp, err := c.post(req)
 	if err != nil {
 		return err
 	}
-	_, err = c.c.Post(c.remote, "application/json", bytes.NewBuffer(dat))
-	if err != nil {
-		return err
-	}
+	resp.Body.Close()
 	return err
 }
 

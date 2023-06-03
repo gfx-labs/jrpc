@@ -1,11 +1,14 @@
 package http
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 
@@ -17,49 +20,58 @@ type Codec struct {
 	ctx context.Context
 	cn  func()
 
-	r    *http.Request
-	w    http.ResponseWriter
-	msgs chan json.RawMessage
-	errs chan error
+	r     *http.Request
+	w     http.ResponseWriter
+	wr    *bufio.Writer
+	msgs  chan json.RawMessage
+	errCh chan httpError
+
+	i codec.PeerInfo
 }
 
-func NewCodec(r *http.Request, w http.ResponseWriter) *Codec {
-	ctx, cn := context.WithCancel(r.Context())
+type httpError struct {
+	code int
+	err  error
+}
+
+func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
 	c := &Codec{
-		ctx:  ctx,
-		cn:   cn,
-		r:    r,
-		w:    w,
-		msgs: make(chan json.RawMessage, 1),
-		errs: make(chan error, 1),
+		r:     r,
+		w:     w,
+		wr:    bufio.NewWriter(w),
+		msgs:  make(chan json.RawMessage, 1),
+		errCh: make(chan httpError, 1),
 	}
-	go c.doRead()
+	ctx := r.Context()
+	c.ctx, c.cn = context.WithCancel(ctx)
+	c.peerInfo()
+	c.doRead()
 	return c
+}
+func (c *Codec) peerInfo() {
+	c.i.Transport = "http"
+	c.i.RemoteAddr = c.r.RemoteAddr
+	c.i.HTTP = codec.HttpInfo{
+		Version:   c.r.Proto,
+		UserAgent: c.r.UserAgent(),
+		Host:      c.r.Host,
+		Headers:   c.r.Header.Clone(),
+	}
+	c.i.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
+	if c.i.HTTP.Origin == "" {
+		c.i.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
+	}
+	if c.i.HTTP.Origin == "" {
+		c.i.HTTP.Origin = c.r.Header.Get("Origin")
+	}
+	if c.i.HTTP.Origin == "" {
+		c.i.HTTP.Origin = c.r.RemoteAddr
+	}
 }
 
 // gets the peer info
 func (c *Codec) PeerInfo() codec.PeerInfo {
-	ci := codec.PeerInfo{
-		Transport:  "http",
-		RemoteAddr: c.r.RemoteAddr,
-		HTTP: codec.HttpInfo{
-			Version:   c.r.Proto,
-			UserAgent: c.r.UserAgent(),
-			Host:      c.r.Host,
-			Headers:   c.r.Header.Clone(),
-		},
-	}
-	ci.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
-	if ci.HTTP.Origin == "" {
-		ci.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
-	}
-	if ci.HTTP.Origin == "" {
-		ci.HTTP.Origin = c.r.Header.Get("Origin")
-	}
-	if ci.HTTP.Origin == "" {
-		ci.HTTP.Origin = c.r.RemoteAddr
-	}
-	return ci
+	return c.i
 }
 
 func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
@@ -77,34 +89,61 @@ func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 	return req.MarshalJSON()
 }
 
-var ErrInvalidContentType = errors.New("invalid content type")
+// validateRequest returns a non-zero response code and error message if the
+// request is invalid.
+func ValidateRequest(r *http.Request) (int, error) {
+	if r.Method == http.MethodPut || r.Method == http.MethodDelete {
+		return http.StatusMethodNotAllowed, errors.New("method not allowed")
+	}
+	if r.ContentLength > maxRequestContentLength {
+		err := fmt.Errorf("content length too large (%d>%d)", r.ContentLength, maxRequestContentLength)
+		return http.StatusRequestEntityTooLarge, err
+	}
+	// Allow OPTIONS (regardless of content-type)
+	if r.Method == http.MethodOptions {
+		return 0, nil
+	}
+	// Check content-type
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("content-type")); err == nil {
+		for _, accepted := range acceptedContentTypes {
+			if accepted == mt {
+				return 0, nil
+			}
+		}
+	}
+	// Invalid content-type ignored for now
+	return 0, nil
+	//err := fmt.Errorf("invalid content type, only %s is supported", contentType)
+	//return http.StatusUnsupportedMediaType, err
+}
 
 func (c *Codec) doRead() {
-	contentMatches := true
-	types := c.r.Header.Values("content-type")
-	for _, v := range types {
-		// TODO: check content type
-		_ = v
-	}
-	if !contentMatches {
-		c.errs <- ErrInvalidContentType
-		return
-	}
-	var data json.RawMessage
-	var err error
-	// TODO: implement eventsource
-	switch c.r.Method {
-	case http.MethodGet:
-		data, err = c.doReadGet()
-		return
-	case http.MethodPost:
-		data, err = io.ReadAll(c.r.Body)
-	}
+	code, err := ValidateRequest(c.r)
 	if err != nil {
-		c.errs <- err
+		c.errCh <- httpError{
+			code: code,
+			err:  err,
+		}
 		return
 	}
-	c.msgs <- data
+	go func() {
+		var data json.RawMessage
+		// TODO: implement eventsource
+		switch c.r.Method {
+		case http.MethodGet:
+			data, err = c.doReadGet()
+		case http.MethodPost:
+			data, err = io.ReadAll(c.r.Body)
+		}
+		if err != nil {
+			c.errCh <- httpError{
+				code: http.StatusInternalServerError,
+				err:  err,
+			}
+			return
+		}
+		c.msgs <- data
+	}()
 }
 
 // json.RawMessage can be an array of requests. if it is, then it is a batch request
@@ -112,8 +151,9 @@ func (c *Codec) ReadBatch(ctx context.Context) (msgs json.RawMessage, err error)
 	select {
 	case ans := <-c.msgs:
 		return ans, nil
-	case err := <-c.errs:
-		return nil, err
+	case err := <-c.errCh:
+		http.Error(c.w, err.err.Error(), err.code)
+		return nil, err.err
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-c.ctx.Done():
@@ -128,7 +168,16 @@ func (c *Codec) Close() error {
 }
 
 func (c *Codec) Write(p []byte) (n int, err error) {
-	return c.w.Write(p)
+	return c.wr.Write(p)
+}
+
+func (c *Codec) Flush() (err error) {
+	err = c.wr.Flush()
+	if err != nil {
+		return err
+	}
+	c.cn()
+	return
 }
 
 // Closed returns a channel which is closed when the connection is closed.
@@ -138,5 +187,5 @@ func (c *Codec) Closed() <-chan struct{} {
 
 // RemoteAddr returns the peer address of the connection.
 func (c *Codec) RemoteAddr() string {
-	return ""
+	return c.r.RemoteAddr
 }
