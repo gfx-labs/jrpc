@@ -2,13 +2,11 @@ package jrpc
 
 import (
 	"context"
+
 	codec2 "gfx.cafe/open/jrpc/pkg/codec"
 
 	json "github.com/goccy/go-json"
-	jsoniter "github.com/json-iterator/go"
 )
-
-var jpool = jsoniter.NewIterator(jsoniter.ConfigCompatibleWithStandardLibrary).Pool()
 
 type Request struct {
 	RequestMarshaling
@@ -83,10 +81,6 @@ func (r *Request) ParamArray(a ...any) error {
 	return nil
 }
 
-func (r *Request) ParamInto(v any) error {
-	return json.Unmarshal(r.Params, &v)
-}
-
 func (r *Request) Context() context.Context {
 	return r.ctx
 }
@@ -116,10 +110,4 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.Params = r.Params
 	r2.Peer = r.Peer
 	return r2
-}
-
-func (r *Request) Iter(fn func(j *jsoniter.Iterator) error) error {
-	it := jpool.BorrowIterator(r.Params)
-	defer jpool.ReturnIterator(it)
-	return fn(it)
 }
