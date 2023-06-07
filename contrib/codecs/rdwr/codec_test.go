@@ -19,7 +19,7 @@ func TestBasicSuite(t *testing.T) {
 			rd_s, wr_s := io.Pipe()
 			rd_c, wr_c := io.Pipe()
 			s := jrpctest.NewServer()
-			clientCodec := rdwr.NewCodec(rd_c, wr_s)
+			clientCodec := rdwr.NewCodec(rd_c, wr_s, nil)
 			go func() {
 				s.ServeCodec(context.Background(), clientCodec)
 			}()

@@ -3,10 +3,10 @@ package rdwr
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"io"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"github.com/goccy/go-json"
 )
 
 type Codec struct {
@@ -18,7 +18,7 @@ type Codec struct {
 	msgs chan json.RawMessage
 }
 
-func NewCodec(rd io.Reader, wr io.Writer) *Codec {
+func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
 	c := &Codec{
 		ctx:  ctx,
@@ -27,17 +27,22 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 		wr:   bufio.NewWriter(wr),
 		msgs: make(chan json.RawMessage, 8),
 	}
-	go c.listen()
+	go func() {
+		err := c.listen()
+		if err != nil && onError != nil {
+			onError(err)
+		}
+	}()
 	return c
 }
 
-func (c *Codec) listen() {
+func (c *Codec) listen() error {
 	var msg json.RawMessage
 	for {
 		err := json.NewDecoder(c.rd).Decode(&msg)
 		if err != nil {
 			c.cn()
-			return
+			return err
 		}
 		c.msgs <- msg
 	}
