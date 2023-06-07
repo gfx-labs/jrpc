@@ -1,4 +1,4 @@
-package inproc
+package rdwr
 
 import (
 	"bytes"
@@ -164,6 +164,7 @@ func (c *Client) SetHeader(key string, value string) {
 }
 
 func (c *Client) Close() error {
+	c.cn()
 	return nil
 }
 
@@ -174,11 +175,14 @@ func (c *Client) writeContext(ctx context.Context, xs []byte) error {
 		select {
 		case errch <- err:
 		case <-ctx.Done():
+		case <-c.ctx.Done():
 		}
 	}()
 	select {
 	case err := <-errch:
 		return err
+	case <-c.ctx.Done():
+		return c.ctx.Err()
 	case <-ctx.Done():
 		return ctx.Err()
 	}

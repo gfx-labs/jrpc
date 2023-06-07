@@ -3,7 +3,6 @@ package clientutil
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"sync"
 	"sync/atomic"
 )
@@ -43,7 +42,6 @@ func (i *IdReply) makeOrTake(id int) chan msgOrError {
 }
 
 func (i *IdReply) Resolve(id int, msg json.RawMessage, err error) {
-	log.Println(err == nil)
 	if err != nil {
 		i.makeOrTake(id) <- msgOrError{
 			err: err,

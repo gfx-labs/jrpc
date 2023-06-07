@@ -1,4 +1,4 @@
-package inproc
+package rdwr
 
 import (
 	"bufio"
@@ -20,12 +20,26 @@ type Codec struct {
 
 func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
-	return &Codec{
+	c := &Codec{
 		ctx:  ctx,
 		cn:   cn,
 		rd:   bufio.NewReader(rd),
 		wr:   bufio.NewWriter(wr),
 		msgs: make(chan json.RawMessage, 8),
+	}
+	go c.listen()
+	return c
+}
+
+func (c *Codec) listen() {
+	var msg json.RawMessage
+	for {
+		err := json.NewDecoder(c.rd).Decode(&msg)
+		if err != nil {
+			c.cn()
+			return
+		}
+		c.msgs <- msg
 	}
 }
 
@@ -74,8 +88,8 @@ func (c *Codec) RemoteAddr() string {
 	return ""
 }
 
-// DialInProc attaches an in-process connection to the given RPC server.
-//func DialInProc(handler *Server) *Client {
+// Dialrdwr attaches an in-process connection to the given RPC server.
+//func Dialrdwr(handler *Server) *Client {
 //	initctx := context.Background()
 //	c, _ := newClient(initctx, func(context.Context) (ServerCodec, error) {
 //		p1, p2 := net.Pipe()
