@@ -23,7 +23,7 @@ type ResponseWriter interface {
 	Option(k string, v any)
 	Header() http.Header
 
-	Notify(v any) error
+	Notify(method string, v any) error
 }
 
 type Conn interface {

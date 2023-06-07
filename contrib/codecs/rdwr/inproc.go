@@ -18,8 +18,7 @@ type Codec struct {
 	msgs chan json.RawMessage
 }
 
-func NewCodec() *Codec {
-	rd, wr := io.Pipe()
+func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
 	return &Codec{
 		ctx:  ctx,

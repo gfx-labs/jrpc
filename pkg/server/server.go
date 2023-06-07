@@ -251,8 +251,11 @@ type callEnv struct {
 }
 
 type notifyEnv struct {
-	dat func(io.Writer) error
+	method string
+	dat    func(io.Writer) error
 }
+
+var _ codec.ResponseWriter = (*callRespWriter)(nil)
 
 type callRespWriter struct {
 	msg    *codec.Message
@@ -283,8 +286,9 @@ func (c *callRespWriter) Header() http.Header {
 	return c.header
 }
 
-func (c *callRespWriter) Notify(v any) error {
+func (c *callRespWriter) Notify(method string, v any) error {
 	c.notifications <- &notifyEnv{
+		method: method,
 		dat: func(w io.Writer) error {
 			return json.NewEncoder(w).Encode(v)
 		},

@@ -1,4 +1,4 @@
-package inproc
+package ipc
 
 import (
 	"bufio"
