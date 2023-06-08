@@ -12,11 +12,8 @@ func TestLoadTestData(t *testing.T) {
 	log.Println(jrpctest.OriginalTestData)
 	for _, file := range jrpctest.OriginalTestData.Files {
 		fmt.Printf("file %s:\n", file.Name)
-		for idx, pair := range file.Pairs {
-			fmt.Printf(" %d --> %s\n", idx, string(pair.Request))
-			for _, v := range pair.Responses {
-				fmt.Printf("   <-- %s\n", string(v))
-			}
+		for idx, pair := range file.Action {
+			fmt.Printf(" %d %s %s\n", idx, pair.Direction, string(pair.Data))
 		}
 	}
 }

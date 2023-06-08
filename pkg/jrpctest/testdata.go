@@ -40,9 +40,6 @@ func (td *TestData) AddTestData(name string, rd io.Reader) *TestData {
 		Name: name,
 	}
 	td.Files = append(td.Files, t)
-	currentPair := &TestPair{
-		Request: nil,
-	}
 	var (
 		arrowRight = []byte("-->")
 		arrowLeft  = []byte("<--")
@@ -58,23 +55,21 @@ func (td *TestData) AddTestData(name string, rd io.Reader) *TestData {
 			continue
 		}
 		if bytes.HasPrefix(txt, arrowRight) {
-			if currentPair.Request != nil {
-				t.Pairs = append(t.Pairs, currentPair)
+			currentPair := &TestAction{
+				Direction: DirectionSend,
 			}
-			currentPair = &TestPair{
-				Request: nil,
-			}
-			currentPair.Request = bytes.TrimSpace(bytes.TrimPrefix(txt, arrowRight))
+			currentPair.Data = bytes.TrimSpace(bytes.TrimPrefix(txt, arrowRight))
+			t.Action = append(t.Action, currentPair)
 			continue
 		}
 		if bytes.HasPrefix(txt, arrowLeft) {
-			xs := bytes.TrimSpace(bytes.TrimPrefix(txt, arrowLeft))
-			currentPair.Responses = append(currentPair.Responses, xs)
+			currentPair := &TestAction{
+				Direction: DirectionRecv,
+			}
+			currentPair.Data = bytes.TrimSpace(bytes.TrimPrefix(txt, arrowLeft))
+			t.Action = append(t.Action, currentPair)
 			continue
 		}
-	}
-	if currentPair.Request != nil {
-		t.Pairs = append(t.Pairs, currentPair)
 	}
 	return nil
 }
@@ -84,11 +79,18 @@ type TestData struct {
 }
 
 type TestFile struct {
-	Name  string
-	Pairs []*TestPair
+	Name   string
+	Action []*TestAction
 }
 
-type TestPair struct {
-	Request   json.RawMessage
-	Responses []json.RawMessage
+type TestDirection string
+
+const (
+	DirectionSend = TestDirection("send")
+	DirectionRecv = TestDirection("recv")
+)
+
+type TestAction struct {
+	Direction TestDirection
+	Data      json.RawMessage
 }
