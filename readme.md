@@ -44,3 +44,4 @@ contrib/         - packages that add to jrpc
   subscription/    - WIP: subscription engine for go-ethereum style subs
 
 ```
+
