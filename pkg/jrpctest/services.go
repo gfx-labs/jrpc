@@ -3,10 +3,11 @@ package jrpctest
 import (
 	"context"
 	"errors"
-	"gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/server"
 	"strings"
 	"time"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 type testService struct{}

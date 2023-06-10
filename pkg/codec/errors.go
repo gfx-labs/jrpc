@@ -154,8 +154,8 @@ func (e *ErrorInvalidMessage) ErrorCode() int { return -32700 }
 
 func (e *ErrorInvalidMessage) Error() string { return e.message }
 
-func NewInvalidParamsError(message string) *ErrorInvalidMessage {
-	return &ErrorInvalidMessage{
+func NewInvalidParamsError(message string) *ErrorInvalidParams {
+	return &ErrorInvalidParams{
 		message: message,
 	}
 }

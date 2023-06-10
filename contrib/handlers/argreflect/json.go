@@ -2,10 +2,11 @@ package argreflect
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 	"reflect"
+
+	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 var jzon = wsjson.JZON
@@ -26,12 +27,12 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	case string(rawArgs) == "null":
 		return nil, nil
 	default:
-		return nil, errors.New("non-array args")
+		return nil, codec.NewInvalidParamsError("non-array args")
 	}
 	// Set any missing args to nil.
 	for i := len(args); i < len(types); i++ {
 		if types[i].Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("missing value for required argument %d", i)
+			return nil, codec.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
 		}
 		args = append(args, reflect.Zero(types[i]))
 	}
@@ -44,15 +45,15 @@ func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Valu
 	args := make([]reflect.Value, 0, len(types))
 	for i := 0; dec.ReadArray(); i++ {
 		if i >= len(types) {
-			return args, fmt.Errorf("too many arguments, want at most %d", len(types))
+			return args, codec.NewInvalidParamsError(fmt.Sprintf("too many arguments, want at most %d", len(types)))
 		}
 		argval := reflect.New(types[i])
 		dec.ReadVal(argval.Interface())
 		if err := dec.Error; err != nil {
-			return args, fmt.Errorf("invalid argument %d: %v", i, err)
+			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
 		}
 		if argval.IsNil() && types[i].Kind() != reflect.Ptr {
-			return args, fmt.Errorf("missing value for required argument %d", i)
+			return nil, codec.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
 		}
 		args = append(args, argval.Elem())
 	}

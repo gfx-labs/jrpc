@@ -1,16 +1,20 @@
 package codec
 
 import (
-	"bytes"
 	"encoding/json"
 	"strconv"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
+	"github.com/go-faster/jx"
 )
 
 var jzon = wsjson.JZON
 
 var Null = json.RawMessage("null")
+
+func NewNull() json.RawMessage {
+	return json.RawMessage("null")
+}
 
 // A value of this type can a JSON-RPC request, notification, successful response or
 // error response. Which one it is depends on the fields.
@@ -22,6 +26,42 @@ type Message struct {
 	Result  json.RawMessage `json:"result,omitempty"`
 
 	Error *JsonError `json:"error,omitempty"`
+}
+
+func (m *Message) MarshalJSON() ([]byte, error) {
+	var enc jx.Encoder
+	// use encoder
+	enc.Obj(func(e *jx.Encoder) {
+		e.Field("jsonrpc", func(e *jx.Encoder) {
+			e.Str("2.0")
+		})
+		if m.ID != nil {
+			e.Field("id", func(e *jx.Encoder) {
+				e.Raw(m.ID.RawMessage())
+			})
+		}
+		e.Field("method", func(e *jx.Encoder) {
+			e.Str(m.Method)
+		})
+		if m.Error == nil {
+			e.Field("error", func(e *jx.Encoder) {
+				xs, _ := json.Marshal(m.Error)
+				e.Raw(xs)
+			})
+		}
+		if len(m.Params) != 0 {
+			e.Field("params", func(e *jx.Encoder) {
+				e.Raw(m.Params)
+			})
+		}
+		if len(m.Result) != 0 {
+			e.Field("result", func(e *jx.Encoder) {
+				e.Raw(m.Result)
+			})
+		}
+	})
+	// output
+	return enc.Bytes(), nil
 }
 
 func MakeCall(id int, method string, params []any) *Message {
@@ -139,13 +179,21 @@ func ParseMessage(raw json.RawMessage) ([]*Message, bool) {
 	}
 	// TODO:
 	// for some reason other json decoders are incompatible with our test suite
-	// pretty sure its how we handle EOFs and stuff
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.Token() // skip '['
+	// pretty sure its how we horle EOFs and stuff
+	dec := jx.DecodeBytes(raw)
 	var msgs []*Message
-	for dec.More() {
-		msgs = append(msgs, new(Message))
-		dec.Decode(&msgs[len(msgs)-1])
-	}
+	dec.Arr(func(d *jx.Decoder) error {
+		msg := new(Message)
+		raw, err := d.Raw()
+		if err != nil {
+			return nil
+		}
+		err = json.Unmarshal(raw, msg)
+		if err != nil {
+			msg = nil
+		}
+		msgs = append(msgs, msg)
+		return nil
+	})
 	return msgs, true
 }

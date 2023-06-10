@@ -423,5 +423,5 @@ func methodNotAllowedHandler(w codec.ResponseWriter, r *codec.Request) {
 }
 
 func NotFound(w codec.ResponseWriter, r *codec.Request) {
-	w.Send(nil, errors.New("not found: does not exist"))
+	w.Send(nil, codec.NewMethodNotFoundError(r.Method))
 }

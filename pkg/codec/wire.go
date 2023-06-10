@@ -122,5 +122,21 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	*id = data
-	return nil
+	// now validate
+	if id.IsNull() {
+		return nil
+	}
+	// it has to be a string or number
+	var num int
+	err := json.Unmarshal(data, &num)
+	if err == nil {
+		return nil
+	}
+	var str string
+	err = json.Unmarshal(data, &str)
+	if err == nil {
+		return nil
+	}
+	*id = NewNullID()
+	return fmt.Errorf("invalid id")
 }

@@ -1,0 +1,44 @@
+package server_test
+
+import (
+	"bufio"
+	"context"
+	"net"
+	"strings"
+	"testing"
+	"time"
+
+	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
+	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestGoEthereumTestScripts(t *testing.T) {
+	for _, tf := range jrpctest.OriginalTestData.Files {
+		t.Run(tf.Name, func(t *testing.T) {
+			// create a net pipe
+			rd, wr := net.Pipe()
+			readbuf := bufio.NewReader(rd)
+			srv := jrpctest.NewServer()
+			c := rdwr.NewCodec(wr, wr, func(err error) {
+				require.NoError(t, err)
+			})
+			go srv.ServeCodec(context.TODO(), c)
+			defer srv.Stop()
+			for _, act := range tf.Action {
+				switch act.Direction {
+				case jrpctest.DirectionRecv:
+					rd.SetReadDeadline(time.Now().Add(5 * time.Second))
+					sent, err := readbuf.ReadString('\n')
+					require.NoError(t, err)
+					assert.EqualValues(t, string(act.Data), strings.TrimSpace(sent))
+				case jrpctest.DirectionSend:
+					rd.SetWriteDeadline(time.Now().Add(5 * time.Second))
+					_, err := rd.Write(append(act.Data, ' '))
+					require.NoError(t, err)
+				}
+			}
+		})
+	}
+}

@@ -37,8 +37,9 @@ func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 }
 
 func (c *Codec) listen() error {
-	var msg json.RawMessage
 	for {
+		var msg json.RawMessage
+		// reading a message
 		err := json.NewDecoder(c.rd).Decode(&msg)
 		if err != nil {
 			c.cn()
@@ -80,6 +81,7 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 }
 
 func (c *Codec) Flush() (err error) {
+	c.wr.WriteByte('\n')
 	return c.wr.Flush()
 }
 

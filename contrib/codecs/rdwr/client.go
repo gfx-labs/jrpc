@@ -45,6 +45,9 @@ func (c *Client) listen() error {
 		msgs, _ := codec.ParseMessage(msg)
 		for i := range msgs {
 			v := msgs[i]
+			if v == nil {
+				continue
+			}
 			id := v.ID.Number()
 			//  messages without ids are notifications
 			if id == 0 {

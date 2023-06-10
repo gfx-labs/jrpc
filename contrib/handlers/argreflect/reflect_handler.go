@@ -86,6 +86,10 @@ func (e *callback) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
 		w.Send(nil, err)
 		return
 	}
+	if len(results) == 0 {
+		w.Send(codec.Null, nil)
+		return
+	}
 	w.Send(results[0].Interface(), nil)
 }
 

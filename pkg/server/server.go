@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -49,6 +50,74 @@ func (s *Server) printError(remote codec.ReaderWriter, err error) {
 	}
 }
 
+func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, responder *callResponder) error {
+	msgs, err := remote.ReadBatch(ctx)
+	if err != nil {
+		remote.Flush()
+		s.printError(remote, err)
+		return err
+	}
+	msg, batch := codec.ParseMessage(msgs)
+	env := &callEnv{
+		batch: batch,
+	}
+	// check for empty batch
+	if batch && len(msg) == 0 {
+		// if it is empty batch, send the empty batch warning
+		responder.toSend <- &callEnv{
+			responses: []*callRespWriter{{
+				err: codec.NewInvalidRequestError("empty batch"),
+			}},
+			batch: false,
+		}
+		return nil
+	}
+
+	// populate the envelope
+	for _, v := range msg {
+		rw := &callRespWriter{
+			notifications: responder.toNotify,
+			header:        remote.PeerInfo().HTTP.Headers,
+		}
+		env.responses = append(env.responses, rw)
+		if v == nil {
+			continue
+		}
+		rw.msg = v
+		if v.ID != nil {
+			rw.id = *v.ID
+		}
+	}
+
+	// create a waitgroup
+	wg := sync.WaitGroup{}
+	wg.Add(len(msg))
+	for _, vv := range env.responses {
+		v := vv
+		// early respond to nil requests
+		if v.msg == nil || v.msg.ID == nil || v.msg.ID.IsNull() || len(v.msg.Method) == 0 {
+			v.err = codec.NewInvalidRequestError("invalid request")
+			wg.Done()
+			continue
+		}
+		go func() {
+			defer wg.Done()
+			s.services.ServeRPC(v, codec.NewRequestFromRaw(
+				ctx,
+				&codec.RequestMarshaling{
+					ID:      v.msg.ID,
+					Version: v.msg.Version,
+					Method:  v.msg.Method,
+					Params:  v.msg.Params,
+					Peer:    remote.PeerInfo(),
+				}))
+		}()
+	}
+	wg.Wait()
+	responder.toSend <- env
+	return nil
+}
+
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
@@ -93,47 +162,11 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 	}()
 
 	for {
-		msgs, err := remote.ReadBatch(ctx)
+		err := s.codecLoop(ctx, remote, responder)
 		if err != nil {
-			remote.Flush()
 			s.printError(remote, err)
 			return
 		}
-		msg, batch := codec.ParseMessage(msgs)
-		env := &callEnv{
-			batch: batch,
-		}
-		for _, v := range msg {
-			rw := &callRespWriter{
-				msg:           v,
-				notifications: responder.toNotify,
-				header:        remote.PeerInfo().HTTP.Headers,
-			}
-			env.responses = append(env.responses, rw)
-		}
-		wg := sync.WaitGroup{}
-		wg.Add(len(msg))
-		for _, vv := range env.responses {
-			v := vv
-			go func() {
-				if v.msg.ID == nil {
-					wg.Done()
-				} else {
-					defer wg.Done()
-				}
-				s.services.ServeRPC(v, codec.NewRequestFromRaw(
-					ctx,
-					&codec.RequestMarshaling{
-						ID:      v.msg.ID,
-						Version: v.msg.Version,
-						Method:  v.msg.Method,
-						Params:  v.msg.Params,
-						Peer:    remote.PeerInfo(),
-					}))
-			}()
-		}
-		wg.Wait()
-		responder.toSend <- env
 	}
 }
 
@@ -190,12 +223,11 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) error {
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
 	enc := jx.GetEncoder()
 	enc.Reset()
 	//enc.ResetWriter(c.remote)
@@ -204,40 +236,42 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		enc.ArrStart()
 	}
 	for _, v := range env.responses {
-		if v.msg.ID == nil {
+		id := codec.Null
+		if v.id != nil {
+			id = v.id.RawMessage()
+		}
+		if v.skip {
 			continue
 		}
-		enc.ObjStart()
-		enc.FieldStart("jsonrpc")
-		enc.Str("2.0")
-		enc.FieldStart("id")
-		enc.Raw(v.msg.ID.RawMessage())
-		err := v.err
-		if err == nil {
-			if v.dat != nil {
-				buf.Reset()
-				err = v.dat(buf)
-				if err == nil {
-					enc.FieldStart("result")
-					enc.Raw(buf.Bytes())
+		enc.Obj(func(e *jx.Encoder) {
+			e.FieldStart("jsonrpc")
+			e.Str("2.0")
+			e.FieldStart("id")
+			e.Raw(id)
+			err := v.err
+			if err == nil {
+				if v.dat != nil {
+					buf := new(bytes.Buffer)
+					err = v.dat(buf)
+					if err == nil {
+						e.Field("result", func(e *jx.Encoder) {
+							e.Raw(bytes.TrimSpace(buf.Bytes()))
+						})
+					}
+				} else {
+					err = codec.NewInvalidRequestError("invalid request")
 				}
-			} else {
-				err = codec.NewMethodNotFoundError(v.msg.Method)
 			}
-		}
-		if err != nil {
-			enc.FieldStart("error")
-			err := codec.EncodeError(enc, err)
 			if err != nil {
-				return err
+				e.Field("error", func(e *jx.Encoder) {
+					codec.EncodeError(e, err)
+				})
 			}
-		}
-		enc.ObjEnd()
+		})
 	}
 	if env.batch {
 		enc.ArrEnd()
 	}
-	//err := enc.Close()
 	_, err := enc.WriteTo(c.remote)
 	if err != nil {
 		return err
@@ -258,6 +292,7 @@ type notifyEnv struct {
 var _ codec.ResponseWriter = (*callRespWriter)(nil)
 
 type callRespWriter struct {
+	id     codec.ID
 	msg    *codec.Message
 	dat    func(io.Writer) error
 	err    error
