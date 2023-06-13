@@ -2,6 +2,9 @@ package websocket
 
 import (
 	"context"
+	"encoding/base64"
+	"net/http"
+	"net/url"
 
 	"nhooyr.io/websocket"
 )
@@ -31,15 +34,26 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts 
 		return nil, err
 	}
 	opts.HTTPHeader = header
-	return newClient(ctx, func(cctx context.Context) (*websocket.Conn, error) {
-		conn, resp, err := websocket.Dial(cctx, endpoint, opts)
-		if err != nil {
-			hErr := WsHandshakeError{err: err}
-			if resp != nil {
-				hErr.status = resp.Status
-			}
-			return nil, hErr
-		}
-		return conn, err
-	})
+	conn, _, err := websocket.Dial(ctx, endpoint, opts)
+	if err != nil {
+		return nil, err
+	}
+	return newClient(conn)
+}
+
+func WsClientHeaders(endpoint, origin string) (string, http.Header, error) {
+	endpointURL, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint, nil, err
+	}
+	header := make(http.Header)
+	if origin != "" {
+		header.Add("origin", origin)
+	}
+	if endpointURL.User != nil {
+		b64auth := base64.StdEncoding.EncodeToString([]byte(endpointURL.User.String()))
+		header.Add("authorization", "Basic "+b64auth)
+		endpointURL.User = nil
+	}
+	return endpointURL.String(), header, nil
 }
