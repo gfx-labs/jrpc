@@ -1,13 +1,8 @@
 package websocket_test
 
-import (
-	"context"
-	"fmt"
-	"time"
+/*
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rpc"
-)
+Re enable this test when subscriptions
 
 // In this example, our client wishes to track the latest 'block number'
 // known to the server. The server supports two methods:
@@ -71,3 +66,5 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	// the connection.
 	fmt.Println("connection lost: ", <-sub.Err())
 }
+
+*/

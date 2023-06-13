@@ -1,54 +1,28 @@
 package websocket
 
 import (
-	"context"
-	jrpc2 "gfx.cafe/open/jrpc/pkg/codec"
-	"sync"
+	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 
-	"gfx.cafe/open/jrpc"
+	"context"
+
 	"nhooyr.io/websocket"
 )
 
 type Client struct {
-	conn          *websocket.Conn
-	reconnectFunc reconnectFunc
-
-	mu sync.RWMutex
+	*rdwr.Client
+	conn *websocket.Conn
 }
 
-type reconnectFunc func(ctx context.Context) (*websocket.Conn, error)
-
-func newClient(initctx context.Context, connect reconnectFunc) (*Client, error) {
-	conn, err := connect(initctx)
-	if err != nil {
-		return nil, err
+func newClient(conn *websocket.Conn) (*Client, error) {
+	conn.SetReadLimit(WsMessageSizeLimit)
+	netConn := websocket.NetConn(context.Background(), conn, websocket.MessageText)
+	c := &Client{
+		Client: rdwr.NewClient(netConn, netConn, nil),
+		conn:   conn,
 	}
-	c := &Client{}
-	c.conn = conn
-	c.reconnectFunc = connect
 	return c, nil
 }
 
-func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	panic("not implemented") // TODO: Implement
-}
-
-func (c *Client) BatchCall(ctx context.Context, b ...jrpc2.BatchElem) error {
-	panic("not implemented") // TODO: Implement
-}
-
-func (c *Client) SetHeader(key string, value string) {
-	panic("not implemented") // TODO: Implement
-}
-
 func (c *Client) Close() error {
-	panic("not implemented") // TODO: Implement
-}
-
-func (c *Client) Notify(ctx context.Context, method string, args ...any) error {
-	panic("not implemented") // TODO: Implement
-}
-
-func (c *Client) Subscribe(ctx context.Context, namespace string, channel any, args ...any) (*jrpc.ClientSubscription, error) {
-	panic("not implemented") // TODO: Implement
+	return c.conn.Close(websocket.StatusNormalClosure, "")
 }

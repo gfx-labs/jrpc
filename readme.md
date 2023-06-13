@@ -26,13 +26,20 @@ contrib/         - packages that add to jrpc
   codecs/          - client and server transport implementations
     codecs.go        - dialers for all finished codecs
     http/              - http based codec
-      codec_test.go    - general tests that all must pass
-      client.go        - codec.Conn implementation
-      codec.go         - codec.ReaderWriter implementaiton
-      const.go         - constants
-      handler.go       - http handler
-      http_test.go     - http specific tests
-    websocket/         - WIP: websocket basec codec
+      codec_test.go      - general tests that all must pass
+      client.go          - codec.Conn implementation
+      codec.go           - codec.ReaderWriter implementaiton
+      const.go           - constants
+      handler.go         - http handler
+      http_test.go       - http specific tests
+    websocket/         - websocket basec codec
+      codec_test.go      - general tests that all must pass
+      client.go          - codec.Conn implementation
+      codec.go           - codec.ReadWriter implementation
+      const.go           - constants
+      dial.go            - websocket dialer
+      handler.go         - http handler
+      websocket_test.go  - websocket specific tests
     inproc/            - WIP: inproc based codec
     ipc/               - WIP: ipc based codec
     stdio/             - WIP: stdio based codec (variation of ipc)
