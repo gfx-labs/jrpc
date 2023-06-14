@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"io/fs"
+	"strings"
 )
 
 //go:embed testdata
@@ -19,7 +20,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
+		if d.IsDir() || strings.HasSuffix(d.Name(), ".old") {
 			return nil
 		}
 		file, err := originalTestDataFS.Open(path)

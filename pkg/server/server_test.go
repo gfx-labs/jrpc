@@ -35,7 +35,7 @@ func TestGoEthereumTestScripts(t *testing.T) {
 					assert.EqualValues(t, string(act.Data), strings.TrimSpace(sent))
 				case jrpctest.DirectionSend:
 					rd.SetWriteDeadline(time.Now().Add(5 * time.Second))
-					_, err := rd.Write(append(act.Data, ' '))
+					_, err := rd.Write(append(act.Data, []byte(" ")...))
 					require.NoError(t, err)
 				}
 			}

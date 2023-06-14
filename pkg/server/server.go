@@ -91,12 +91,18 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 
 	// create a waitgroup
 	wg := sync.WaitGroup{}
-	wg.Add(len(msg))
+	wg.Add(len(env.responses))
 	for _, vv := range env.responses {
 		v := vv
 		// early respond to nil requests
-		if v.msg == nil || v.msg.ID == nil || v.msg.ID.IsNull() || len(v.msg.Method) == 0 {
+		if v.msg == nil || len(v.msg.Method) == 0 {
 			v.err = codec.NewInvalidRequestError("invalid request")
+			wg.Done()
+			continue
+		}
+		if v.msg.ID == nil || v.msg.ID.IsNull() {
+			// it's a notification, so we mark skip and we don't write anything for it
+			v.skip = true
 			wg.Done()
 			continue
 		}
@@ -228,6 +234,18 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) error {
+	// notification gets nothing
+	if env.batch {
+		allSkip := true
+		for _, v := range env.responses {
+			if v.skip != true {
+				allSkip = false
+			}
+		}
+		if allSkip {
+			return nil
+		}
+	}
 	enc := jx.GetEncoder()
 	enc.Reset()
 	//enc.ResetWriter(c.remote)
@@ -240,7 +258,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 		if v.id != nil {
 			id = v.id.RawMessage()
 		}
-		if v.skip {
+		if env.batch && v.skip {
 			continue
 		}
 		enc.Obj(func(e *jx.Encoder) {
