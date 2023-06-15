@@ -20,6 +20,7 @@ func Logger(next jrpc.Handler) jrpc.Handler {
 		start := time.Now()
 		l := log.Trace().
 			Str("remote", r.Remote()).
+			Str("origin", r.Peer.HTTP.Origin).
 			Str("method", r.Method).
 			Str("params", string(r.Msg().Params))
 		next.ServeRPC(w, r.WithContext(context.WithValue(r.Context(), LoggerKey, l)))
