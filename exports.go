@@ -10,39 +10,43 @@ import (
 // to make the repo cleaner, we export everything here. this way the packages dont need to ever import this
 
 type (
-	// Conn
+	// Conn is used to make requests to jsonrpc2 servers
 	Conn = codec.Conn
-	// Handler
+	// Handler is the equivilant of http.Handler, but for jsonrpc.
 	Handler = codec.Handler
-	// HandlerFunc
+	// HandlerFunc is a Handler that exists as a function
 	HandlerFunc = codec.HandlerFunc
-	// ResponseWriter
+	// ResponseWriter is used to write responses to the request
 	ResponseWriter = codec.ResponseWriter
-	// StreamingConn
+	// StreamingConn is a conn that supports streaming methods
 	StreamingConn = codec.Conn
 )
 type (
-	// BatchElem
+	// BatchElem is an element of a batch request
 	BatchElem = codec.BatchElem
 )
 
 var (
-	ContextWithConn     = codec.ContextWithConn
+	// ContextWithConn will attach a conn to the context
+	ContextWithConn = codec.ContextWithConn
+	// ContextWithPeerInfo will attach a peerinfo to the context
 	ContextWithPeerInfo = server.ContextWithPeerInfo
 
-	ConnFromContext     = codec.ConnFromContext
+	// ConnFromContext will retrieve a conn from context
+	ConnFromContext = codec.ConnFromContext
+	// PeerInfoFromContext will retrieve a peerinfo from context
 	PeerInfoFromContext = server.PeerInfoFromContext
 )
 
-// Do
+// Do will use the conn to perform a jsonrpc2 call.
 func Do[T any](ctx context.Context, c Conn, method string, args any) (*T, error) {
 	return codec.Do[T](ctx, c, method, args)
 }
 
-// Call
+// Call will use the conn to perform a jsonrpc2 call, except the args will be encoded as an array of arguments.
 func Call[T any](ctx context.Context, c Conn, method string, args ...any) (*T, error) {
 	return codec.Call[T](ctx, c, method, args...)
 }
 
-// CallInto
+// CallInto is the same as Call, except instead of returning, you provide a pointer to the result
 var CallInto = codec.CallInto
