@@ -40,9 +40,8 @@ contrib/         - packages that add to jrpc
       dial.go            - websocket dialer
       handler.go         - http handler
       websocket_test.go  - websocket specific tests
-    inproc/            - WIP: inproc based codec
-    ipc/               - WIP: ipc based codec
-    stdio/             - WIP: stdio based codec (variation of ipc)
+    rdwr/              - rdwr based codec. can be used to implement other codecs
+    inproc/            - inproc based codec
   jmux/            - a chi based router which satisfies the jrpc.Handler interface
   handlers/        - special jrpc handlers
     argreflect/      - go-ethereum style struct reflection
