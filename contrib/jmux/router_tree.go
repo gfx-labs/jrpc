@@ -549,7 +549,7 @@ func patNextSegment(pattern string) (nodeTyp, string, string, byte, int, int) {
 		panic("rpc: wildcard '*' must be the last pattern in a route, otherwise use a '{param}'")
 	}
 
-	var tail byte = '_' // Default endpoint tail to _ byte
+	var tail byte = sepRune // Default endpoint tail to _ byte
 
 	if ps >= 0 {
 		// Param/Regexp pattern is next
@@ -648,11 +648,11 @@ func (ns nodes) Len() int           { return len(ns) }
 func (ns nodes) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns nodes) Less(i, j int) bool { return ns[i].label < ns[j].label }
 
-// tailSort pushes nodes with '/' as the tail to the end of the list for param nodes.
+// tailSort pushes nodes with sepRune as the tail to the end of the list for param nodes.
 // The list order determines the traversal order.
 func (ns nodes) tailSort() {
 	for i := len(ns) - 1; i >= 0; i-- {
-		if ns[i].typ > ntStatic && ns[i].tail == '_' {
+		if ns[i].typ > ntStatic && ns[i].tail == sepRune {
 			ns.Swap(i, len(ns)-1)
 			return
 		}
@@ -708,8 +708,8 @@ func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(codec.
 		}
 		handler := route.Handler
 
-		fullRoute := parentRoute + "_" + route.Pattern
-		fullRoute = strings.Replace(fullRoute, "_*_", "_", -1)
+		fullRoute := parentRoute + sepString + route.Pattern
+		fullRoute = strings.Replace(fullRoute, sepString+"*"+sepString, sepString, -1)
 
 		if chain, ok := handler.(*ChainHandler); ok {
 			if err := walkFn(fullRoute, chain.Endpoint, append(mws, chain.Middlewares...)...); err != nil {

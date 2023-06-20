@@ -13,6 +13,9 @@ import (
 
 var _ Router = &Mux{}
 
+const sepRune = '_'
+const sepString = string(sepRune)
+
 // Mux is a simple JRPC route multiplexer that parses a request path,
 // records any URL params, and executes an end handler. It implements
 // the Handler interface and is friendly with the standard library.
@@ -277,10 +280,10 @@ func (mx *Mux) Mount(pattern string, handler codec.Handler) {
 		handler.ServeRPC(w, r)
 	})
 
-	if pattern == "" || pattern[len(pattern)-1] != '_' {
+	if pattern == "" || pattern[len(pattern)-1] != sepRune {
 		mx.handle(pattern, mountHandler)
-		mx.handle(pattern+"_", mountHandler)
-		pattern += "_"
+		mx.handle(pattern+sepString, mountHandler)
+		pattern += sepString
 	}
 
 	n := mx.handle(pattern+"*", mountHandler)

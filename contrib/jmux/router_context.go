@@ -122,16 +122,16 @@ func (x *Context) MethodParam(key string) string {
 func (x *Context) RoutePattern() string {
 	routePattern := strings.Join(x.RoutePatterns, "")
 	routePattern = replaceWildcards(routePattern)
-	routePattern = strings.TrimSuffix(routePattern, "__")
-	routePattern = strings.TrimSuffix(routePattern, "_")
+	routePattern = strings.TrimSuffix(routePattern, sepString + sepString)
+	routePattern = strings.TrimSuffix(routePattern, sepString)
 	return routePattern
 }
 
 // replaceWildcards takes a route pattern and recursively replaces all
 // occurrences of "_*_" to "_".
 func replaceWildcards(p string) string {
-	if strings.Contains(p, "_*_") {
-		return replaceWildcards(strings.Replace(p, "_*_", "_", -1))
+	if strings.Contains(p, sepString+"*"+sepString) {
+		return replaceWildcards(strings.Replace(p, sepString+"*"+sepString, sepString, -1))
 	}
 	return p
 }
@@ -155,5 +155,5 @@ type contextKey struct {
 }
 
 func (k *contextKey) String() string {
-	return "jsonrpc2 context value " + k.name
+	return "jrpc context value " + k.name
 }
