@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"io"
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/util/go/bufpool"
@@ -131,7 +132,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 			reqs = append(reqs, codec.NewRequestInt(ctx, id, v.Method, v.Params))
 		}
 	}
-	dat, err := json.Marshal(b)
+	dat, err := json.Marshal(reqs)
 	if err != nil {
 		return err
 	}
