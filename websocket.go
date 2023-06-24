@@ -115,6 +115,9 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 }
 
 func newWebsocketCodec(ctx context.Context, c *websocket.Conn, host string, req http.Header) ServerCodec {
+	if req == nil {
+		req = http.Header{}
+	}
 	jsonWriter := func(v any) error {
 		return wsjson.Write(context.Background(), c, v)
 	}

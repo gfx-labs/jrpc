@@ -1,8 +1,14 @@
 package jrpc
 
+import (
+	"context"
+
+	"nhooyr.io/websocket"
+)
+
 // that is listening on the given endpoint using the provided dialer.
 func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts *websocket.DialOptions) (*Client, error) {
-	endpoint, header, err := wsClientHeaders(endpoint, origin)
+	endpoint, _, err := wsClientHeaders(endpoint, origin)
 	if err != nil {
 		return nil, err
 	}
@@ -15,7 +21,7 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts 
 			}
 			return nil, hErr
 		}
-		out := newWebsocketCodec(resp.Request.Context(), conn, endpoint, header)
+		out := newWebsocketCodec(resp.Request.Context(), conn, endpoint, nil)
 		return out, err
 	})
 }
@@ -26,7 +32,7 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, opts 
 // The context is used for the initial connection establishment. It does not
 // affect subsequent interactions with the client.
 func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error) {
-	endpoint, header, err := wsClientHeaders(endpoint, origin)
+	endpoint, _, err := wsClientHeaders(endpoint, origin)
 	if err != nil {
 		return nil, err
 	}
