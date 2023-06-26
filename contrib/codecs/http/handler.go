@@ -20,5 +20,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := NewCodec(w, r)
+	w.Header().Set("content-type", contentType)
 	s.Server.ServeCodec(r.Context(), c)
 }
