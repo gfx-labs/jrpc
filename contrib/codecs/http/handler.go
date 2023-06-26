@@ -1,9 +1,14 @@
 package http
 
 import (
-	"gfx.cafe/open/jrpc/pkg/server"
 	"net/http"
+
+	"gfx.cafe/open/jrpc/pkg/server"
 )
+
+func HttpHandler(s *server.Server) http.Handler {
+	return &Server{Server: s}
+}
 
 type Server struct {
 	Server *server.Server

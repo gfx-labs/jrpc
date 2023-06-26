@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package http
+package http_test
 
 import (
 	"net/http"
@@ -30,8 +30,12 @@ import (
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
+
+	. "gfx.cafe/open/jrpc/contrib/codecs/http"
 )
 
+const contentType = "application/json"
+const maxRequestContentLength = 1024 * 1024 * 5
 const respLength = maxRequestContentLength * 3
 
 func confirmStatusCode(t *testing.T, got, want int) {
