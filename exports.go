@@ -3,6 +3,7 @@ package jrpc
 import (
 	"context"
 
+	"gfx.cafe/open/jrpc/contrib/codecs"
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
@@ -20,8 +21,7 @@ type (
 	ResponseWriter = codec.ResponseWriter
 	// StreamingConn is a conn that supports streaming methods
 	StreamingConn = codec.Conn
-
-	//Request is the request object
+	// Request is the request object
 	Request = codec.Request
 )
 type (
@@ -30,6 +30,12 @@ type (
 )
 
 var (
+
+	// DialContext is to dial a conn with context
+	DialContext = codecs.DialContext
+	// Dial is to dial a conn with context.Background()
+	Dial = codecs.Dial
+
 	// ContextWithConn will attach a conn to the context
 	ContextWithConn = codec.ContextWithConn
 	// ContextWithPeerInfo will attach a peerinfo to the context
