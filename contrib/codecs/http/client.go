@@ -48,6 +48,9 @@ func DialHTTP(target string) (*Client, error) {
 }
 
 func Dial(ctx context.Context, client *http.Client, target string) (*Client, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	return &Client{remote: target, c: client, headers: http.Header{}}, nil
 }
 
