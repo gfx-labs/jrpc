@@ -20,6 +20,9 @@ type (
 	ResponseWriter = codec.ResponseWriter
 	// StreamingConn is a conn that supports streaming methods
 	StreamingConn = codec.Conn
+
+	//Request is the request object
+	Request = codec.Request
 )
 type (
 	// BatchElem is an element of a batch request
