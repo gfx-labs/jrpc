@@ -23,6 +23,8 @@ type (
 	StreamingConn = codec.Conn
 	// Request is the request object
 	Request = codec.Request
+	// Server is a jrpc server
+	Server = server.Server
 )
 type (
 	// BatchElem is an element of a batch request
@@ -30,6 +32,9 @@ type (
 )
 
 var (
+
+	// NewServer creates a jrpc server
+	NewServer = server.NewServer
 
 	// DialContext is to dial a conn with context
 	DialContext = codecs.DialContext
