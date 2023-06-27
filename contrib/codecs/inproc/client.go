@@ -17,6 +17,11 @@ type Client struct {
 	handler codec.Handler
 }
 
+func (c *Client) Mount(h codec.Handler) codec.Conn {
+	c.handler = h
+	return c
+}
+
 func NewClient(c *Codec, handler codec.Handler) *Client {
 	cl := &Client{
 		p:       clientutil.NewIdReply(),
@@ -39,9 +44,9 @@ func (c *Client) listen() error {
 			v := msgs[i]
 			id := v.ID.Number()
 			if id == 0 {
-				//if c.handler != nil {
-				//	c.handler.ServeRPC(w, r)
-				//}
+				if c.handler != nil {
+					c.handler.ServeRPC(w, r)
+				}
 				continue
 			}
 			var err error

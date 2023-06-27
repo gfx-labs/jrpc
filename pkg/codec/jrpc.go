@@ -17,10 +17,16 @@ type Notifier interface {
 	Notify(ctx context.Context, method string, params any) error
 }
 
+type Mounter interface {
+	Mount(Handler) Conn
+}
+
 type Conn interface {
 	Doer
 	BatchCaller
 	io.Closer
+
+	Mounter
 }
 
 type StreamingConn interface {

@@ -41,6 +41,13 @@ type Client struct {
 	id atomic.Int64
 
 	headers http.Header
+
+	handler codec.Handler
+}
+
+func (c *Client) Mount(h codec.Handler) codec.Conn {
+	c.handler = h
+	return c
 }
 
 func DialHTTP(target string) (*Client, error) {

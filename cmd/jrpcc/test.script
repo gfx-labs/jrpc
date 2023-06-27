@@ -1,0 +1,6 @@
+d wss://mainnet.rpc.gfx.xyz
+m eth_getBlockByNumber
+p [1500000, true]
+
+
+send

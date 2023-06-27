@@ -29,6 +29,8 @@ var (
 	ErrNotificationsUnsupported = errors.New("notifications not supported")
 	// ErrNotificationNotFound is returned when the notification for the given id is not found
 	ErrSubscriptionNotFound = errors.New("subscription not found")
+	// ErrNotificationNotFound is returned when the notification for the given id is not found
+	ErrSubscriptionClosed = errors.New("subscription not found")
 )
 
 var globalInc = atomic.Int64{}
@@ -79,23 +81,10 @@ type Notifier struct {
 	h         codec.ResponseWriter
 	namespace string
 
-	mu  sync.Mutex
-	sub *Subscription
+	mu sync.Mutex
 
-	id SubID
-}
-
-// CreateSubscription returns a new subscription that is coupled to the
-// RPC connection. By default subscriptions are inactive and notifications
-// are dropped until the subscription is marked as active. This is done
-// by the RPC server after the subscription ID is send to the client.
-func (n *Notifier) createSubscription() *Subscription {
-	n.sub = &Subscription{
-		ID:        n.id,
-		namespace: n.namespace,
-		err:       make(chan error, 1),
-	}
-	return n.sub
+	id  SubID
+	err chan error // closed on unsubscribe
 }
 
 // Notify sends a notification to the client with the given data as payload.
@@ -107,28 +96,10 @@ func (n *Notifier) Notify(data interface{}) error {
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return n.send(n.sub, enc)
+	return n.send(enc)
 }
 
-func (n *Notifier) send(sub *Subscription, data json.RawMessage) error {
-	params, _ := json.Marshal(&subscriptionResult{ID: string(sub.ID), Result: data})
+func (n *Notifier) send(data json.RawMessage) error {
+	params, _ := json.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
 	return n.h.Notify(n.namespace+notificationMethodSuffix, json.RawMessage(params))
-}
-
-// A Subscription is created by a notifier and tied to that notifier. The client can use
-// this subscription to wait for an unsubscribe request for the client, see Err().
-type Subscription struct {
-	ID        SubID
-	namespace string
-	err       chan error // closed on unsubscribe
-}
-
-// Err returns a channel that is closed when the client send an unsubscribe request.
-func (s *Subscription) Err() <-chan error {
-	return s.err
-}
-
-// MarshalJSON marshals a subscription as its ID.
-func (s *Subscription) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.ID)
 }
