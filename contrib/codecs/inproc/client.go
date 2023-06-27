@@ -45,7 +45,14 @@ func (c *Client) listen() error {
 			id := v.ID.Number()
 			if id == 0 {
 				if c.handler != nil {
-					c.handler.ServeRPC(w, r)
+					c.handler.ServeRPC(nil, codec.NewRequestFromRaw(c.c.ctx, &codec.RequestMarshaling{
+						Method: v.Method,
+						Params: v.Params,
+						Peer: codec.PeerInfo{
+							Transport:  "ipc",
+							RemoteAddr: "",
+						},
+					}))
 				}
 				continue
 			}
