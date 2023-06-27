@@ -65,6 +65,7 @@ type Schema struct {
 
 type Param struct {
 	Name        string `json:"name"`
+	Summary 	string `json:"summary,omitempty"`
 	Description string `json:"description,omitempty"`
 	Required    bool   `json:"required"`
 	Schema      Schema `json:"schema"`
