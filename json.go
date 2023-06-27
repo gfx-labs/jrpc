@@ -1,35 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
 package jrpc
 
 import (
 	"bytes"
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 
+	stdjson "encoding/json"
+
 	"gfx.cafe/open/jrpc/wsjson"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 var jzon = wsjson.JZON
@@ -54,30 +37,45 @@ type jsonrpcMessage struct {
 
 func MakeCall(id int, method string, params []any) *JsonRpcMessage {
 	return &JsonRpcMessage{
-		ID: NewNumberIDPtr(int32(id)),
+		ID: NewNumberIDPtr(int64(id)),
 	}
 }
 
 type JsonRpcMessage = jsonrpcMessage
 
 func (msg *jsonrpcMessage) isNotification() bool {
-	return msg.ID == nil && msg.Method != ""
+	return msg.ID == nil && len(msg.Method) > 0
 }
-
 func (msg *jsonrpcMessage) isCall() bool {
-	return msg.hasValidID() && msg.Method != ""
+	return msg.hasValidID() && len(msg.Method) > 0
 }
-
 func (msg *jsonrpcMessage) isResponse() bool {
-	return msg.hasValidID() && msg.Method == "" && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
+	return msg.hasValidID() && len(msg.Method) == 0 && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
 }
-
+func (msg *jsonrpcMessage) toResponse() *Response {
+	return &Response{
+		ID:     msg.ID,
+		Result: msg.Result,
+		Error:  msg.Error,
+	}
+}
 func (msg *jsonrpcMessage) hasValidID() bool {
 	return msg.ID != nil && !msg.ID.null
 }
+func (msg *jsonrpcMessage) isSubscribe() bool {
+	return strings.HasSuffix(msg.Method, subscribeMethodSuffix)
+}
+func (msg *jsonrpcMessage) isUnsubscribe() bool {
+	return strings.HasSuffix(msg.Method, unsubscribeMethodSuffix)
+}
+
+func (msg *jsonrpcMessage) namespace() string {
+	elem := strings.SplitN(msg.Method, serviceMethodSeparator, 2)
+	return elem[0]
+}
 
 func (msg *jsonrpcMessage) String() string {
-	b, _ := jzon.Marshal(msg)
+	b, _ := json.Marshal(msg)
 	return string(b)
 }
 
@@ -88,34 +86,19 @@ func (msg *jsonrpcMessage) errorResponse(err error) *jsonrpcMessage {
 	}
 	return resp
 }
-
 func (msg *jsonrpcMessage) response(result any) *jsonrpcMessage {
 	// do a funny marshaling
 	enc, err := jzon.Marshal(result)
 	if err != nil {
 		return msg.errorResponse(err)
 	}
+	if len(enc) == 0 {
+		enc = []byte("null")
+	}
 	return &jsonrpcMessage{ID: msg.ID, Result: enc}
 }
 
-func errorMessage(err error) *jsonrpcMessage {
-	msg := &jsonrpcMessage{
-		ID: NewNullIDPtr(),
-		Error: &jsonError{
-			Code:    defaultErrorCode,
-			Message: err.Error(),
-		}}
-	ec, ok := err.(Error)
-	if ok {
-		msg.Error.Code = ec.ErrorCode()
-	}
-	de, ok := err.(DataError)
-	if ok {
-		msg.Error.Data = de.ErrorData()
-	}
-	return msg
-}
-
+// encapsulate json rpc error into struct
 type jsonError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -139,110 +122,36 @@ func (err *jsonError) ErrorData() any {
 	return err.Data
 }
 
-// Conn is a subset of the methods of net.Conn which are sufficient for ServerCodec.
-type Conn interface {
-	io.ReadWriteCloser
-	SetWriteDeadline(time.Time) error
-}
-
-type deadlineCloser interface {
-	io.Closer
-	SetWriteDeadline(time.Time) error
-}
-
-// ConnRemoteAddr wraps the RemoteAddr operation, which returns a description
-// of the peer address of a connection. If a Conn also implements ConnRemoteAddr, this
-// description is used in log messages.
-type ConnRemoteAddr interface {
-	RemoteAddr() string
-}
-
-// jsonCodec reads and writes JSON-RPC messages to the underlying connection. It also has
-// support for parsing arguments and serializing (result) objects.
-type jsonCodec struct {
-	remote  string
-	closer  sync.Once         // close closed channel once
-	closeCh chan any          // closed on Close
-	decode  func(v any) error // decoder to allow multiple transports
-	encMu   sync.Mutex        // guards the encoder
-	encode  func(v any) error // encoder to allow multiple transports
-	conn    deadlineCloser
-}
-
-// NewFuncCodec creates a codec which uses the given functions to read and write. If conn
-// implements ConnRemoteAddr, log messages will use it to include the remote address of
-// the connection.
-func NewFuncCodec(conn deadlineCloser, encode, decode func(v any) error) ServerCodec {
-	codec := &jsonCodec{
-		closeCh: make(chan any),
-		encode:  encode,
-		decode:  decode,
-		conn:    conn,
+// error message produces json rpc message with error message
+func errorMessage(err error) *jsonrpcMessage {
+	msg := &jsonrpcMessage{
+		ID: NewNullIDPtr(),
+		Error: &jsonError{
+			Code:    defaultErrorCode,
+			Message: err.Error(),
+		}}
+	ec, ok := err.(Error)
+	if ok {
+		msg.Error.Code = ec.ErrorCode()
 	}
-	if ra, ok := conn.(ConnRemoteAddr); ok {
-		codec.remote = ra.RemoteAddr()
+	de, ok := err.(DataError)
+	if ok {
+		msg.Error.Data = de.ErrorData()
 	}
-	return codec
+	return msg
 }
 
-// NewCodec creates a codec on the given connection. If conn implements ConnRemoteAddr, log
-// messages will use it to include the remote address of the connection.
-func NewCodec(conn Conn) ServerCodec {
-	enc := jzon.NewEncoder(conn)
-	dec := json.NewDecoder(conn)
-	dec.UseNumber()
-	return NewFuncCodec(conn, enc.Encode, dec.Decode)
-}
-
-func (c *jsonCodec) peerInfo() PeerInfo {
-	// This returns "ipc" because all other built-in transports have a separate codec type.
-	return PeerInfo{Transport: "ipc", RemoteAddr: c.remote}
-}
-
-func (c *jsonCodec) remoteAddr() string {
-	return c.remote
-}
-
-func (c *jsonCodec) readBatch() (messages []*jsonrpcMessage, batch bool, err error) {
-	// Decode the next JSON object in the input stream.
-	// This verifies basic syntax, etc.
-	var rawmsg json.RawMessage
-	if err := c.decode(&rawmsg); err != nil {
-		return nil, false, err
-	}
-	messages, batch = parseMessage(rawmsg)
-	for i, msg := range messages {
-		if msg == nil {
-			// Message is JSON 'null'. Replace with zero value so it
-			// will be treated like any other invalid message.
-			messages[i] = new(jsonrpcMessage)
+// isBatch returns true when the first non-whitespace characters is '['
+func isBatch(raw json.RawMessage) bool {
+	for _, c := range raw {
+		// skip insignificant whitespace (http://www.ietf.org/rfc/rfc4627.txt)
+		switch c {
+		case 0x20, 0x09, 0x0a, 0x0d:
+			continue
 		}
+		return c == '['
 	}
-	return messages, batch, nil
-}
-
-func (c *jsonCodec) writeJSON(ctx context.Context, v any) error {
-	c.encMu.Lock()
-	defer c.encMu.Unlock()
-
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		deadline = time.Now().Add(defaultWriteTimeout)
-	}
-	c.conn.SetWriteDeadline(deadline)
-	return c.encode(v)
-}
-
-func (c *jsonCodec) close() {
-	c.closer.Do(func() {
-		close(c.closeCh)
-		c.conn.Close()
-	})
-}
-
-// Closed returns a channel which will be closed when Close is called
-func (c *jsonCodec) closed() <-chan any {
-	return c.closeCh
+	return false
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
@@ -252,10 +161,13 @@ func (c *jsonCodec) closed() <-chan any {
 func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 	if !isBatch(raw) {
 		msgs := []*jsonrpcMessage{{}}
-		jzon.Unmarshal(raw, &msgs[0])
+		json.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
+	// TODO:
+	// for some reason other json decoders are incompatible with our test suite
+	// pretty sure its how we handle EOFs and stuff
+	dec := stdjson.NewDecoder(bytes.NewReader(raw))
 	dec.Token() // skip '['
 	var msgs []*jsonrpcMessage
 	for dec.More() {
@@ -263,18 +175,6 @@ func parseMessage(raw json.RawMessage) ([]*jsonrpcMessage, bool) {
 		dec.Decode(&msgs[len(msgs)-1])
 	}
 	return msgs, true
-}
-
-// isBatch returns true when the first non-whitespace characters is '['
-func isBatch(raw json.RawMessage) bool {
-	for _, c := range raw {
-		// skip insignificant whitespace (http://www.ietf.org/rfc/rfc4627.txt)
-		if c == 0x20 || c == 0x09 || c == 0x0a || c == 0x0d {
-			continue
-		}
-		return c == '['
-	}
-	return false
 }
 
 // parsePositionalArguments tries to parse the given args to an array of values with the
@@ -290,6 +190,8 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 		if args, err = parseArgumentArray(rawArgs, types); err != nil {
 			return nil, err
 		}
+	case string(rawArgs) == "null":
+		return nil, nil
 	default:
 		return nil, errors.New("non-array args")
 	}
@@ -303,11 +205,9 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	return args, nil
 }
 
-var jzpool = jsoniter.NewIterator(jzon).Pool()
-
 func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := jzpool.BorrowIterator(p)
-	defer jzpool.ReturnIterator(dec)
+	dec := jzon.BorrowIterator(p)
+	defer jzon.ReturnIterator(dec)
 	args := make([]reflect.Value, 0, len(types))
 	for i := 0; dec.ReadArray(); i++ {
 		if i >= len(types) {

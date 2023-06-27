@@ -118,7 +118,7 @@ func TestHTTPRespBodyUnlimited(t *testing.T) {
 	defer c.Close()
 
 	var r string
-	if err := c.Call(&r, "test_largeResp"); err != nil {
+	if err := c.Call(nil, &r, "test_largeResp"); err != nil {
 		t.Fatal(err)
 	}
 	if len(r) != respLength {
@@ -140,7 +140,7 @@ func TestHTTPErrorResponse(t *testing.T) {
 	}
 
 	var r string
-	err = c.Call(&r, "test_method")
+	err = c.Call(nil, &r, "test_method")
 	if err == nil {
 		t.Fatal("error was expected")
 	}
@@ -180,7 +180,7 @@ func TestHTTPPeerInfo(t *testing.T) {
 
 	// Request peer information.
 	var info PeerInfo
-	if err := c.Call(&info, "test_peerInfo"); err != nil {
+	if err := c.Call(nil, &info, "test_peerInfo"); err != nil {
 		t.Fatal(err)
 	}
 

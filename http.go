@@ -17,19 +17,19 @@
 package jrpc
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"net/url"
-	"strings"
-	"sync"
 	"time"
+
+	"gfx.cafe/util/go/bufpool"
+
+	json "github.com/goccy/go-json"
 )
 
 const (
@@ -41,46 +41,8 @@ const (
 var acceptedContentTypes = []string{
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
 	contentType, "application/json-rpc", "application/jsonrequest",
-	// these are added because they make sense
+	// these are added because they make sense, fight me!
 	"application/jsonrpc2", "application/json-rpc2", "application/jrpc",
-}
-
-type httpConn struct {
-	client    *http.Client
-	url       string
-	closeOnce sync.Once
-	closeCh   chan any
-	mu        sync.Mutex // protects headers
-	headers   http.Header
-}
-
-// httpConn implements ServerCodec, but it is treated specially by Client
-// and some methods don't work. The panic() stubs here exist to ensure
-// this special treatment is correct.
-
-func (hc *httpConn) writeJSON(context.Context, any) error {
-	panic("writeJSON called on httpConn")
-}
-
-func (hc *httpConn) peerInfo() PeerInfo {
-	panic("peerInfo called on httpConn")
-}
-
-func (hc *httpConn) remoteAddr() string {
-	return hc.url
-}
-
-func (hc *httpConn) readBatch() ([]*jsonrpcMessage, bool, error) {
-	<-hc.closeCh
-	return nil, false, io.EOF
-}
-
-func (hc *httpConn) close() {
-	hc.closeOnce.Do(func() { close(hc.closeCh) })
-}
-
-func (hc *httpConn) closed() <-chan any {
-	return hc.closeCh
 }
 
 // HTTPTimeouts represents the configuration params for the HTTP RPC server.
@@ -115,115 +77,21 @@ var DefaultHTTPTimeouts = HTTPTimeouts{
 	IdleTimeout:  120 * time.Second,
 }
 
-// DialHTTPWithClient creates a new RPC client that connects to an RPC server over HTTP
-// using the provided HTTP Client.
-func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
-	// Sanity check URL so we don't end up with a client that will fail every request.
-	_, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	initctx := context.Background()
-	headers := make(http.Header, 2)
-	headers.Set("accept", contentType)
-	headers.Set("content-type", contentType)
-	return newClient(initctx, func(context.Context) (ServerCodec, error) {
-		hc := &httpConn{
-			client:  client,
-			headers: headers,
-			url:     endpoint,
-			closeCh: make(chan any),
-		}
-		return hc, nil
-	})
-}
-
-// DialHTTP creates a new RPC client that connects to an RPC server over HTTP.
-func DialHTTP(endpoint string) (*Client, error) {
-	return DialHTTPWithClient(endpoint, new(http.Client))
-}
-
-func (c *Client) sendHTTP(ctx context.Context, op *requestOp, msg any) error {
-	hc := c.writeConn.(*httpConn)
-	respBody, err := hc.doRequest(ctx, msg)
-	if err != nil {
-		return err
-	}
-	defer respBody.Close()
-
-	var respmsg jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
-		return err
-	}
-	op.resp <- &respmsg
-	return nil
-}
-
-func (c *Client) sendBatchHTTP(ctx context.Context, op *requestOp, msgs []*jsonrpcMessage) error {
-	hc := c.writeConn.(*httpConn)
-	respBody, err := hc.doRequest(ctx, msgs)
-	if err != nil {
-		return err
-	}
-	defer respBody.Close()
-	var respmsgs []jsonrpcMessage
-	if err := json.NewDecoder(respBody).Decode(&respmsgs); err != nil {
-		return err
-	}
-	for i := 0; i < len(respmsgs); i++ {
-		op.resp <- &respmsgs[i]
-	}
-	return nil
-}
-
-func (hc *httpConn) doRequest(ctx context.Context, msg any) (io.ReadCloser, error) {
-	body, err := jzon.Marshal(msg)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST", hc.url, io.NopCloser(bytes.NewReader(body)))
-	if err != nil {
-		return nil, err
-	}
-	req.ContentLength = int64(len(body))
-	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
-
-	// set headers
-	hc.mu.Lock()
-	req.Header = hc.headers.Clone()
-	hc.mu.Unlock()
-
-	// do request
-	resp, err := hc.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var buf bytes.Buffer
-		var body []byte
-		if _, err := buf.ReadFrom(resp.Body); err == nil {
-			body = buf.Bytes()
-		}
-
-		return nil, HTTPError{
-			Status:     resp.Status,
-			StatusCode: resp.StatusCode,
-			Body:       body,
-		}
-	}
-	return resp.Body, nil
-}
-
 // httpServerConn turns a HTTP connection into a Conn.
 type httpServerConn struct {
 	io.Reader
 	io.Writer
+
+	jc ServerCodec
+
 	r *http.Request
+	w http.ResponseWriter
+
+	pi PeerInfo
 }
 
-func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
-	conn := &httpServerConn{Writer: w, r: r}
+func newHTTPServerConn(r *http.Request, w http.ResponseWriter, pi PeerInfo) ServerCodec {
+	c := &httpServerConn{Writer: w, r: r, pi: pi}
 	// if the request is a GET request, and the body is empty, we turn the request into fake json rpc request, see below
 	// https://www.jsonrpc.org/historical/json-rpc-over-http.html#encoded-parameters
 	// we however allow for non base64 encoded parameters to be passed
@@ -240,48 +108,49 @@ func newHTTPServerConn(r *http.Request, w http.ResponseWriter) ServerCodec {
 		if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
 			param = pb
 		}
-		buf := new(bytes.Buffer)
-		buf.Grow(128)
-		jzon.NewEncoder(buf).Encode(jsonrpcMessage{
+		buf := bufpool.GetStd()
+		json.NewEncoder(buf).Encode(jsonrpcMessage{
 			ID:     NewStringIDPtr(id),
 			Method: method_up,
 			Params: param,
 		})
-		conn.Reader = buf
+		c.Reader = buf
 	} else {
 		// it's a post request or whatever, so just process it like normal
-		conn.Reader = io.LimitReader(r.Body, maxRequestContentLength)
+		c.Reader = io.LimitReader(r.Body, maxRequestContentLength)
 	}
-	return NewCodec(conn)
+	c.jc = NewCodec(c)
+	return c
 }
 
-// Close does nothing and always returns nil.
-func (t *httpServerConn) Close() error { return nil }
+func (c *httpServerConn) PeerInfo() PeerInfo {
+	return c.pi
+}
+
+func (c *httpServerConn) ReadBatch() (messages []*jsonrpcMessage, batch bool, err error) {
+	return c.jc.ReadBatch()
+}
+
+func (c *httpServerConn) WriteJSON(ctx context.Context, v any) error {
+	return c.jc.WriteJSON(ctx, v)
+}
+
+func (c *httpServerConn) Close() error {
+	return nil
+}
+
+// Closed returns a channel which will be closed when Close is called
+func (c *httpServerConn) Closed() <-chan any {
+	return c.jc.Closed()
+}
 
 // RemoteAddr returns the peer address of the underlying connection.
 func (t *httpServerConn) RemoteAddr() string {
-	return t.r.RemoteAddr
+	return t.PeerInfo().RemoteAddr
 }
 
 // SetWriteDeadline does nothing and always returns nil.
 func (t *httpServerConn) SetWriteDeadline(time.Time) error { return nil }
-
-type WebsocketServer struct {
-	s *Server
-}
-
-func (s *WebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if isWebsocket(r) {
-		s.s.WebsocketHandler([]string{"*"}).ServeHTTP(w, r)
-		return
-	}
-	s.s.ServeHTTP(w, r)
-}
-
-func isWebsocket(r *http.Request) bool {
-	return strings.EqualFold(r.Header.Get("Upgrade"), "websocket") &&
-		strings.Contains(strings.ToLower(r.Header.Get("Connection")), "upgrade")
-}
 
 // ServeHTTP serves JSON-RPC requests over HTTP.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -296,14 +165,29 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create request-scoped context.
-	connInfo := PeerInfo{Transport: "http", RemoteAddr: r.RemoteAddr}
+	connInfo := PeerInfo{
+		Transport:  "http",
+		RemoteAddr: r.RemoteAddr,
+		HTTP: HttpInfo{
+			Version:      r.Proto,
+			UserAgent:    r.UserAgent(),
+			Host:         r.Host,
+			Headers:      r.Header.Clone(),
+			WriteHeaders: w.Header(),
+		},
+	}
 	connInfo.HTTP.Version = r.Proto
 	connInfo.HTTP.Host = r.Host
 	connInfo.HTTP.Origin = r.Header.Get("X-Real-Ip")
 	if connInfo.HTTP.Origin == "" {
 		connInfo.HTTP.Origin = r.Header.Get("X-Forwarded-For")
 	}
-	connInfo.HTTP.UserAgent = r.Header.Get("User-Agent")
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = r.Header.Get("Origin")
+	}
+	if connInfo.HTTP.Origin == "" {
+		connInfo.HTTP.Origin = r.RemoteAddr
+	}
 	// the headers used
 	connInfo.HTTP.Headers = r.Header
 
@@ -314,8 +198,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// until EOF, writes the response to w, and orders the server to process a
 	// single request.
 	w.Header().Set("content-type", contentType)
-	codec := newHTTPServerConn(r, w)
-	defer codec.close()
+
+	codec := newHTTPServerConn(r, w, connInfo)
+	defer codec.Close()
 	s.serveSingleRequest(ctx, codec)
 }
 

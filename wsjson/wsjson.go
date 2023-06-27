@@ -5,15 +5,16 @@ import (
 	"fmt"
 
 	"gfx.cafe/util/go/bufpool"
+	json "github.com/goccy/go-json"
 	jsoniter "github.com/json-iterator/go"
 	"nhooyr.io/websocket"
 )
 
-var jzon = jsoniter.Config{
+var JZON = jsoniter.Config{
 	IndentionStep:                 0,
 	MarshalFloatWith6Digits:       false,
 	EscapeHTML:                    true,
-	SortMapKeys:                   false,
+	SortMapKeys:                   true,
 	UseNumber:                     false,
 	DisallowUnknownFields:         false,
 	TagKey:                        "",
@@ -22,8 +23,6 @@ var jzon = jsoniter.Config{
 	ObjectFieldMustBeSimpleString: false,
 	CaseSensitive:                 false,
 }.Froze()
-
-var JZON = jzon
 
 // Read reads a JSON message from c into v.
 // It will reuse buffers in between calls to avoid allocations.
@@ -42,11 +41,10 @@ func read(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	err = jzon.NewDecoder(b).Decode(v)
+	err = json.NewDecoder(b).Decode(v)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal JSON: %w", err)
 	}
-
 	return nil
 }
 
@@ -57,18 +55,16 @@ func Write(ctx context.Context, c *websocket.Conn, v interface{}) error {
 }
 
 func write(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
-
 	w, err := c.Writer(ctx, websocket.MessageText)
 	if err != nil {
 		return err
 	}
-
-	// json.Marshal cannot reuse buffers between calls as it has to return
-	// a copy of the byte slice but Encoder does as it directly writes to w.
-	err = jzon.NewEncoder(w).Encode(v)
+	st := JZON.BorrowStream(w)
+	defer JZON.ReturnStream(st)
+	st.WriteVal(v)
+	err = st.Flush()
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
-
 	return w.Close()
 }

@@ -16,7 +16,9 @@
 
 package jrpc
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // HTTPError is returned by client operations when the HTTP status code of the
 // response is not a 2xx status.
@@ -41,8 +43,35 @@ type Error interface {
 
 // A DataError contains some data in addition to the error message.
 type DataError interface {
-	Error() string          // returns the message
+	Error() string  // returns the message
 	ErrorData() any // returns the error data
+}
+
+type JrpcErr struct {
+	Data any
+}
+
+func (j *JrpcErr) ErrorData() any {
+	return j.Data
+}
+
+func (j *JrpcErr) Error() string {
+	return "Jrpc Error"
+}
+
+func (j *JrpcErr) ErrorCode() int {
+	return jrpcErrorCode
+}
+
+func WrapJrpcErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w: %w", &JrpcErr{}, err)
+}
+
+func MakeJrpcErr(s string) error {
+	return fmt.Errorf("%w: %s", &JrpcErr{}, s)
 }
 
 // Error types defined below are the built-in JSON-RPC errors.
@@ -57,6 +86,10 @@ var (
 )
 
 const defaultErrorCode = -32000
+
+const applicationErrorCode = -32080
+
+const jrpcErrorCode = -42000
 
 type methodNotFoundError struct{ method string }
 

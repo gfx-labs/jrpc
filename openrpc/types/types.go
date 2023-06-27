@@ -26,8 +26,9 @@ type ServerVariable struct {
 }
 
 type Info struct {
-	Title   string `json:"title"`
-	Version string `json:"version"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
 }
 
 type Items []Schema
@@ -63,9 +64,10 @@ type Schema struct {
 }
 
 type Param struct {
-	Name     string `json:"name"`
-	Required bool   `json:"required"`
-	Schema   Schema `json:"schema"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required"`
+	Schema      Schema `json:"schema"`
 }
 
 type Result struct {
@@ -74,10 +76,41 @@ type Result struct {
 }
 
 type Method struct {
-	Name    string  `json:"name"`
-	Summary string  `json:"summary"`
-	Params  []Param `json:"params"`
-	Result  Result  `json:"result"`
+	Name     string           `json:"name"`
+	Tags     []Tag            `json:"tags,omitempty"`
+	Summary  string           `json:"summary"`
+	Params   []Param          `json:"params"`
+	Result   Result           `json:"result"`
+	Examples []ExamplePairing `json:"examples,omitempty"`
+}
+
+type Tag struct {
+	Ref          string                 `json:"$ref,omitempty"`
+	Name         string                 `json:"name"`
+	Summary      string                 `json:"summary,omitempty"`
+	Description  string                 `json:"description,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
+}
+
+type ExternalDocumentation struct {
+	Description string `json:"description,omitempty"`
+	URL         string `json:"url,omitempty"`
+}
+
+type ExamplePairing struct {
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	Summary     string    `json:"summary,omitempty"`
+	Params      []Example `json:"params"`
+	Result      Example   `json:"result"`
+}
+
+type Example struct {
+	Ref         string `json:"$ref,omitempty"`
+	Name        string `json:"name"`
+	Summary     string `json:"summary,omitempty"`
+	Description string `json:"description,omitempty"`
+	Value       any    `json:"value"`
 }
 
 func (m *Method) Namespace() string {
@@ -112,8 +145,9 @@ func NewOpenRPCSpec1() *OpenRPC {
 		Package: "main",
 		Version: "1.0.0",
 		Info: Info{
-			Title:   "gfx.cafe/open/jrpc/openrpc",
-			Version: "0.0.0",
+			Title:       "gfx.cafe/open/jrpc/openrpc",
+			Description: "",
+			Version:     "0.0.0",
 		},
 		Servers: make([]Server, 0),
 		Methods: make([]Method, 0),

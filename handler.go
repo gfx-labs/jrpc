@@ -17,10 +17,16 @@
 package jrpc
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"reflect"
+	"strings"
 	"sync"
+	"time"
 
-	"git.tuxpa.in/a/zlog"
+	"tuxpa.in/a/zlog"
 )
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that
@@ -49,31 +55,40 @@ type handler struct {
 	callWG     sync.WaitGroup        // pending call goroutines
 	rootCtx    context.Context       // canceled by close()
 	cancelRoot func()                // cancel function for rootCtx
-	conn       jsonWriter            // where responses will be sent
+	conn       JsonWriter            // where responses will be sent
 	log        *zlog.Logger
+
+	subLock       sync.RWMutex
+	clientSubs    map[string]*ClientSubscription // active client subscriptions
+	serverSubs    map[SubID]*Subscription
+	unsubscribeCb *callback
 
 	peer PeerInfo
 }
 
 type callProc struct {
-	ctx context.Context
+	ctx       context.Context
+	notifiers []*Notifier
 }
 
-func newHandler(connCtx context.Context, conn jsonWriter, reg Router) *handler {
+func newHandler(connCtx context.Context, conn JsonWriter, reg Router) *handler {
 	rootCtx, cancelRoot := context.WithCancel(connCtx)
 	h := &handler{
 		peer:       PeerInfoFromContext(connCtx),
 		reg:        reg,
 		conn:       conn,
 		respWait:   make(map[string]*requestOp),
+		clientSubs: map[string]*ClientSubscription{},
+		serverSubs: map[SubID]*Subscription{},
 		rootCtx:    rootCtx,
 		cancelRoot: cancelRoot,
 		log:        zlog.Ctx(connCtx),
 	}
 	if h.peer.RemoteAddr != "" {
-		cl := h.log.With().Str("conn", conn.remoteAddr()).Logger()
+		cl := h.log.With().Str("conn", conn.RemoteAddr()).Logger()
 		h.log = &cl
 	}
+	h.unsubscribeCb = newCallback(reflect.Value{}, reflect.ValueOf(h.unsubscribe))
 	return h
 }
 
@@ -82,7 +97,7 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 	// Emit error response for empty batches:
 	if len(msgs) == 0 {
 		h.startCallProc(func(cp *callProc) {
-			h.conn.writeJSON(cp.ctx, errorMessage(&invalidRequestError{"empty batch"}))
+			h.conn.WriteJSON(cp.ctx, errorMessage(&invalidRequestError{"empty batch"}))
 		})
 		return
 	}
@@ -100,12 +115,17 @@ func (h *handler) handleBatch(msgs []*jsonrpcMessage) {
 	h.startCallProc(func(cp *callProc) {
 		answers := make([]*jsonrpcMessage, 0, len(msgs))
 		for _, msg := range calls {
-			if answer := h.handleCallMsg(cp, msg); answer != nil {
-				answers = append(answers, answer)
+			r := NewMsgRequest(cp.ctx, h.peer, *msg)
+			if answer := h.handleCallMsg(cp, r); answer != nil {
+				answers = append(answers, answer.Msg())
 			}
 		}
+		h.addSubscriptions(cp.notifiers)
 		if len(answers) > 0 {
-			h.conn.writeJSON(cp.ctx, answers)
+			h.conn.WriteJSON(cp.ctx, answers)
+		}
+		for _, n := range cp.notifiers {
+			n.activate()
 		}
 	})
 }
@@ -116,9 +136,14 @@ func (h *handler) handleMsg(msg *jsonrpcMessage) {
 		return
 	}
 	h.startCallProc(func(cp *callProc) {
-		answer := h.handleCallMsg(cp, msg)
+		r := NewMsgRequest(cp.ctx, h.peer, *msg)
+		answer := h.handleCallMsg(cp, r)
+		h.addSubscriptions(cp.notifiers)
 		if answer != nil {
-			h.conn.writeJSON(cp.ctx, answer)
+			h.conn.WriteJSON(cp.ctx, answer)
+		}
+		for _, n := range cp.notifiers {
+			n.activate()
 		}
 	})
 }
@@ -129,6 +154,7 @@ func (h *handler) close(err error, inflightReq *requestOp) {
 	h.cancelAllRequests(err, inflightReq)
 	h.callWG.Wait()
 	h.cancelRoot()
+	h.cancelServerSubscriptions(err)
 }
 
 // addRequestOp registers a request operation.
@@ -177,74 +203,178 @@ func (h *handler) startCallProc(fn func(*callProc)) {
 // handleImmediate executes non-call messages. It returns false if the message is a
 // call or requires a reply.
 func (h *handler) handleImmediate(msg *jsonrpcMessage) bool {
-	start := NewTimer()
+	start := time.Now()
 	switch {
 	case msg.isNotification():
-		return true
+		if strings.HasSuffix(msg.Method, notificationMethodSuffix) {
+			h.handleSubscriptionResult(msg)
+			return true
+		}
+		return false
 	case msg.isResponse():
-		h.handleResponse(msg)
-		h.log.Trace().Str("reqid", string(msg.ID.RawMessage())).Dur("duration", start.Since(start)).Msg("Handled RPC response")
+		h.handleResponse(msg.toResponse())
+		h.log.Trace().Str("reqid", string(msg.ID.RawMessage())).Dur("duration", time.Since(start)).Msg("Handled RPC response")
 		return true
 	default:
 		return false
 	}
 }
 
-// handleResponse processes method call responses.
-func (h *handler) handleResponse(msg *jsonrpcMessage) {
+func (h *handler) handleSubscriptionResult(msg *jsonrpcMessage) {
+	var result subscriptionResult
+	if err := json.Unmarshal(msg.Params, &result); err != nil {
+		h.log.Trace().Msg("Dropping invalid subscription message")
+		return
+	}
+	if h.clientSubs[result.ID] != nil {
+		h.clientSubs[result.ID].deliver(result.Result)
+	}
+}
+
+func (h *handler) handleResponse(msg *Response) {
 	op := h.respWait[string(msg.ID.RawMessage())]
 	if op == nil {
 		h.log.Debug().Str("reqid", string(msg.ID.RawMessage())).Msg("Unsolicited RPC response")
 		return
 	}
 	delete(h.respWait, string(msg.ID.RawMessage()))
-	op.resp <- msg
+	if op.sub == nil {
+		// not a sub, so just send the msg back
+		op.resp <- msg.Msg()
+		return
+	}
+	// For subscription responses, start the subscription if the server
+	// indicates success. EthSubscribe gets unblocked in either case through
+	// the op.resp channel.
+	defer close(op.resp)
+	if msg.Error != nil {
+		op.err = msg.Error
+		return
+	}
+	if op.err = json.Unmarshal(msg.Result, &op.sub.subid); op.err == nil {
+		go op.sub.start()
+		h.clientSubs[op.sub.subid] = op.sub
+	}
 }
 
 // handleCallMsg executes a call message and returns the answer.
 // TODO: export prometheus metrics maybe? also fix logging
-func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
+func (h *handler) handleCallMsg(ctx *callProc, r *Request) *Response {
 	switch {
-	case msg.isNotification():
-		go h.handleCall(ctx, msg)
+	case r.isNotification():
+		go h.handleCall(ctx, r)
 		return nil
-	case msg.isCall():
-		resp := h.handleCall(ctx, msg)
+	case r.isCall():
+		resp := h.handleCall(ctx, r)
 		return resp
-	case msg.hasValidID():
-		return msg.errorResponse(&invalidRequestError{"invalid request"})
+	case r.hasValidID():
+		return r.errorResponse(&invalidRequestError{"invalid request"})
 	default:
-		return errorMessage(&invalidRequestError{"invalid request"})
+		res := r.errorResponse(&invalidRequestError{"invalid request"})
+		res.ID = NewNullIDPtr()
+		return res
 	}
 }
 
-func (h *handler) handleCall(cp *callProc, msg *jsonrpcMessage) *jsonrpcMessage {
-	callb := h.reg.Match(NewRouteContext(), msg.Method)
+func (h *handler) handleCall(cp *callProc, r *Request) *Response {
+	callb := h.reg.Match(NewRouteContext(), r.Method)
+	mw := NewReaderResponseWriterMsg(r)
+	if r.isSubscribe() {
+		return h.handleSubscribe(cp, r)
+	}
+	if r.isUnsubscribe() {
+		h.unsubscribeCb.ServeRPC(mw, r)
+		return mw.Response()
+	}
 	// no method found
 	if !callb {
-		return msg.errorResponse(&methodNotFoundError{method: msg.Method})
+		mw.Send(nil, &methodNotFoundError{method: r.Method})
+		return mw.Response()
 	}
-	req := &Request{ctx: cp.ctx, msg: *msg, peer: h.peer}
-	mw := NewReaderResponseWriterMsg(req)
-	h.reg.ServeRPC(mw, req)
+	// now actually run the handler
+	h.reg.ServeRPC(mw, r)
+	return mw.Response()
+}
 
-	//TODO: notifications
-	//if mw.notifications != nil {
-	//	go func() {
-	//		for {
-	//			val, more := <-mw.notifications
-	//			if !more {
-	//				break
-	//			}
-	//			err := h.conn.writeJSON(cp.ctx, val)
-	//			if err != nil {
-	//				if mw.notifications != nil {
-	//					close(mw.notifications)
-	//				}
-	//				log.Println("error in notification", err)
-	//			}
-	//		}
-	//	}()
-	//}
-	return mw.msg
+// handleSubscribe processes *_subscribe method calls.
+func (h *handler) handleSubscribe(cp *callProc, r *Request) *Response {
+	mw := NewReaderResponseWriterMsg(r.WithContext(cp.ctx))
+	switch h.peer.Transport {
+	case "http", "https":
+		mw.Send(nil, ErrNotificationsUnsupported)
+		return mw.Response()
+	}
+
+	// Subscription method name is first argument.
+	name, err := parseSubscriptionName(r.Params)
+	if err != nil {
+		mw.Send(nil, &invalidParamsError{err.Error()})
+		return mw.Response()
+	}
+	namespace := r.namespace()
+	has := h.reg.Match(NewRouteContext(), r.Method)
+	if !has {
+		mw.Send(nil, &subscriptionNotFoundError{namespace, name})
+		return mw.Response()
+	}
+	// Install notifier in context so the subscription handler can find it.
+	n := &Notifier{h: h, namespace: namespace, idgen: randomIDGenerator()}
+	cp.notifiers = append(cp.notifiers, n)
+	// now actually run the handler
+	req := r.WithContext(
+		context.WithValue(r.ctx, notifierKey{}, n),
+	)
+	mw = NewReaderResponseWriterMsg(req)
+	h.reg.ServeRPC(mw, req)
+	return mw.Response()
+}
+
+// parseSubscriptionName extracts the subscription name from an encoded argument array.
+func parseSubscriptionName(rawArgs json.RawMessage) (string, error) {
+	dec := json.NewDecoder(bytes.NewReader(rawArgs))
+	if tok, _ := dec.Token(); tok != json.Delim('[') {
+		return "", errors.New("non-array args")
+	}
+	v, _ := dec.Token()
+	method, ok := v.(string)
+	if !ok {
+		return "", errors.New("expected subscription name as first argument")
+	}
+	return method, nil
+}
+
+func (h *handler) unsubscribe(ctx context.Context, id SubID) (bool, error) {
+	h.subLock.Lock()
+	defer h.subLock.Unlock()
+
+	s := h.serverSubs[id]
+	if s == nil {
+		return false, ErrSubscriptionNotFound
+	}
+	close(s.err)
+	delete(h.serverSubs, id)
+	return true, nil
+}
+
+// cancelServerSubscriptions removes all subscriptions and closes their error channels.
+func (h *handler) cancelServerSubscriptions(err error) {
+	h.subLock.Lock()
+	defer h.subLock.Unlock()
+
+	for id, s := range h.serverSubs {
+		s.err <- err
+		close(s.err)
+		delete(h.serverSubs, id)
+	}
+}
+
+func (h *handler) addSubscriptions(nn []*Notifier) {
+	h.subLock.Lock()
+	defer h.subLock.Unlock()
+
+	for _, n := range nn {
+		if sub := n.takeSubscription(); sub != nil {
+			h.serverSubs[sub.ID] = sub
+		}
+	}
 }

@@ -30,13 +30,13 @@ import (
 	"testing"
 	"time"
 
-	"git.tuxpa.in/a/zlog"
-	"git.tuxpa.in/a/zlog/log"
 	"github.com/davecgh/go-spew/spew"
+	"tuxpa.in/a/zlog"
+	"tuxpa.in/a/zlog/log"
 )
 
 func init() {
-	zlog.SetGlobalLevel(zlog.FatalLevel)
+	zlog.SetGlobalLevel(zlog.ErrorLevel)
 }
 
 func TestClientRequest(t *testing.T) {
@@ -46,7 +46,7 @@ func TestClientRequest(t *testing.T) {
 	defer client.Close()
 
 	var resp echoResult
-	if err := client.Call(&resp, "test_echo", "hello", 10, &echoArgs{"world"}); err != nil {
+	if err := client.Call(nil, &resp, "test_echo", "hello", 10, &echoArgs{"world"}); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(resp, echoResult{"hello", 10, &echoArgs{"world"}}) {
@@ -60,12 +60,12 @@ func TestClientResponseType(t *testing.T) {
 	client := DialInProc(server)
 	defer client.Close()
 
-	if err := client.Call(nil, "test_echo", "hello", 10, &echoArgs{"world"}); err != nil {
+	if err := client.Call(nil, nil, "test_echo", "hello", 10, &echoArgs{"world"}); err != nil {
 		t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 	}
 	var resultVar echoResult
 	// Note: passing the var, not a ref
-	err := client.Call(resultVar, "test_echo", "hello", 10, &echoArgs{"world"})
+	err := client.Call(nil, resultVar, "test_echo", "hello", 10, &echoArgs{"world"})
 	if err == nil {
 		t.Error("Passing a var as result should be an error")
 	}
@@ -79,7 +79,7 @@ func TestClientErrorData(t *testing.T) {
 	defer client.Close()
 
 	var resp any
-	err := client.Call(&resp, "test_returnError")
+	err := client.Call(nil, &resp, "test_returnError")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -120,7 +120,7 @@ func TestClientBatchRequest(t *testing.T) {
 			Result: new(int),
 		},
 	}
-	if err := client.BatchCall(batch); err != nil {
+	if err := client.BatchCall(nil, batch...); err != nil {
 		t.Fatal(err)
 	}
 	wantResult := []BatchElem{
@@ -162,7 +162,7 @@ func TestClientCancelWebsocket(t *testing.T) { testClientCancel("ws", t) }
 func TestClientCancelHTTP(t *testing.T)      { testClientCancel("http", t) }
 func TestClientCancelIPC(t *testing.T)       { testClientCancel("ipc", t) }
 
-// This test checks that requests made through CallContext can be canceled by canceling
+// This test checks that requests made through Call can be canceled by canceling
 // the context.
 func testClientCancel(transport string, t *testing.T) {
 	// These tests take a lot of time, run them all at once.
@@ -234,7 +234,7 @@ func testClientCancel(transport string, t *testing.T) {
 
 			// Now perform a call with the context.
 			// The key thing here is that no call will ever complete successfully.
-			err := client.CallContext(ctx, nil, "test_block")
+			err := client.Call(ctx, nil, "test_block")
 			switch {
 			case err == nil:
 				_, hasDeadline := ctx.Deadline()
@@ -307,7 +307,7 @@ func TestClientHTTP(t *testing.T) {
 	for i := range results {
 		i := i
 		go func() {
-			errc <- client.Call(&results[i], "test_echo", wantResult.String, wantResult.Int, wantResult.Args)
+			errc <- client.Call(nil, &results[i], "test_echo", wantResult.String, wantResult.Int, wantResult.Args)
 		}()
 	}
 
@@ -357,7 +357,7 @@ func TestClientReconnect(t *testing.T) {
 
 	// Perform a call. This should work because the server is up.
 	var resp echoResult
-	if err := client.CallContext(ctx, &resp, "test_echo", "", 1, nil); err != nil {
+	if err := client.Call(ctx, &resp, "test_echo", "", 1, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -368,7 +368,7 @@ func TestClientReconnect(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	// Try calling again. It shouldn't work.
-	if err := client.CallContext(ctx, &resp, "test_echo", "", 2, nil); err == nil {
+	if err := client.Call(ctx, &resp, "test_echo", "", 2, nil); err == nil {
 		t.Error("successful call while the server is down")
 		t.Logf("resp: %#v", resp)
 	}
@@ -385,7 +385,7 @@ func TestClientReconnect(t *testing.T) {
 		go func() {
 			<-start
 			var resp echoResult
-			errors <- client.CallContext(ctx, &resp, "test_echo", "", 3, nil)
+			errors <- client.Call(ctx, &resp, "test_echo", "", 3, nil)
 		}()
 	}
 	close(start)

@@ -18,7 +18,7 @@ package jrpc
 
 import (
 	"context"
-	"encoding/json"
+	gojson "encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -26,7 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.tuxpa.in/a/zlog/log"
+	"github.com/goccy/go-json"
+	"tuxpa.in/a/zlog/log"
 )
 
 var (
@@ -56,11 +57,13 @@ type BatchElem struct {
 	Error error
 }
 
+var _ SubscriptionConn = (*Client)(nil)
+
 // Client represents a connection to an RPC server.
 type Client struct {
 	isHTTP bool // connection type: http, ws or ipc
 
-	idCounter uint32
+	idCounter uint64
 
 	r Router
 	// This function, if non-nil, is called when the connection is lost.
@@ -69,7 +72,7 @@ type Client struct {
 	// writeConn is used for writing to the connection on the caller's goroutine. It should
 	// only be accessed outside of dispatch, with the write lock held. The write lock is
 	// taken by sending on reqInit and released by sending on reqSent.
-	writeConn jsonWriter
+	writeConn JsonWriter
 
 	// for dispatch
 	close       chan struct{}
@@ -102,14 +105,14 @@ type clientConn struct {
 func (c *Client) newClientConn(conn ServerCodec) *clientConn {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, clientContextKey{}, c)
-	ctx = context.WithValue(ctx, peerInfoContextKey{}, conn.peerInfo())
+	ctx = context.WithValue(ctx, peerInfoContextKey{}, conn.PeerInfo())
 	handler := newHandler(ctx, conn, c.r)
 	return &clientConn{conn, handler}
 }
 
 func (cc *clientConn) close(err error, inflightReq *requestOp) {
 	cc.handler.close(err, inflightReq)
-	cc.codec.close()
+	cc.codec.Close()
 }
 
 type readOp struct {
@@ -121,6 +124,8 @@ type requestOp struct {
 	ids  []json.RawMessage
 	err  error
 	resp chan *jsonrpcMessage // receives up to len(ids) responses
+
+	sub *ClientSubscription
 }
 
 func (op *requestOp) wait(ctx context.Context, c *Client) (*jsonrpcMessage, error) {
@@ -167,6 +172,8 @@ func DialContext(ctx context.Context, rawurl string) (*Client, error) {
 		return DialHTTP(rawurl)
 	case "ws", "wss":
 		return DialWebsocket(ctx, rawurl, "")
+	case "tcp":
+		return DialTCP(ctx, rawurl)
 	case "stdio":
 		return DialStdIO(ctx)
 	case "":
@@ -216,8 +223,8 @@ func initClient(conn ServerCodec, r Router) *Client {
 }
 
 func (c *Client) nextID() *ID {
-	id := atomic.AddUint32(&c.idCounter, 1)
-	return NewNumberIDPtr(int32(id))
+	id := atomic.AddUint64(&c.idCounter, 1)
+	return NewNumberIDPtr(int64(id))
 }
 
 // SupportedModules calls the rpc_modules method, retrieving the list of
@@ -226,20 +233,21 @@ func (c *Client) SupportedModules() (map[string]string, error) {
 	var result map[string]string
 	ctx, cancel := context.WithTimeout(context.Background(), subscribeTimeout)
 	defer cancel()
-	err := c.CallContext(ctx, &result, "rpc_modules")
+	err := c.Call(ctx, &result, "rpc_modules")
 	return result, err
 }
 
 // Close closes the client, aborting any in-flight requests.
-func (c *Client) Close() {
+func (c *Client) Close() error {
 	if c.isHTTP {
-		return
+		return nil
 	}
 	select {
 	case c.close <- struct{}{}:
 		<-c.didClose
 	case <-c.didClose:
 	}
+	return nil
 }
 
 // SetHeader adds a custom HTTP header to the client's requests.
@@ -277,8 +285,10 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 		return resp.Error
 	case len(resp.Result) == 0:
 		return ErrNoResult
+	case result == nil:
+		return nil
 	default:
-		return jzon.Unmarshal(resp.Result, &result)
+		return json.Unmarshal(resp.Result, result)
 	}
 }
 
@@ -287,29 +297,23 @@ func (c *Client) call(ctx context.Context, result any, msg *jsonrpcMessage) erro
 //
 // The result must be a pointer so that package json can unmarshal into it. You
 // can also pass nil, in which case the result is ignored.
-func (c *Client) Do(result any, method string, param any) error {
-	ctx := context.Background()
-	return c.DoContext(ctx, result, method, param)
-}
-func (c *Client) DoContext(ctx context.Context, result any, method string, param any) error {
+func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("call result parameter must be pointer or nil interface: %v", result)
 	}
-	msg, err := c.newMessageP(method, param)
+	msg, err := c.newMessageP(method, params)
 	if err != nil {
 		return err
+	}
+	if ctx == nil {
+		ctx = context.TODO()
 	}
 	return c.call(ctx, result, msg)
 }
 
-// Deprecated: use Do
-func (c *Client) Call(result any, method string, args ...any) error {
-	return c.Do(result, method, args)
-}
-
-// Deprecated: use DoContext
-func (c *Client) CallContext(ctx context.Context, result any, method string, args ...any) error {
-	return c.DoContext(ctx, result, method, args)
+// Call calls Do, except accepts variadic parameters
+func (c *Client) Call(ctx context.Context, result any, method string, args ...any) error {
+	return c.Do(ctx, result, method, args)
 }
 
 // BatchCall sends all given requests as a single batch and waits for the server
@@ -319,25 +323,15 @@ func (c *Client) CallContext(ctx context.Context, result any, method string, arg
 // a request is reported through the Error field of the corresponding BatchElem.
 //
 // Note that batch calls may not be executed atomically on the server side.
-func (c *Client) BatchCall(b []BatchElem) error {
-	ctx := context.Background()
-	return c.BatchCallContext(ctx, b)
-}
-
-// BatchCallContext sends all given requests as a single batch and waits for the server
-// to return a response for all of them. The wait duration is bounded by the
-// context's deadline.
-//
-// In contrast to CallContext, BatchCallContext only returns errors that have occurred
-// while sending the request. Any error specific to a request is reported through the
-// Error field of the corresponding BatchElem.
-//
-// Note that batch calls may not be executed atomically on the server side.
-func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
+func (c *Client) BatchCall(ctx context.Context, b ...BatchElem) error {
 	var (
 		msgs = make([]*jsonrpcMessage, len(b))
 		byID = make(map[string]int, len(b))
 	)
+
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	op := &requestOp{
 		ids:  make([]json.RawMessage, len(b)),
 		resp: make(chan *jsonrpcMessage, len(b)),
@@ -378,46 +372,69 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 			elem.Error = ErrNoResult
 			continue
 		}
-		elem.Error = jzon.Unmarshal(resp.Result, elem.Result)
+		elem.Error = json.Unmarshal(resp.Result, elem.Result)
 	}
 
 	return err
 }
 
 func (c *Client) Notify(ctx context.Context, method string, args ...any) error {
-	return c.DoNotify(ctx, method, args)
-}
-
-// Notify sends a notification, i.e. a method call that doesn't expect a response.
-func (c *Client) DoNotify(ctx context.Context, method string, args any) error {
 	op := new(requestOp)
 	msg, err := c.newMessageP(method, args)
 	if err != nil {
 		return err
 	}
+	if ctx == nil {
+		ctx = context.TODO()
+	}
 	msg.ID = nil
-
 	if c.isHTTP {
 		return c.sendHTTP(ctx, op, msg)
 	}
 	return c.send(ctx, op, msg)
 }
 
-func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, error) {
-	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
-	if paramsIn != nil { // prevent sending "params":null
-		var err error
-		if msg.Params, err = jzon.Marshal(paramsIn); err != nil {
-			return nil, err
-		}
+func (c *Client) Subscribe(ctx context.Context, namespace string, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
+	// Check type of channel first.
+	chanVal := reflect.ValueOf(channel)
+	if chanVal.Kind() != reflect.Chan || chanVal.Type().ChanDir()&reflect.SendDir == 0 {
+		panic("first argument to Subscribe must be a writable channel")
 	}
-	return msg, nil
+	if chanVal.IsNil() {
+		panic("channel given to Subscribe must not be nil")
+	}
+	if c.isHTTP {
+		return nil, ErrNotificationsUnsupported
+	}
+	msg, err := c.newMessage(namespace+subscribeMethodSuffix, args...)
+	if err != nil {
+		return nil, err
+	}
+	op := &requestOp{
+		ids:  []json.RawMessage{msg.ID.RawMessage()},
+		resp: make(chan *jsonrpcMessage),
+		sub:  newClientSubscription(c, namespace, chanVal),
+	}
+
+	// Send the subscription request.
+	// The arrival and validity of the response is signaled on sub.quit.
+	if err := c.send(ctx, op, msg); err != nil {
+		return nil, err
+	}
+	if _, err := op.wait(ctx, c); err != nil {
+		return nil, err
+	}
+	return op.sub, nil
+}
+
+func (c *Client) newMessage(method string, paramsIn ...any) (*jsonrpcMessage, error) {
+	return c.newMessageP(method, paramsIn)
 }
 func (c *Client) newMessageP(method string, paramIn any) (*jsonrpcMessage, error) {
 	msg := &jsonrpcMessage{ID: c.nextID(), Method: method}
 	if paramIn != nil { // prevent sending "params":null
 		var err error
-		if msg.Params, err = jzon.Marshal(paramIn); err != nil {
+		if msg.Params, err = json.Marshal(paramIn); err != nil {
 			return nil, err
 		}
 	}
@@ -450,7 +467,7 @@ func (c *Client) write(ctx context.Context, msg any, retry bool) error {
 			return err
 		}
 	}
-	err := c.writeConn.writeJSON(ctx, msg)
+	err := c.writeConn.WriteJSON(ctx, msg)
 	if err != nil {
 		c.writeConn = nil
 		if !retry {
@@ -480,7 +497,7 @@ func (c *Client) reconnect(ctx context.Context) error {
 		c.writeConn = newconn
 		return nil
 	case <-c.didClose:
-		newconn.close()
+		newconn.Close()
 		return ErrClientQuit
 	}
 }
@@ -525,7 +542,7 @@ func (c *Client) dispatch(codec ServerCodec) {
 
 		// Reconnect:
 		case newcodec := <-c.reconnected:
-			log.Debug().Bool("reading", reading).Str("conn", newcodec.remoteAddr()).Msg("RPC client reconnected")
+			log.Debug().Bool("reading", reading).Str("conn", newcodec.RemoteAddr()).Msg("RPC client reconnected")
 			if reading {
 				// Wait for the previous read loop to exit. This is a rare case which
 				// happens if this loop isn't notified in time after the connection breaks.
@@ -579,9 +596,12 @@ func (c *Client) drainRead() {
 // read decodes RPC messages from a codec, feeding them into dispatch.
 func (c *Client) read(codec ServerCodec) {
 	for {
-		msgs, batch, err := codec.readBatch()
+		msgs, batch, err := codec.ReadBatch()
 		if _, ok := err.(*json.SyntaxError); ok {
-			codec.writeJSON(context.Background(), errorMessage(&parseError{err.Error()}))
+			codec.WriteJSON(context.Background(), errorMessage(&parseError{err.Error()}))
+		}
+		if _, ok := err.(*gojson.SyntaxError); ok {
+			codec.WriteJSON(context.Background(), errorMessage(&parseError{err.Error()}))
 		}
 		if err != nil {
 			c.readErr <- err

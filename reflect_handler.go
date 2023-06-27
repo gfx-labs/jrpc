@@ -18,9 +18,12 @@ package jrpc
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"runtime"
 	"unicode"
+
+	"tuxpa.in/a/zlog/log"
 )
 
 var (
@@ -80,7 +83,7 @@ type callback struct {
 // callback handler implements handler for the original receiver style that geth used
 func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 	argTypes := append([]reflect.Type{}, e.argTypes...)
-	args, err := parsePositionalArguments(r.msg.Params, argTypes)
+	args, err := parsePositionalArguments(r.Params, argTypes)
 	if err != nil {
 		w.Send(nil, &invalidParamsError{err.Error()})
 		return
@@ -100,14 +103,18 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			//log.Error().Str("method", r.msg.Method).Interface("err", err).Hex("buf", buf).Msg("crashed")
+			log.Error().Str("method", r.Method).Interface("err", fmt.Sprintf("%s", err)).Stack().Msg("reflect handler crashed")
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-			w.Send(nil, nil)
+			w.Send(nil, fmt.Errorf("recover: %s", err))
 			return
 		}
 	}()
 	// Run the callback.
 	results := e.fn.Call(fullargs)
+	if len(results) == 0 {
+		w.Send(nil, nil)
+		return
+	}
 	if e.errPos >= 0 && !results[e.errPos].IsNil() {
 		// Method has returned non-nil error value.
 		err := results[e.errPos].Interface().(error)
@@ -117,9 +124,13 @@ func (e *callback) ServeRPC(w ResponseWriter, r *Request) {
 	w.Send(results[0].Interface(), nil)
 }
 
+func NewCallback(receiver, fn reflect.Value) Handler {
+	return newCallback(receiver, fn)
+}
+
 // newCallback turns fn (a function) into a callback object. It returns nil if the function
 // is unsuitable as an RPC callback.
-func newCallback(receiver, fn reflect.Value) Handler {
+func newCallback(receiver, fn reflect.Value) *callback {
 	fntype := fn.Type()
 	c := &callback{fn: fn, rcvr: receiver, errPos: -1}
 	// Determine parameter types. They must all be exported or builtin types.
