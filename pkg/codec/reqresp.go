@@ -2,9 +2,19 @@ package codec
 
 import (
 	"context"
+	"net/http"
 
 	json "github.com/goccy/go-json"
 )
+
+// http.ResponseWriter interface, but for jrpc
+type ResponseWriter interface {
+	Send(v any, err error) error
+	Option(k string, v any)
+	Header() http.Header
+
+	Notify(method string, v any) error
+}
 
 type Response struct {
 	Version Version         `json:"jsonrpc,omitempty"`

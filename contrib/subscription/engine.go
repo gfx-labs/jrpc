@@ -1,5 +1,53 @@
 package subscription
 
+import (
+	"context"
+	"strings"
+	"sync"
+
+	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/pkg/codec"
+)
+
+const MethodSubscribeSuffix = "_subscribe"
+const MethodUnsusbcribeSuffix = "_unsubscribe"
+
+type Engine struct {
+	subscriptions map[SubID]*Notifier
+	mu            sync.Mutex
+	idgen         func() SubID
+}
+
+func NewEngine() *Engine {
+	return &Engine{
+		subscriptions: make(map[SubID]*Notifier),
+		idgen:         randomIDGenerator(),
+	}
+}
+
+func (e *Engine) Middleware() func(jrpc.Handler) jrpc.Handler {
+	return func(h jrpc.Handler) jrpc.Handler {
+		return codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+			// its a subscription, so install a notification handler
+			if strings.HasSuffix(r.Method, MethodSubscribeSuffix) {
+				// create the notifier to inject into the context
+				n := &Notifier{
+					h:         w,
+					namespace: strings.TrimSuffix(r.Method, MethodSubscribeSuffix),
+					id:        e.idgen(),
+				}
+				// get the subscription object
+				sub := n.createSubscription()
+				// now send the subscription id back
+				w.Send(sub, nil)
+				// then inject the notifier
+				r = r.WithContext(context.WithValue(r.Context(), notifierKey{}, n))
+			}
+			h.ServeRPC(w, r)
+		})
+	}
+}
+
 //// handleSubscribe processes *_subscribe method calls.
 //func (h *handler) handleSubscribe(cp *callProc, r *Request) *Response {
 //	mw := NewReaderResponseWriterMsg(r.WithContext(cp.ctx))
