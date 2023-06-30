@@ -89,7 +89,7 @@ type Notifier struct {
 
 // Notify sends a notification to the client with the given data as payload.
 // If an error occurs the RPC connection is closed and the error is returned.
-func (n *Notifier) Notify(data interface{}) error {
+func (n *Notifier) Notify(data any) error {
 	enc, err := json.Marshal(data)
 	if err != nil {
 		return err

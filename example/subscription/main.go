@@ -2,44 +2,53 @@ package main
 
 import (
 	"context"
-	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/server"
 	"log"
 	"net/http"
 	"time"
+
+	"gfx.cafe/open/jrpc/contrib/codecs"
+	"gfx.cafe/open/jrpc/contrib/extension/subscription"
+	"gfx.cafe/open/jrpc/contrib/jmux"
+	"gfx.cafe/open/jrpc/contrib/middleware"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc"
 )
 
 func main() {
 
-	r := jrpc.NewRouter()
+	engine := subscription.NewEngine()
+	r := jmux.NewRouter()
 	r.Use(middleware.Logger)
 	srv := server.NewServer(r)
 
 	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
-		w.Send(r.Params(), nil)
+		w.Send(r.Params, nil)
 	})
 
-	r.HandleFunc("testservice_subscribe", func(w codec.ResponseWriter, r *codec.Request) {
-		sub, err := jrpc.UpgradeToSubscription(w, r)
-		w.Send(sub, err)
-		if err != nil {
-			return
-		}
-		go func() {
-			idx := 0
-			for {
-				log.Println("sending:", idx)
-				err := w.Notify(idx)
-				if err != nil {
-					return
-				}
-				time.Sleep(1 * time.Second)
-				idx = idx + 1
+	r.Group(func(r jmux.Router) {
+		r.Use(engine.Middleware())
+
+		r.HandleFunc("testservice_subscribe", func(w codec.ResponseWriter, r *codec.Request) {
+			notifier, ok := subscription.NotifierFromContext(r.Context())
+			if !ok {
+				w.Send(nil, subscription.ErrNotificationsUnsupported)
+				return
 			}
-		}()
+			go func() {
+				idx := 0
+				for {
+					select {
+					case <-r.Context().Done():
+					default:
+					}
+					notifier.Notify(idx)
+					time.Sleep(1 * time.Second)
+					idx = idx + 1
+				}
+			}()
+		})
 	})
 
 	go func() {
@@ -49,16 +58,21 @@ func main() {
 		}
 	}()
 	log.Println("running on 8855")
-	log.Println(http.ListenAndServe(":8855", srv.ServeHTTPWithWss(nil)))
+
+	handler := codecs.HttpWebsocketHandler(srv, []string{"*"})
+	err := http.ListenAndServe(":8855", handler)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func client() error {
-	cl, err := jrpc.Dial("ws://localhost:8855")
+	cl, err := subscription.UpgradeConn(jrpc.Dial("ws://localhost:8855"))
 	if err != nil {
 		return err
 	}
 	out := make(chan int, 1)
-	jcs, err := cl.Subscribe(context.TODO(), "testservice", out, "swag")
+	jcs, err := cl.Subscribe(context.TODO(), "testservice", out, []any{"swag"})
 	if err != nil {
 		return err
 	}

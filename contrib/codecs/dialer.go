@@ -30,13 +30,12 @@ func DialContext(ctx context.Context, u string) (codec.Conn, error) {
 		if err != nil {
 			return nil, err
 		}
-		return rdwr.NewClient(conn, conn, nil), nil
+		return rdwr.NewClient(conn, conn), nil
 	}
 	return nil, nil
 }
 
 func Dial(u string) (codec.Conn, error) {
 	ctx := context.Background()
-
 	return DialContext(ctx, u)
 }

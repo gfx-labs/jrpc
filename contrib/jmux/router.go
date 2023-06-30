@@ -68,4 +68,4 @@ type Routes interface {
 
 // Middlewares type is a slice of standard middleware handlers with methods
 // to compose middleware chains and Handler's.
-type Middlewares []func(codec.Handler) codec.Handler
+type Middlewares = codec.Middlewares

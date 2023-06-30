@@ -20,19 +20,40 @@ type Client struct {
 	ctx context.Context
 	cn  context.CancelFunc
 
+	m       codec.Middlewares
 	handler codec.Handler
+	mu      sync.RWMutex
+
+	handlerPeer codec.PeerInfo
 }
 
-func NewClient(rd io.Reader, wr io.Writer, handler codec.Handler) *Client {
+func NewClient(rd io.Reader, wr io.Writer) *Client {
 	cl := &Client{
-		p:       clientutil.NewIdReply(),
-		rd:      rd,
-		wr:      wr,
-		handler: handler,
+		p:  clientutil.NewIdReply(),
+		rd: rd,
+		wr: wr,
+		handlerPeer: codec.PeerInfo{
+			Transport:  "ipc",
+			RemoteAddr: "",
+		},
+		handler: codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {}),
 	}
 	cl.ctx, cl.cn = context.WithCancel(context.Background())
 	go cl.listen()
 	return cl
+}
+
+func (c *Client) SetHandlerPeer(pi codec.PeerInfo) {
+	c.handlerPeer = pi
+}
+
+func (c *Client) Mount(h codec.Middleware) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m = append(c.m, h)
+	c.handler = c.m.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+		// do nothing on no handler
+	})
 }
 
 func (c *Client) listen() error {
@@ -51,20 +72,18 @@ func (c *Client) listen() error {
 			id := v.ID.Number()
 			//  messages without ids are notifications
 			if id == 0 {
-				//TODO: implement this
-				if c.handler != nil {
-					// writer should only be allowed to send notifications
-					// reader should contain the message above
-					// the context is the client context
-					c.handler.ServeRPC(nil, codec.NewRequestFromRaw(c.ctx, &codec.RequestMarshaling{
-						Method: v.Method,
-						Params: v.Params,
-						Peer: codec.PeerInfo{
-							Transport:  "ipc",
-							RemoteAddr: "",
-						},
-					}))
-				}
+				var handler codec.Handler
+				c.mu.RLock()
+				handler = c.handler
+				c.mu.RUnlock()
+				// writer should only be allowed to send notifications
+				// reader should contain the message above
+				// the context is the client context
+				handler.ServeRPC(nil, codec.NewRequestFromRaw(c.ctx, &codec.RequestMarshaling{
+					Method: v.Method,
+					Params: v.Result,
+					Peer:   c.handlerPeer,
+				}))
 				continue
 			}
 			var err error

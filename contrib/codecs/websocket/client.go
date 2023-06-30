@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
+	"gfx.cafe/open/jrpc/pkg/codec"
 
 	"context"
 
@@ -17,9 +18,13 @@ func newClient(conn *websocket.Conn) (*Client, error) {
 	conn.SetReadLimit(WsMessageSizeLimit)
 	netConn := websocket.NetConn(context.Background(), conn, websocket.MessageText)
 	c := &Client{
-		Client: rdwr.NewClient(netConn, netConn, nil),
+		Client: rdwr.NewClient(netConn, netConn),
 		conn:   conn,
 	}
+	c.SetHandlerPeer(codec.PeerInfo{
+		Transport:  "ws",
+		RemoteAddr: "",
+	})
 	return c, nil
 }
 

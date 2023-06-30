@@ -416,7 +416,7 @@ func (mx *Mux) updateSubRoutes(fn func(subMux *Mux)) {
 // point, no other middlewares can be registered on this Mux's stack. But you can still
 // compose additional middlewares via Group()'s or using a chained middleware handler.
 func (mx *Mux) updateRouteHandler() {
-	mx.handler = chain(mx.middlewares, codec.HandlerFunc(mx.routeRPC))
+	mx.handler = codec.ChainMiddlewares(mx.middlewares, codec.HandlerFunc(mx.routeRPC))
 }
 
 // methodNotAllowedHandler is a helper function to respond with a 405,

@@ -207,12 +207,14 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
 	enc := jx.GetEncoder()
-	enc.ResetWriter(c.remote)
+	enc.Reset()
 	defer jx.PutEncoder(enc)
 	buf.Reset()
 	enc.ObjStart()
 	enc.FieldStart("jsonrpc")
 	enc.Str("2.0")
+	enc.FieldStart("method")
+	enc.Str(env.method)
 	err := env.dat(buf)
 	if err != nil {
 		enc.FieldStart("error")
@@ -225,11 +227,10 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 		enc.Raw(buf.Bytes())
 	}
 	enc.ObjEnd()
-	err = enc.Close()
+	_, err = enc.WriteTo(c.remote)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -266,6 +267,8 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 			e.Str("2.0")
 			e.FieldStart("id")
 			e.Raw(id)
+			e.FieldStart("method")
+			e.Str(v.msg.Method)
 			err := v.err
 			if err == nil {
 				if v.dat != nil {

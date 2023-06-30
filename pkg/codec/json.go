@@ -43,7 +43,7 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 		e.Field("method", func(e *jx.Encoder) {
 			e.Str(m.Method)
 		})
-		if m.Error == nil {
+		if m.Error != nil {
 			e.Field("error", func(e *jx.Encoder) {
 				xs, _ := json.Marshal(m.Error)
 				e.Raw(xs)

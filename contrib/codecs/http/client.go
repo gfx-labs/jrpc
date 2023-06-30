@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -42,12 +43,18 @@ type Client struct {
 
 	headers http.Header
 
+	m       codec.Middlewares
 	handler codec.Handler
+	mu      sync.RWMutex
 }
 
-func (c *Client) Mount(h codec.Handler) codec.Conn {
-	c.handler = h
-	return c
+func (c *Client) Mount(h codec.Middleware) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m = append(c.m, h)
+	c.handler = c.m.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+		// do nothing on no handler
+	})
 }
 
 func DialHTTP(target string) (*Client, error) {
