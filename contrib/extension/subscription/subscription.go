@@ -99,6 +99,10 @@ func (n *Notifier) Notify(data any) error {
 	return n.send(enc)
 }
 
+func (n *Notifier) Err() <-chan error {
+	return n.err
+}
+
 func (n *Notifier) send(data json.RawMessage) error {
 	params, _ := json.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
 	return n.h.Notify(n.namespace+notificationMethodSuffix, json.RawMessage(params))
