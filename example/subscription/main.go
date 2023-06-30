@@ -41,7 +41,9 @@ func main() {
 				for {
 					select {
 					case <-r.Context().Done():
+						return
 					case <-notifier.Err():
+						return
 					default:
 					}
 					notifier.Notify(idx)
