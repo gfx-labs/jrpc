@@ -66,13 +66,13 @@ func (e *callback) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
 		fullargs = append(fullargs, reflect.ValueOf(r.Context()))
 	}
 	fullargs = append(fullargs, args...)
-	//Catch panic while running the callback.
+	// Catch panic while running the callback.
 	defer func() {
 		if err := recover(); err != nil {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			//fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
+			// fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
 			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
 			w.Send(nil, fmt.Errorf("%s", err))
 			return
@@ -148,9 +148,6 @@ func (c *callback) makeArgTypes() {
 
 // Does t satisfy the error interface?
 func isErrorType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
 	return t.Implements(errorType)
 }
 
