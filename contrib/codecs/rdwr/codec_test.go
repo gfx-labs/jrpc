@@ -24,7 +24,7 @@ func TestBasicSuite(t *testing.T) {
 				s.ServeCodec(context.Background(), clientCodec)
 			}()
 			return s, func() codec.Conn {
-				return rdwr.NewClient(rd_s, wr_c, nil)
+				return rdwr.NewClient(rd_s, wr_c)
 			}, func() {}
 		},
 	})

@@ -22,7 +22,7 @@ func TestRDWRSetup(t *testing.T) {
 	rd_c, wr_c := io.Pipe()
 
 	clientCodec := rdwr.NewCodec(rd_s, wr_c, nil)
-	client := rdwr.NewClient(rd_c, wr_s, nil)
+	client := rdwr.NewClient(rd_c, wr_s)
 	go func() {
 		srv.ServeCodec(ctx, clientCodec)
 	}()

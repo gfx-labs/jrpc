@@ -76,6 +76,11 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				Result: new(EchoResult),
 			},
 			{
+				Method:         "test_echo",
+				Params:         []any{"hello3", 12, &EchoArgs{"world"}},
+				IsNotification: true,
+			},
+			{
 				Method: "no_such_method",
 				Params: []any{1, 2, 3},
 				Result: new(int),
@@ -96,6 +101,10 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				Result: &EchoResult{"hello2", 11, &EchoArgs{"world"}},
 			},
 			{
+				Method: "test_echo",
+				Params: []any{"hello3", 12, &EchoArgs{"world"}},
+			},
+			{
 				Method: "no_such_method",
 				Params: []any{1, 2, 3},
 				Result: new(int),
@@ -105,13 +114,11 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		require.EqualValues(t, len(batch), len(wantResult))
 		for i := range batch {
 			a := batch[i]
-			b := batch[i]
+			b := wantResult[i]
 			assert.EqualValuesf(t, a.Method, b.Method, "item %d", i)
 			assert.EqualValuesf(t, a.Result, b.Result, "item %d", i)
 			assert.EqualValuesf(t, a.Params, b.Params, "item %d", i)
-			if a.Error != nil {
-				assert.EqualValuesf(t, a.Error, b.Error, "item %d", i)
-			}
+			assert.EqualValuesf(t, a.Error, b.Error, "item %d", i)
 		}
 	})
 
@@ -146,8 +153,10 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 	makeTest("Notify", func(t *testing.T, server *server.Server, client codec.Conn) {
-		if err := client.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
-			t.Fatal(err)
+		if c, ok := client.(codec.StreamingConn); ok {
+			if err := c.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
+				t.Fatal(err)
+			}
 		}
 	})
 
