@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"io"
 	"mime"
 	"net/http"
 	"net/url"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 type Codec struct {
@@ -74,6 +75,9 @@ func (c *Codec) PeerInfo() codec.PeerInfo {
 
 func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 	method_up := r.r.URL.Query().Get("method")
+	if method_up == "" {
+		method_up = r.r.URL.Path
+	}
 	params, _ := url.QueryUnescape(r.r.URL.Query().Get("params"))
 	param := []byte(params)
 	if pb, err := base64.URLEncoding.DecodeString(params); err == nil {
@@ -84,6 +88,23 @@ func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 		id = "1"
 	}
 	req := codec.NewRequest(r.ctx, id, method_up, json.RawMessage(param))
+	return req.MarshalJSON()
+}
+
+func (r *Codec) doReadPut() (msgs json.RawMessage, err error) {
+	method_up := r.r.URL.Query().Get("method")
+	if method_up == "" {
+		method_up = r.r.URL.Path
+	}
+	id := r.r.URL.Query().Get("id")
+	if id == "" {
+		id = "1"
+	}
+	data, err := io.ReadAll(r.r.Body)
+	if err != nil {
+		return nil, err
+	}
+	req := codec.NewRequest(r.ctx, id, method_up, data)
 	return req.MarshalJSON()
 }
 
@@ -130,6 +151,8 @@ func (c *Codec) doRead() {
 		switch c.r.Method {
 		case http.MethodGet:
 			data, err = c.doReadGet()
+		case http.MethodPut:
+			data, err = c.doReadPut()
 		case http.MethodPost:
 			data, err = io.ReadAll(c.r.Body)
 		}

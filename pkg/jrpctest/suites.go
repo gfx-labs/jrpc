@@ -81,7 +81,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				IsNotification: true,
 			},
 			{
-				Method: "no_such_method",
+				Method: "no/such/method",
 				Params: []any{1, 2, 3},
 				Result: new(int),
 			},
@@ -105,10 +105,10 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				Params: []any{"hello3", 12, &EchoArgs{"world"}},
 			},
 			{
-				Method: "no_such_method",
+				Method: "no/such/method",
 				Params: []any{1, 2, 3},
 				Result: new(int),
-				Error:  &codec.JsonError{Code: -32601, Message: "the method no_such_method does not exist/is not available"},
+				Error:  &codec.JsonError{Code: -32601, Message: "the method no/such/method does not exist/is not available"},
 			},
 		}
 		require.EqualValues(t, len(batch), len(wantResult))

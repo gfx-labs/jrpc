@@ -1,9 +1,11 @@
 package jrpctest
 
 import (
-	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/server"
 	"strings"
+
+	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
+	"gfx.cafe/open/jrpc/contrib/middleware"
+	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func NewServer() *server.Server {
@@ -12,6 +14,7 @@ func NewServer() *server.Server {
 }
 func NewRouter() *jmux2.Mux {
 	mux := jmux2.NewRouter()
+	mux.Use(middleware.LegacyUnderscoreReplacer)
 	//mux.HandleFunc("testservice_subscribe", func(w jrpc.ResponseWriter, r *jrpc.Request) {
 	//	sub, err := jrpc.UpgradeToSubscription(w, r)
 	//	w.Send(sub, err)
@@ -41,6 +44,7 @@ func NewRouter() *jmux2.Mux {
 }
 func NewRouterWithMaxSize(size int) *jmux2.Mux {
 	mux := jmux2.NewRouter()
+	mux.Use(middleware.LegacyUnderscoreReplacer)
 	//mux.HandleFunc("testservice_subscribe", func(w jrpc.ResponseWriter, r *jrpc.Request) {
 	//	sub, err := jrpc.UpgradeToSubscription(w, r)
 	//	w.Send(sub, err)

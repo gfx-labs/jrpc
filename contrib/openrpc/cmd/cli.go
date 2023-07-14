@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"gfx.cafe/open/jrpc/contrib/openrpc/generate"
+	"os"
+
 	"gfx.cafe/open/jrpc/contrib/openrpc/templates"
 	"gfx.cafe/open/jrpc/contrib/openrpc/types"
-	"os"
 
 	"github.com/alecthomas/kong"
 )
@@ -74,9 +74,9 @@ func (c *GenerateCommand) Run() error {
 	}
 	openrpc.Package = c.Package
 
-	if err = generate.Generate(openrpc, c.Template, c.Output); err != nil {
-		return err
-	}
+	//if err = generate.Generate(openrpc, c.Template, c.Output); err != nil {
+	//	return err
+	//}
 
 	return nil
 }

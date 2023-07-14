@@ -14,7 +14,7 @@ func main() {
 	}
 	var b string
 	for {
-		err = client.Call(&b, "eth_blockNumber")
+		err = client.Do(nil, &b, "eth_blockNumber", nil)
 		if err != nil {
 			log.Println(err)
 			continue

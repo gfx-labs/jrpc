@@ -1,17 +1,18 @@
 package main
 
 import (
-	"gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/server"
 	"log"
 	"net/http"
 
-	"gfx.cafe/open/jrpc"
+	"gfx.cafe/open/jrpc/contrib/codecs"
+	"gfx.cafe/open/jrpc/contrib/jmux"
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func main() {
 
-	r := jrpc.NewRouter()
+	r := jmux.NewRouter()
 	srv := server.NewServer(r)
 
 	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
@@ -19,7 +20,7 @@ func main() {
 	})
 
 	log.Println("running on 8855")
-	log.Println(http.ListenAndServe(":8855", srv))
+	log.Println(http.ListenAndServe(":8855", codecs.HttpHandler(srv)))
 }
 
 // http://localhost:8855/?method=echo&params=[1,2,3]
