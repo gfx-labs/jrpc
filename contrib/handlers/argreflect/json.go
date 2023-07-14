@@ -1,15 +1,13 @@
 package argreflect
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"github.com/go-faster/jx"
+	"github.com/goccy/go-json"
 )
-
-var jzon = wsjson.JZON
 
 // parsePositionalArguments tries to parse the given args to an array of values with the
 // given types. It returns the parsed values or an error when the args could not be
@@ -40,16 +38,29 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 }
 
 func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := jzon.BorrowIterator(p)
-	defer jzon.ReturnIterator(dec)
+	dec := jx.GetDecoder()
+	defer jx.PutDecoder(dec)
+	dec.ResetBytes(p)
 	args := make([]reflect.Value, 0, len(types))
-	for i := 0; dec.ReadArray(); i++ {
+	iter, err := dec.ArrIter()
+	if err != nil {
+		return args, codec.NewInvalidParamsError("expected array")
+	}
+	i := 0
+	for iter.Next() {
+		if err := iter.Err(); err != nil {
+			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
+		}
 		if i >= len(types) {
 			return args, codec.NewInvalidParamsError(fmt.Sprintf("too many arguments, want at most %d", len(types)))
 		}
 		argval := reflect.New(types[i])
-		dec.ReadVal(argval.Interface())
-		if err := dec.Error; err != nil {
+		raw, err := dec.Raw()
+		if err != nil {
+			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
+		}
+		err = json.Unmarshal(raw, argval.Interface())
+		if err != nil {
 			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
 		}
 		if argval.IsNil() && types[i].Kind() != reflect.Ptr {
