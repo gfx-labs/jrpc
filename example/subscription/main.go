@@ -30,7 +30,7 @@ func main() {
 	r.Group(func(r jmux.Router) {
 		r.Use(engine.Middleware())
 
-		r.HandleFunc("testservice_subscribe", func(w codec.ResponseWriter, r *codec.Request) {
+		r.HandleFunc("testservice/subscribe", func(w codec.ResponseWriter, r *codec.Request) {
 			notifier, ok := subscription.NotifierFromContext(r.Context())
 			if !ok {
 				w.Send(nil, subscription.ErrNotificationsUnsupported)
