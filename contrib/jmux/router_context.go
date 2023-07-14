@@ -2,8 +2,9 @@ package jmux
 
 import (
 	"context"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"strings"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 // MethodParam returns the url parameter from a Request object.
@@ -122,13 +123,13 @@ func (x *Context) MethodParam(key string) string {
 func (x *Context) RoutePattern() string {
 	routePattern := strings.Join(x.RoutePatterns, "")
 	routePattern = replaceWildcards(routePattern)
-	routePattern = strings.TrimSuffix(routePattern, sepString + sepString)
+	routePattern = strings.TrimSuffix(routePattern, sepString+sepString)
 	routePattern = strings.TrimSuffix(routePattern, sepString)
 	return routePattern
 }
 
 // replaceWildcards takes a route pattern and recursively replaces all
-// occurrences of "_*_" to "_".
+// occurrences of "/*/" to "/".
 func replaceWildcards(p string) string {
 	if strings.Contains(p, sepString+"*"+sepString) {
 		return replaceWildcards(strings.Replace(p, sepString+"*"+sepString, sepString, -1))

@@ -13,7 +13,7 @@ import (
 
 var _ Router = &Mux{}
 
-const sepRune = '_'
+const sepRune = '/'
 const sepString = string(sepRune)
 
 // Mux is a simple JRPC route multiplexer that parses a request path,
@@ -252,7 +252,7 @@ func (mx *Mux) Mount(pattern string, handler codec.Handler) {
 
 	// Provide runtime safety for ensuring a pattern isn't mounted on an existing
 	// routing pattern.
-	if mx.tree.findPattern(pattern+"*") || mx.tree.findPattern(pattern+"_*") {
+	if mx.tree.findPattern(pattern+"*") || mx.tree.findPattern(pattern+sepString+"*") {
 		panic(fmt.Sprintf("chi: attempting to Mount() a handler on an existing path, '%s'", pattern))
 	}
 
@@ -373,7 +373,7 @@ func (mx *Mux) routeRPC(w codec.ResponseWriter, r *codec.Request) {
 	if routePath == "" {
 		routePath = r.Method
 		if routePath == "" {
-			routePath = "_"
+			routePath = sepString
 		}
 	}
 
