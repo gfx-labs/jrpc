@@ -112,7 +112,7 @@ func (id *ID) RawMessage() json.RawMessage {
 }
 
 // MarshalJSON implements json.Marshaler.
-func (id *ID) MarshalJSON() ([]byte, error) {
+func (id ID) MarshalJSON() ([]byte, error) {
 	return id.RawMessage(), nil
 }
 
