@@ -7,8 +7,7 @@ type clientContextKey struct{}
 // ClientFromContext retrieves the client from the context, if any. This can be used to perform
 // 'reverse calls' in a handler method.
 func ContextWithConn(ctx context.Context, c Conn) context.Context {
-	client, _ := ctx.Value(clientContextKey{}).(Conn)
-	return context.WithValue(ctx, clientContextKey{}, client)
+	return context.WithValue(ctx, clientContextKey{}, c)
 }
 
 // ClientFromContext retrieves the client from the context, if any. This can be used to perform
