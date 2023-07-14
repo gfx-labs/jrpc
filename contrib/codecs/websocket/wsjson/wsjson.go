@@ -6,23 +6,8 @@ import (
 
 	"gfx.cafe/util/go/bufpool"
 	json "github.com/goccy/go-json"
-	jsoniter "github.com/json-iterator/go"
 	"nhooyr.io/websocket"
 )
-
-var JZON = jsoniter.Config{
-	IndentionStep:                 0,
-	MarshalFloatWith6Digits:       false,
-	EscapeHTML:                    true,
-	SortMapKeys:                   true,
-	UseNumber:                     false,
-	DisallowUnknownFields:         false,
-	TagKey:                        "",
-	OnlyTaggedField:               false,
-	ValidateJsonRawMessage:        false,
-	ObjectFieldMustBeSimpleString: false,
-	CaseSensitive:                 false,
-}.Froze()
 
 // Read reads a JSON message from c into v.
 // It will reuse buffers in between calls to avoid allocations.
@@ -59,10 +44,8 @@ func write(ctx context.Context, c *websocket.Conn, v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	st := JZON.BorrowStream(w)
-	defer JZON.ReturnStream(st)
-	st.WriteVal(v)
-	err = st.Flush()
+	st := json.NewEncoder(w)
+	err = st.Encode(v)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
