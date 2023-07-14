@@ -14,8 +14,9 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 
-	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/util/go/bufpool"
+
+	"gfx.cafe/open/jrpc/pkg/clientutil"
 )
 
 var (
@@ -107,7 +108,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 }
 
 func (c *Client) post(req *codec.Request) (*http.Response, error) {
-	//TODO: use buffer for this
+	// TODO: use buffer for this
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
 	buf.Reset()
@@ -139,13 +140,13 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 
 func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	reqs := make([]*codec.Request, len(b))
-	ids := make([]int, 0, len(b))
-	for _, v := range b {
+	ids := make(map[int]int, len(b))
+	for idx, v := range b {
 		if v.IsNotification {
 			reqs = append(reqs, codec.NewRequest(ctx, "", v.Method, v.Params))
 		} else {
 			id := int(c.id.Add(1))
-			ids = append(ids, id)
+			ids[idx] = id
 			reqs = append(reqs, codec.NewRequestInt(ctx, id, v.Method, v.Params))
 		}
 	}

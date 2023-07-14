@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
@@ -13,9 +14,10 @@ type Codec struct {
 	ctx context.Context
 	cn  func()
 
-	rd   io.Reader
-	wr   *bufio.Writer
-	msgs chan json.RawMessage
+	rd     io.Reader
+	wrLock sync.Mutex
+	wr     *bufio.Writer
+	msgs   chan json.RawMessage
 }
 
 func NewCodec() *Codec {
@@ -58,10 +60,14 @@ func (c *Codec) Close() error {
 }
 
 func (c *Codec) Write(p []byte) (n int, err error) {
+	c.wrLock.Lock()
+	defer c.wrLock.Unlock()
 	return c.wr.Write(p)
 }
 
 func (c *Codec) Flush() (err error) {
+	c.wrLock.Lock()
+	defer c.wrLock.Unlock()
 	return c.wr.Flush()
 }
 
@@ -76,7 +82,7 @@ func (c *Codec) RemoteAddr() string {
 }
 
 // DialInProc attaches an in-process connection to the given RPC server.
-//func DialInProc(handler *Server) *Client {
+// func DialInProc(handler *Server) *Client {
 //	initctx := context.Background()
 //	c, _ := newClient(initctx, func(context.Context) (ServerCodec, error) {
 //		p1, p2 := net.Pipe()
@@ -84,4 +90,4 @@ func (c *Codec) RemoteAddr() string {
 //		return NewCodec(p2), nil
 //	})
 //	return c
-//}
+// }

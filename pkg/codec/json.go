@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 	"github.com/go-faster/jx"
+
+	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
 )
 
 var jzon = wsjson.JZON
@@ -40,9 +41,11 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 				e.Raw(m.ID.RawMessage())
 			})
 		}
-		e.Field("method", func(e *jx.Encoder) {
-			e.Str(m.Method)
-		})
+		if m.Method != "" {
+			e.Field("method", func(e *jx.Encoder) {
+				e.Str(m.Method)
+			})
+		}
 		if m.Error != nil {
 			e.Field("error", func(e *jx.Encoder) {
 				xs, _ := json.Marshal(m.Error)

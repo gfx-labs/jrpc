@@ -249,7 +249,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 	}
 	enc := jx.GetEncoder()
 	enc.Reset()
-	//enc.ResetWriter(c.remote)
+	// enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	if env.batch {
 		enc.ArrStart()
@@ -267,8 +267,6 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 			e.Str("2.0")
 			e.FieldStart("id")
 			e.Raw(id)
-			e.FieldStart("method")
-			e.Str(v.msg.Method)
 			err := v.err
 			if err == nil {
 				if v.dat != nil {

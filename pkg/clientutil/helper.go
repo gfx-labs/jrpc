@@ -3,13 +3,18 @@ package clientutil
 import (
 	"encoding/json"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
+
 	"gfx.cafe/util/go/generic"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 var msgPool = generic.HookPool[*codec.Message]{
 	New: func() *codec.Message {
 		return &codec.Message{}
+	},
+	FnPut: func(msg *codec.Message) {
+		*msg = codec.Message{}
 	},
 }
 
@@ -21,14 +26,13 @@ func PutMessage(x *codec.Message) {
 	msgPool.Put(x)
 }
 
-func FillBatch(ids []int, msgs []*codec.Message, b []*codec.BatchElem) {
-	answers := map[int]*codec.Message{}
+func FillBatch(ids map[int]int, msgs []*codec.Message, b []*codec.BatchElem) {
+	answers := make(map[int]*codec.Message, len(msgs))
 	for _, v := range msgs {
 		answers[v.ID.Number()] = v
 	}
-	for i := range ids {
-		idx := i
-		ans, ok := answers[i]
+	for idx, id := range ids {
+		ans, ok := answers[id]
 		if !ok {
 			b[idx].Error = fmt.Errorf("No response found")
 			continue
