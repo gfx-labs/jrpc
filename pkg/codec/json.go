@@ -6,10 +6,8 @@ import (
 
 	"github.com/go-faster/jx"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket/wsjson"
+	gojson "github.com/goccy/go-json"
 )
-
-var jzon = wsjson.JZON
 
 var Null = json.RawMessage("null")
 
@@ -103,7 +101,7 @@ func (msg *Message) ErrorResponse(err error) *Message {
 }
 func (msg *Message) response(result any) *Message {
 	// do a funny marshaling
-	enc, err := jzon.Marshal(result)
+	enc, err := gojson.Marshal(result)
 	if err != nil {
 		return msg.ErrorResponse(err)
 	}
@@ -177,7 +175,7 @@ func IsBatchMessage(raw json.RawMessage) bool {
 func ParseMessage(raw json.RawMessage) ([]*Message, bool) {
 	if !IsBatchMessage(raw) {
 		msgs := []*Message{{}}
-		jzon.Unmarshal(raw, &msgs[0])
+		gojson.Unmarshal(raw, &msgs[0])
 		return msgs, false
 	}
 	// TODO:
