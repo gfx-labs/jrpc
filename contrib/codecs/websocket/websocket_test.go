@@ -2,14 +2,15 @@ package websocket_test
 
 import (
 	"context"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 	"gfx.cafe/open/jrpc/pkg/server"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 func TestWebsocketClientHeaders(t *testing.T) {
@@ -153,7 +154,7 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 	}
 
 	var r string
-	if err := c.Do(nil, &r, "test_largeResp", nil); err != nil {
+	if err := c.Do(nil, &r, "test/largeResp", nil); err != nil {
 		t.Fatal("call failed:", err)
 	}
 	if len(r) != respLength {
