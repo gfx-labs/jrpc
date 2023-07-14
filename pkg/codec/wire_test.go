@@ -24,7 +24,7 @@ func TestVersion(t *testing.T) {
 	})
 }
 
-func TestID(t *testing.T) {
+func TestIDMarshal(t *testing.T) {
 
 	var v ID
 
@@ -52,5 +52,39 @@ func TestID(t *testing.T) {
 		ans, err := json.Marshal(v)
 		assert.NoError(t, err)
 		assert.Equal(t, `null`, string(ans))
+	})
+}
+
+func TestIDUnmarshal(t *testing.T) {
+
+	var v ID
+
+	t.Run("number", func(t *testing.T) {
+		err := json.Unmarshal([]byte("2"), &v)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, v.Number())
+	})
+
+	t.Run("numberstring", func(t *testing.T) {
+		err := json.Unmarshal([]byte(`"2"`), &v)
+		assert.NoError(t, err)
+		assert.Equal(t, `"2"`, string(v.RawMessage()))
+	})
+	t.Run("string", func(t *testing.T) {
+		err := json.Unmarshal([]byte(`"doggo"`), &v)
+		assert.NoError(t, err)
+		assert.Equal(t, `"doggo"`, string(v.RawMessage()))
+	})
+	t.Run("null", func(t *testing.T) {
+		err := json.Unmarshal([]byte(`null`), &v)
+		assert.NoError(t, err)
+		assert.True(t, v.IsNull())
+	})
+	t.Run("error", func(t *testing.T) {
+		err := json.Unmarshal([]byte(`%%%%`), &v)
+		assert.Error(t, err)
+
+		err = json.Unmarshal([]byte(`1%%%%4`), &v)
+		assert.Error(t, err)
 	})
 }

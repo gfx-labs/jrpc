@@ -118,9 +118,6 @@ func (id ID) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *ID) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
 	*id = data
 	// now validate
 	if id.IsNull() {
