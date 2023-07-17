@@ -6,10 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc"
+
+	"gfx.cafe/open/jrpc/contrib/jmux"
 )
 
-var _ = jrpc.Version
 var _ = context.Background
 var _ = errors.New
 var _ = fmt.Sprintf
@@ -1107,7 +1107,7 @@ type GoOpenRPCService interface {
 	) (ReceiptInformation ReceiptInfo, err error)
 }
 
-func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
+func (h *GoOpenRPCHandler) RouteRPC(r jmux.Router) {
 	// Returns an RLP-encoded header.
 
 	if err := r.RegisterFunc("debug_getRawHeader", h.Srv.DebugGetRawHeader); err != nil {
