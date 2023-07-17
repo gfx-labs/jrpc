@@ -11,6 +11,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
@@ -91,7 +92,7 @@ func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 	return req.MarshalJSON()
 }
 
-func (r *Codec) doReadPut() (msgs json.RawMessage, err error) {
+func (r *Codec) doReadRPC() (msgs json.RawMessage, err error) {
 	method_up := r.r.URL.Query().Get("method")
 	if method_up == "" {
 		method_up = r.r.URL.Path
@@ -148,11 +149,11 @@ func (c *Codec) doRead() {
 	go func() {
 		var data json.RawMessage
 		// TODO: implement eventsource
-		switch c.r.Method {
+		switch strings.ToUpper(c.r.Method) {
 		case http.MethodGet:
 			data, err = c.doReadGet()
-		case http.MethodPut:
-			data, err = c.doReadPut()
+		case "RPC":
+			data, err = c.doReadRPC()
 		case http.MethodPost:
 			data, err = io.ReadAll(c.r.Body)
 		}
