@@ -105,7 +105,7 @@ func (r *Codec) doReadRPC() (msgs json.RawMessage, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req := codec.NewRequest(r.ctx, id, method_up, data)
+	req := codec.NewRequest(r.ctx, id, method_up, json.RawMessage(data))
 	return req.MarshalJSON()
 }
 

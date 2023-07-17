@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"gfx.cafe/open/jrpc/contrib/handlers/argreflect"
@@ -344,6 +345,10 @@ func (mx *Mux) handle(pattern string, handler codec.Handler) *node {
 		panic(fmt.Sprintf("rpc: routing pattern must not be empty in '%s'", pattern))
 	}
 
+	if !strings.HasPrefix(pattern, "/") {
+		pattern = "/" + pattern
+	}
+
 	// Build the computed routing handler for this routing pattern.
 	if !mx.inline && mx.handler == nil {
 		mx.updateRouteHandler()
@@ -362,7 +367,7 @@ func (mx *Mux) handle(pattern string, handler codec.Handler) *node {
 	return mx.tree.InsertRoute(pattern, h)
 }
 
-// routeJRPC routes a Request through the Mux routing tree to serve
+// routeRPC routes a Request through the Mux routing tree to serve
 // the matching handler for a particular jrpc method.
 func (mx *Mux) routeRPC(w codec.ResponseWriter, r *codec.Request) {
 	// Grab the route context object
@@ -392,10 +397,10 @@ func (mx *Mux) routeRPC(w codec.ResponseWriter, r *codec.Request) {
 }
 
 func (mx *Mux) nextRoutePath(rctx *Context) string {
-	routePath := ""
+	routePath := sepString
 	nx := len(rctx.routeParams.Keys) - 1 // index of last param in list
 	if nx >= 0 && rctx.routeParams.Keys[nx] == "*" && len(rctx.routeParams.Values) > nx {
-		routePath = rctx.routeParams.Values[nx]
+		routePath = sepString + rctx.routeParams.Values[nx]
 	}
 	return routePath
 }

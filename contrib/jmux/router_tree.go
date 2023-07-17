@@ -5,10 +5,11 @@ package jmux
 
 import (
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"regexp"
 	"sort"
 	"strings"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 type nodeTyp uint8
@@ -277,6 +278,10 @@ func (n *node) FindRoute(rctx *Context, path string) (*node, *endpoint, codec.Ha
 	rctx.routeParams.Keys = rctx.routeParams.Keys[:0]
 	rctx.routeParams.Values = rctx.routeParams.Values[:0]
 
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
 	// Find the routing handlers for the path
 	rn := n.findRoute(rctx, path)
 	if rn == nil {
@@ -338,7 +343,7 @@ func (n *node) findRoute(rctx *Context, path string) *node {
 				p := strings.IndexByte(xsearch, xn.tail)
 
 				if p < 0 {
-					if xn.tail == '_' {
+					if xn.tail == sepRune {
 						p = len(xsearch)
 					} else {
 						continue
@@ -351,7 +356,7 @@ func (n *node) findRoute(rctx *Context, path string) *node {
 					if !xn.rex.MatchString(xsearch[:p]) {
 						continue
 					}
-				} else if strings.IndexByte(xsearch[:p], '_') != -1 {
+				} else if strings.IndexByte(xsearch[:p], sepRune) != -1 {
 					// avoid a match across path segments
 					continue
 				}
