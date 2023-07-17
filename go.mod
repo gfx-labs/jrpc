@@ -12,6 +12,7 @@ require (
 	github.com/deckarep/golang-set v1.8.0
 	github.com/go-faster/jx v1.0.0
 	github.com/goccy/go-json v0.10.0
+	github.com/iancoleman/strcase v0.3.0
 	github.com/stretchr/testify v1.8.2
 	sigs.k8s.io/yaml v1.3.0
 	tuxpa.in/a/zlog v1.61.0
