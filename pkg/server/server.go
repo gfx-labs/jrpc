@@ -176,6 +176,18 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 	}
 }
 
+// Stop stops reading new requests, waits for stopPendingRequestTimeout to allow pending
+// requests to finish, then closes all codecs which will cancel pending requests and
+// subscriptions.
+func (s *Server) Stop() {
+	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
+		s.codecs.Each(func(c any) bool {
+			c.(codec.ReaderWriter).Close()
+			return true
+		})
+	}
+}
+
 type callResponder struct {
 	toSend   chan *callEnv
 	toNotify chan *notifyEnv
@@ -298,14 +310,14 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 	return nil
 }
 
-type callEnv struct {
-	responses []*callRespWriter
-	batch     bool
-}
-
 type notifyEnv struct {
 	method string
 	dat    func(io.Writer) error
+}
+
+type callEnv struct {
+	responses []*callRespWriter
+	batch     bool
 }
 
 var _ codec.ResponseWriter = (*callRespWriter)(nil)
@@ -348,30 +360,4 @@ func (c *callRespWriter) Notify(method string, v any) error {
 		},
 	}
 	return nil
-}
-
-// Stop stops reading new requests, waits for stopPendingRequestTimeout to allow pending
-// requests to finish, then closes all codecs which will cancel pending requests and
-// subscriptions.
-func (s *Server) Stop() {
-	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		s.codecs.Each(func(c any) bool {
-			c.(codec.ReaderWriter).Close()
-			return true
-		})
-	}
-}
-
-type peerInfoContextKey struct{}
-
-// PeerInfoFromContext returns information about the client's network connection.
-// Use this with the context passed to RPC method handler functions.
-//
-// The zero value is returned if no connection info is present in ctx.
-func PeerInfoFromContext(ctx context.Context) codec.PeerInfo {
-	info, _ := ctx.Value(peerInfoContextKey{}).(codec.PeerInfo)
-	return info
-}
-func ContextWithPeerInfo(ctx context.Context, c codec.PeerInfo) context.Context {
-	return context.WithValue(ctx, peerInfoContextKey{}, c)
 }
