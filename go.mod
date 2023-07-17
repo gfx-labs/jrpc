@@ -11,7 +11,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/go-faster/jx v1.0.0
-	github.com/gobuffalo/packr/v2 v2.8.3
 	github.com/goccy/go-json v0.10.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/stretchr/testify v1.8.2
@@ -22,24 +21,15 @@ require (
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
-	github.com/gobuffalo/logger v1.0.6 // indirect
-	github.com/gobuffalo/packd v1.0.1 // indirect
-	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/markbates/errx v1.1.0 // indirect
-	github.com/markbates/oncer v1.0.0 // indirect
-	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
