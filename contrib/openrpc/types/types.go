@@ -26,9 +26,16 @@ type ServerVariable struct {
 }
 
 type Info struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Version     string `json:"version"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Version     string  `json:"version"`
+	Contact     Contact `json:"contact,omitempty"`
+}
+
+type Contact struct {
+	Name  string `json:"name,omitempty"`
+	URL   string `json:"url,omitempty"`
+	Email string `json:"email,omitempty"`
 }
 
 type Items []Schema
@@ -50,29 +57,32 @@ func (I *Items) UnmarshalJSON(b []byte) error {
 var _ json.Unmarshaler = (*Items)(nil)
 
 type Schema struct {
-	Ref        string            `json:"$ref,omitempty"`
-	Type       string            `json:"type,omitempty"`
-	Title      string            `json:"title,omitempty"`
-	Required   []string          `json:"required,omitempty"`
-	Items      Items             `json:"items,omitempty"`
-	Properties map[string]Schema `json:"properties,omitempty"`
-	OneOf      []Schema          `json:"oneOf,omitempty"`
-	AnyOf      []Schema          `json:"anyOf,omitempty"`
-	AllOf      []Schema          `json:"allOf,omitempty"`
-	Enum       []string          `json:"enum,omitempty"`
-	Pattern    string            `json:"pattern,omitempty"`
+	Ref         string            `json:"$ref,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	Title       string            `json:"title,omitempty"`
+	Required    []string          `json:"required,omitempty"`
+	Items       Items             `json:"items,omitempty"`
+	Properties  map[string]Schema `json:"properties,omitempty"`
+	OneOf       []Schema          `json:"oneOf,omitempty"`
+	AnyOf       []Schema          `json:"anyOf,omitempty"`
+	AllOf       []Schema          `json:"allOf,omitempty"`
+	Enum        []string          `json:"enum,omitempty"`
+	Pattern     string            `json:"pattern,omitempty"`
 }
 
 type Param struct {
 	Name        string `json:"name"`
+	Summary     string `json:"summary,omitempty"`
 	Description string `json:"description,omitempty"`
 	Required    bool   `json:"required"`
 	Schema      Schema `json:"schema"`
 }
 
 type Result struct {
-	Name   string `json:"name"`
-	Schema Schema `json:"schema"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Schema      Schema `json:"schema"`
 }
 
 type Method struct {

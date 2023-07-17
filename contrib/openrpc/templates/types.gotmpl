@@ -3,16 +3,18 @@
 package {{ .Package }}
 
 import (
-        "context"
-        "gfx.cafe/open/jrpc"
-        "errors"
-        "fmt"
-       )
+	"context"
+	"errors"
+	"fmt"
 
-var _ = jrpc.Version
+	"gfx.cafe/open/jrpc/contrib/jmux"
+)
+
+
 var _ = context.Background
 var _ = errors.New
 var _ = fmt.Sprintf
+
 
 
 
@@ -84,7 +86,7 @@ type GoOpenRPCService interface {
 
 
 
-func (h *GoOpenRPCHandler) RouteRPC(r jrpc.Router) {
+func (h *GoOpenRPCHandler) RouteRPC(r jmux.Router) {
     {{range .Methods -}}
         // {{.Summary}}
         {{if .Namespace}}
