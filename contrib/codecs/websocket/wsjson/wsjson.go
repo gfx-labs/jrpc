@@ -6,7 +6,7 @@ import (
 
 	"gfx.cafe/util/go/bufpool"
 	json "github.com/goccy/go-json"
-	"nhooyr.io/websocket"
+	"gfx.cafe/open/websocket"
 )
 
 // Read reads a JSON message from c into v.

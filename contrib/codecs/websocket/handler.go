@@ -3,7 +3,7 @@ package websocket
 import (
 	"net/http"
 
-	"nhooyr.io/websocket"
+	"gfx.cafe/open/websocket"
 
 	"gfx.cafe/open/jrpc/pkg/server"
 )

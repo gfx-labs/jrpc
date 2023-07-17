@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"nhooyr.io/websocket"
+	"gfx.cafe/open/websocket"
 )
 
 // DialWebsocket creates a new RPC client that communicates with a JSON-RPC server

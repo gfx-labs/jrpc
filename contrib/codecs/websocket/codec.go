@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"nhooyr.io/websocket"
+	"gfx.cafe/open/websocket"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/pkg/codec"
