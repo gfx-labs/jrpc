@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"gfx.cafe/open/jrpc/openrpc/templates"
-	"gfx.cafe/open/jrpc/openrpc/types"
+	"gfx.cafe/open/jrpc/contrib/openrpc/templates"
+	"gfx.cafe/open/jrpc/contrib/openrpc/types"
 	"github.com/iancoleman/strcase"
 )
 
