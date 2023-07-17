@@ -1,0 +1,49 @@
+address:
+  title: Address
+  type: string
+  pattern: ^0x[0-9,a-f,A-F]{40}$
+addresses:
+  title: Addresses
+  type: array
+  items:
+    $ref: '#/components/schemas/address'
+byte:
+  title: Byte
+  type: string
+  pattern: ^0x([0-9,a-f,A-F]?){1,2}$
+bytes:
+  title: Bytes
+  type: string
+  pattern: ^0x[0-9a-f]*$
+bytes8:
+  title: bytes8
+  type: string
+  pattern: ^0x[0-9a-f]{16}$
+bytes32:
+  title: bytes32
+  type: string
+  pattern: ^0x([0-9a-f][0-9a-f]){0,32}$
+bytes256:
+  title: bytes256
+  type: string
+  pattern: ^0x[0-9a-f]{512}$
+bytes65:
+  title: bytes645
+  type: string
+  pattern: ^0x[0-9a-f]{512}$
+uint:
+  title: Uint
+  type: string
+  pattern: ^0x([1-9a-f]+[0-9a-f]*|0)$
+uint64:
+  title: Uint64
+  type: string
+  pattern: ^0x([1-9a-f][0-9a-f]{0,15})|0$
+uint256:
+  title: Uint256
+  type: string
+  pattern: ^0x[0-9a-f]{0,64}$
+hash32:
+  title: Hash32
+  type: string
+  pattern: ^0x([0-9a-f][0-9a-f]){0,32}$
