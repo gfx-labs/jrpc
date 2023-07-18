@@ -2,6 +2,10 @@
 
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 
+we extend the eth-rpc reflect based handler with go-http style request/response. 
+
+we also make things like subscriptions additional extensions, so they are no longer baked into the rpc package. 
+
 most users should only ever need to access the "jrpc" and "pkg/codec" packages
 
 it is currently being used in the oku.trade api
