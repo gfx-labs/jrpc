@@ -2,10 +2,14 @@
 
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 
-packages which are incomplete are marked as such (WIP)
+most users should only ever need to access the "jrpc" and "pkg/codec" packages
+
+it is currently being used in the oku.trade api
+
+
 
 ```
-exports.go       - export things in subpackages to jrpc namespace, cleaning up the public use package
+exports.go       - export things in subpackages to jrpc namespace, cleaning up the public use package. 
 pkg/             - packages for implementing jrpc
   clientutil/      - common utilities for client implementations to use
     idreply.go       - generalizes making a request with an incrementing id, then waiting on it
@@ -42,11 +46,12 @@ contrib/         - packages that add to jrpc
       websocket_test.go  - websocket specific tests
     rdwr/              - rdwr based codec. can be used to implement other codecs
     inproc/            - inproc based codec
+  openrpc/         - openapi specification implementation
   jmux/            - a chi based router which satisfies the jrpc.Handler interface
   handlers/        - special jrpc handlers
     argreflect/      - go-ethereum style struct reflection
-  middleware/      - pre implemented middleware
-  openrpc/         - openapi specification implementation
+  extension/       - extensions to the protocol
+    middleware/      - pre implemented middleware
   subscription/    - WIP: subscription engine for go-ethereum style subs
 
 ```
