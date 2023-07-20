@@ -164,10 +164,8 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 	}()
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			remote.Close()
-		}
+		<-ctx.Done()
+		remote.Close()
 	}()
 
 	for {

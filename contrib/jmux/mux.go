@@ -86,9 +86,6 @@ func (m *Mux) RegisterFunc(name string, rcvr any) error {
 		return fmt.Errorf("no service name for type %s", rcvrVal.Type().String())
 	}
 	cb := argreflect.NewCallback(reflect.ValueOf(nil), rcvrVal)
-	if cb == nil {
-		return fmt.Errorf("invalid function registeration for %s", name)
-	}
 	m.Mount(name, cb)
 	return nil
 }

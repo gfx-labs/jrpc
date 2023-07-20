@@ -79,18 +79,18 @@ func MarshalMessage(m *Message, enc *jx.Encoder) error {
 }
 
 func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
-	err := dec.Obj(func(d *jx.Decoder, key string) error {
+	err := dec.Obj(func(d *jx.Decoder, key string) (err error) {
 		switch key {
 		default:
 			val, err := d.Raw()
 			if err != nil {
 				return err
 			}
-			xs := make(json.RawMessage, len(val))
-			copy(xs, val)
+			buf := bytes.NewBuffer(make(json.RawMessage, len(val)))
+			buf.Write(val)
 			m.ExtraFields = append(m.ExtraFields, RequestField{
 				Name:  key,
-				Value: xs,
+				Value: buf.Bytes(),
 			})
 		case "jsonrpc":
 			value, err := d.Str()
@@ -112,11 +112,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 				return err
 			}
 		case "method":
-			value, err := d.Str()
-			if err != nil {
-				return err
-			}
-			m.Method = value
+			m.Method, err = d.Str()
 		case "params":
 			val, err := d.Raw()
 			if err != nil {
@@ -152,7 +148,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 				return err
 			}
 		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return err
@@ -269,6 +265,9 @@ func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 			msg := new(Message)
 			//err := UnmarshalMessage(msg, d)
 			raw, err := d.Raw()
+			if err != nil {
+				raw = []byte{}
+			}
 			err = json.Unmarshal(raw, msg)
 			if err != nil {
 				msg = nil

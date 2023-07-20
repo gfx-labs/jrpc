@@ -82,7 +82,7 @@ func (s *testService) CallMeBack(ctx context.Context, method string, args []any)
 		return nil, errors.New("no client")
 	}
 	var result any
-	err := c.Do(nil, &result, method, args)
+	err := c.Do(context.Background(), &result, method, args)
 	return result, err
 }
 
