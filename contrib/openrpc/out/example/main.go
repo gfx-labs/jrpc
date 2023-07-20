@@ -8,7 +8,7 @@ import (
 	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/contrib/codecs"
 	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/openrpc/out"
+	"gfx.cafe/open/jrpc/contrib/openrpc/out"
 )
 
 func main() {

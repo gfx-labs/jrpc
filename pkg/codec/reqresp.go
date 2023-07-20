@@ -113,11 +113,6 @@ func NewNotification(ctx context.Context, method string, params any) *Request {
 	return r
 }
 
-func (r *Request) makeError(err error) *Message {
-	m := r.Msg()
-	return m.ErrorResponse(err)
-}
-
 func (r *Request) isNotification() bool {
 	return r.ID == nil && len(r.Method) > 0
 }

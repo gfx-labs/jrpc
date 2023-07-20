@@ -75,40 +75,9 @@ func (msg *Message) isNotification() bool {
 	return msg.ID == nil && len(msg.Method) > 0
 }
 
-func (msg *Message) isCall() bool {
-	return msg.hasValidID() && len(msg.Method) > 0
-}
-
-func (msg *Message) isResponse() bool {
-	return msg.hasValidID() && len(msg.Method) == 0 && msg.Params == nil && (msg.Result != nil || msg.Error != nil)
-}
-
-func (msg *Message) hasValidID() bool {
-	return msg.ID != nil && !msg.ID.IsNull()
-}
-
 func (msg *Message) String() string {
 	b, _ := json.Marshal(msg)
 	return string(b)
-}
-
-func (msg *Message) ErrorResponse(err error) *Message {
-	resp := ErrorMessage(err)
-	if resp.ID != nil {
-		resp.ID = msg.ID
-	}
-	return resp
-}
-func (msg *Message) response(result any) *Message {
-	// do a funny marshaling
-	enc, err := gojson.Marshal(result)
-	if err != nil {
-		return msg.ErrorResponse(err)
-	}
-	if len(enc) == 0 {
-		enc = []byte("null")
-	}
-	return &Message{ID: msg.ID, Result: enc}
 }
 
 // encapsulate json rpc error into struct
@@ -131,28 +100,6 @@ func (err *JsonError) ErrorCode() int {
 
 func (err *JsonError) ErrorData() any {
 	return err.Data
-}
-
-// error message produces json rpc message with error message
-func ErrorMessage(err error) *Message {
-	if err == nil {
-		return nil
-	}
-	msg := &Message{
-		ID: NewNullIDPtr(),
-		Error: &JsonError{
-			Code:    ErrorCodeDefault,
-			Message: err.Error(),
-		}}
-	ec, ok := err.(Error)
-	if ok {
-		msg.Error.Code = ec.ErrorCode()
-	}
-	de, ok := err.(DataError)
-	if ok {
-		msg.Error.Data = de.ErrorData()
-	}
-	return msg
 }
 
 // isBatch returns true when the first non-whitespace characters is '['
