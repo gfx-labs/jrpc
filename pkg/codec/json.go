@@ -33,6 +33,51 @@ type Message struct {
 	ExtraFields []RequestField `json:"-"`
 }
 
+func MarshalMessage(m *Message, enc *jx.Encoder) error {
+	// use encoder
+	fail := enc.Obj(func(e *jx.Encoder) {
+		e.Field("jsonrpc", func(e *jx.Encoder) {
+			e.Str("2.0")
+		})
+		if m.ID != nil {
+			e.Field("id", func(e *jx.Encoder) {
+				e.Raw(m.ID.RawMessage())
+			})
+		}
+		if m.Method != "" {
+			e.Field("method", func(e *jx.Encoder) {
+				e.Str(m.Method)
+			})
+		}
+		for _, v := range m.ExtraFields {
+			e.Field(v.Name, func(e *jx.Encoder) {
+				e.Raw(v.Value)
+			})
+		}
+		if m.Error != nil {
+			e.Field("error", func(e *jx.Encoder) {
+				EncodeError(e, m.Error)
+			})
+			return
+		}
+		if len(m.Params) != 0 {
+			e.Field("params", func(e *jx.Encoder) {
+				e.Raw(m.Params)
+			})
+		}
+		if len(m.Result) != 0 {
+			e.Field("result", func(e *jx.Encoder) {
+				e.Raw(m.Result)
+			})
+		}
+	})
+	if fail {
+		return fmt.Errorf("jx encoding error")
+	}
+	// output
+	return nil
+}
+
 func (m *Message) UnmarshalJSON(xs []byte) error {
 	var dec jx.Decoder
 	dec.ResetBytes(xs)
@@ -116,53 +161,6 @@ func (m *Message) UnmarshalJSON(xs []byte) error {
 	}
 	return nil
 }
-
-func MarshalMessage(m *Message, enc *jx.Encoder) error {
-	// use encoder
-	fail := enc.Obj(func(e *jx.Encoder) {
-		e.Field("jsonrpc", func(e *jx.Encoder) {
-			e.Str("2.0")
-		})
-		if m.ID != nil {
-			e.Field("id", func(e *jx.Encoder) {
-				e.Raw(m.ID.RawMessage())
-			})
-		}
-		if m.Method != "" {
-			e.Field("method", func(e *jx.Encoder) {
-				e.Str(m.Method)
-			})
-		}
-		for _, v := range m.ExtraFields {
-			e.Field(v.Name, func(e *jx.Encoder) {
-				e.Raw(v.Value)
-			})
-		}
-		if m.Error != nil {
-			e.Field("error", func(e *jx.Encoder) {
-				EncodeError(e, m.Error)
-			})
-			return
-		}
-		if len(m.Params) != 0 {
-			e.Field("params", func(e *jx.Encoder) {
-				e.Raw(m.Params)
-			})
-		}
-		if len(m.Result) != 0 {
-			e.Field("result", func(e *jx.Encoder) {
-				e.Raw(m.Result)
-			})
-		}
-
-	})
-	if fail {
-		return fmt.Errorf("jx encoding error")
-	}
-	// output
-	return nil
-}
-
 func (m *Message) MarshalJSON() ([]byte, error) {
 	buf := &bytes.Buffer{}
 	enc := jx.NewStreamingEncoder(buf, 4096)
