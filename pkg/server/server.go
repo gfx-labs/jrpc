@@ -3,8 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"io"
-	"net/http"
 	"sync"
 	"sync/atomic"
 
@@ -57,16 +55,20 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 		s.printError(remote, err)
 		return err
 	}
-	msg, batch := codec.ParseMessage(msgs)
+	incoming, batch := codec.ParseMessage(msgs)
 	env := &callEnv{
 		batch: batch,
 	}
+
 	// check for empty batch
-	if batch && len(msg) == 0 {
+	if batch && len(incoming) == 0 {
 		// if it is empty batch, send the empty batch warning
 		responder.toSend <- &callEnv{
 			responses: []*callRespWriter{{
-				err: codec.NewInvalidRequestError("empty batch"),
+				pkt: &codec.Message{
+					ID:    codec.NewNullIDPtr(),
+					Error: codec.NewInvalidRequestError("empty batch"),
+				},
 			}},
 			batch: false,
 		}
@@ -74,29 +76,34 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 	}
 
 	// populate the envelope
-	for _, v := range msg {
+	for _, v := range incoming {
 		rw := &callRespWriter{
+			pkt: &codec.Message{
+				ID: codec.NewNullIDPtr(),
+			},
+			msg: &codec.Message{
+				ID: codec.NewNullIDPtr(),
+			},
 			notifications: responder.toNotify,
 			header:        remote.PeerInfo().HTTP.Headers,
 		}
+		if v != nil {
+			rw.msg = v
+			if v.ID != nil {
+				rw.pkt.ID = v.ID
+			}
+		}
 		env.responses = append(env.responses, rw)
-		if v == nil {
-			continue
-		}
-		rw.msg = v
-		if v.ID != nil {
-			rw.id = *v.ID
-		}
 	}
 
 	// create a waitgroup
 	wg := sync.WaitGroup{}
 	wg.Add(len(env.responses))
-	for _, vv := range env.responses {
-		v := vv
+	for _, vRef := range env.responses {
+		v := vRef
 		// early respond to nil requests
 		if v.msg == nil || len(v.msg.Method) == 0 {
-			v.err = codec.NewInvalidRequestError("invalid request")
+			v.pkt.Error = codec.NewInvalidRequestError("invalid request")
 			wg.Done()
 			continue
 		}
@@ -108,15 +115,12 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 		}
 		go func() {
 			defer wg.Done()
-			s.services.ServeRPC(v, codec.NewRequestFromRaw(
+			r := codec.NewRequestFromMessage(
 				ctx,
-				&codec.RequestMarshaling{
-					ID:      v.msg.ID,
-					Version: v.msg.Version,
-					Method:  v.msg.Method,
-					Params:  v.msg.Params,
-					Peer:    remote.PeerInfo(),
-				}))
+				v.msg,
+			)
+			r.Peer = remote.PeerInfo()
+			s.services.ServeRPC(v, r)
 		}()
 	}
 	wg.Wait()
@@ -215,39 +219,45 @@ func (c *callResponder) run(ctx context.Context) error {
 		}
 	}
 }
+
+type notifyEnv struct {
+	method string
+	dat    any
+	extra  []codec.RequestField
+}
+
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
+	enc := jx.NewStreamingEncoder(c.remote, 4096)
+	msg := &codec.Message{}
+	var err error
+	//  allocate a temp buffer for this packet
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
-	enc := jx.GetEncoder()
-	enc.Reset()
-	defer jx.PutEncoder(enc)
-	buf.Reset()
-	enc.ObjStart()
-	enc.FieldStart("jsonrpc")
-	enc.Str("2.0")
-	enc.FieldStart("method")
-	enc.Str(env.method)
-	err := env.dat(buf)
+	err = json.NewEncoder(buf).Encode(env.dat)
 	if err != nil {
-		enc.FieldStart("error")
-		err := codec.EncodeError(enc, err)
-		if err != nil {
-			return err
-		}
+		msg.Error = err
 	} else {
-		enc.FieldStart("result")
-		enc.Raw(buf.Bytes())
+		msg.Result = buf.Bytes()
 	}
-	enc.ObjEnd()
-	_, err = enc.WriteTo(c.remote)
+	msg.ExtraFields = env.extra
+	// add the method
+	msg.Method = env.method
+	err = codec.MarshalMessage(msg, enc)
 	if err != nil {
 		return err
 	}
-	return nil
+	return enc.Close()
+
 }
 
-func (c *callResponder) send(ctx context.Context, env *callEnv) error {
+type callEnv struct {
+	responses []*callRespWriter
+	batch     bool
+}
+
+func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	// notification gets nothing
+	// if all msgs in batch are notification, we trigger an allSkip and write nothing
 	if env.batch {
 		allSkip := true
 		for _, v := range env.responses {
@@ -259,105 +269,43 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) error {
 			return nil
 		}
 	}
-	enc := jx.GetEncoder()
-	enc.Reset()
-	// enc.ResetWriter(c.remote)
-	defer jx.PutEncoder(enc)
+	// create the streaming encoder
+	enc := jx.NewStreamingEncoder(c.remote, 4096)
 	if env.batch {
 		enc.ArrStart()
 	}
 	for _, v := range env.responses {
-		id := codec.Null
-		if v.id != nil {
-			id = v.id.RawMessage()
-		}
+		msg := v.pkt
+		// if we are a batch AND we are supposed to skip, then continue
+		// this means that for a non-batch notification, we do not skip!
 		if env.batch && v.skip {
 			continue
 		}
-		enc.Obj(func(e *jx.Encoder) {
-			e.FieldStart("jsonrpc")
-			e.Str("2.0")
-			e.FieldStart("id")
-			e.Raw(id)
-			err := v.err
-			if err == nil {
-				if v.dat != nil {
-					buf := new(bytes.Buffer)
-					err = v.dat(buf)
-					if err == nil {
-						e.Field("result", func(e *jx.Encoder) {
-							e.Raw(bytes.TrimSpace(buf.Bytes()))
-						})
-					}
-				} else {
-					err = codec.NewInvalidRequestError("invalid request")
-				}
-			}
+		// if there is no error, we try to marshal the result
+		if msg.Error == nil {
+			buf := bufpool.GetStd()
+			defer bufpool.PutStd(buf)
+			je := json.NewEncoder(buf)
+			err = je.EncodeWithOption(v.dat)
 			if err != nil {
-				e.Field("error", func(e *jx.Encoder) {
-					codec.EncodeError(e, err)
-				})
+				msg.Error = err
+			} else {
+				msg.Result = buf.Bytes()
+				msg.Result = bytes.TrimSuffix(msg.Result, []byte{'\n'})
 			}
-		})
+		}
+		// then marshal the whole message into the stream
+		err := codec.MarshalMessage(msg, enc)
+		if err != nil {
+			return err
+		}
 	}
 	if env.batch {
 		enc.ArrEnd()
 	}
-	_, err := enc.WriteTo(c.remote)
+	err = enc.Close()
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-type notifyEnv struct {
-	method string
-	dat    func(io.Writer) error
-}
-
-type callEnv struct {
-	responses []*callRespWriter
-	batch     bool
-}
-
-var _ codec.ResponseWriter = (*callRespWriter)(nil)
-
-type callRespWriter struct {
-	id     codec.ID
-	msg    *codec.Message
-	dat    func(io.Writer) error
-	err    error
-	skip   bool
-	header http.Header
-
-	notifications chan *notifyEnv
-}
-
-func (c *callRespWriter) Send(v any, err error) error {
-	if err != nil {
-		c.err = err
-		return nil
-	}
-	c.dat = func(w io.Writer) error {
-		return json.NewEncoder(w).Encode(v)
-	}
-	return nil
-}
-
-func (c *callRespWriter) Option(k string, v any) {
-	// no options for now
-}
-
-func (c *callRespWriter) Header() http.Header {
-	return c.header
-}
-
-func (c *callRespWriter) Notify(method string, v any) error {
-	c.notifications <- &notifyEnv{
-		method: method,
-		dat: func(w io.Writer) error {
-			return json.NewEncoder(w).Encode(v)
-		},
 	}
 	return nil
 }

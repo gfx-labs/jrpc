@@ -51,14 +51,16 @@ func (c *Client) listen() error {
 			id := v.ID.Number()
 			if id == 0 {
 				if c.handler != nil {
-					c.handler.ServeRPC(nil, codec.NewRequestFromRaw(c.c.ctx, &codec.RequestMarshaling{
-						Method: v.Method,
-						Params: v.Params,
-						Peer: codec.PeerInfo{
-							Transport:  "ipc",
-							RemoteAddr: "",
-						},
-					}))
+					req := codec.NewRawRequest(c.c.ctx,
+						nil,
+						v.Method,
+						v.Params,
+					)
+					req.Peer = codec.PeerInfo{
+						Transport:  "ipc",
+						RemoteAddr: "",
+					}
+					c.handler.ServeRPC(nil, req)
 				}
 				continue
 			}
@@ -73,19 +75,19 @@ func (c *Client) listen() error {
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	id := c.p.NextId()
-	req := codec.NewRequestInt(ctx, id, method, params)
+	req, err := codec.NewRequest(ctx, codec.NewId(id), method, params)
+	if err != nil {
+		return err
+	}
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
 	select {
 	case c.c.msgs <- fwd:
-	case <-ctx.Done():
-		return ctx.Err()
+	case <-req.Context().Done():
+		return req.Context().Err()
 	}
 	ans, err := c.p.Ask(req.Context(), id)
 	if err != nil {
@@ -101,16 +103,16 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 }
 
 func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	reqs := make([]*codec.Request, 0, len(b))
 	ids := make([]int, 0, len(b))
 	for _, v := range b {
 		id := c.p.NextId()
-		req := codec.NewRequestInt(ctx, id, v.Method, v.Params)
+		req, err := codec.NewRequest(ctx, codec.NewId(id), v.Method, v.Params)
+		if err != nil {
+			return err
+		}
 		ids = append(ids, id)
 		reqs = append(reqs, req)
 	}
@@ -156,7 +158,10 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	req := codec.NewRequest(ctx, "", method, params)
+	req, err := codec.NewRequest(ctx, nil, method, params)
+	if err != nil {
+		return err
+	}
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err

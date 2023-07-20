@@ -1,19 +1,40 @@
 ## jrpc
 
+```go get gfx.cafe/open/jrpc```
+
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 
-we extend the eth-rpc reflect based handler with go-http style request/response. 
+we extend the eth-rpc reflect based handler with go-http style request/response.
 
-we also make things like subscriptions additional extensions, so they are no longer baked into the rpc package. 
+we also make things like subscriptions additional extensions, so they are no longer baked into the rpc package.
 
-most users should only ever need to access the "jrpc" and "pkg/codec" packages
+most users should mostly access the `jrpc` packages, along with a variety of things in `contrib`
 
-it is currently being used in the oku.trade api
+see examples in `examples` folder for usage
+
+it is currently being used in the oku.trade api in proxy, client, and server applications.
+
+## features
+
+ - full jsonrpc2 protocol
+ - batch requests + notifications
+ - http.Request/http.ResponseWriter style semantics
+ - simple but powerful middleware framework
+ - subscription framework used by go-ethereum/rpc is implemented as middleware.
+ - http (with rest-like access via RPC verb), websocket, io.Reader/io.Writer (tcp, any net.Conn, etc), inproc codecs.
+ - using faster json packages (goccy/go-json and jx)
+ - extensions, which allow setting arbitrary fields on the parent object, like in sourcegraph jsonrpc2
+ - jmux, which allows for http-like routing, implemented like `go-chi/v5`, except for jsonrpc2 paths
+ - argreflect, which allows mounting methods on structs to the rpc engine, like go-ethereum/rpc
+ - openrpc schema parser and code generator
 
 
+## maybe outdated but somewhat useful contribution info
+
+basic structure
 
 ```
-exports.go       - export things in subpackages to jrpc namespace, cleaning up the public use package. 
+exports.go       - export things in subpackages to jrpc namespace, cleaning up the public use package.
 pkg/             - packages for implementing jrpc
   clientutil/      - common utilities for client implementations to use
     idreply.go       - generalizes making a request with an incrementing id, then waiting on it
@@ -54,9 +75,9 @@ contrib/         - packages that add to jrpc
   jmux/            - a chi based router which satisfies the jrpc.Handler interface
   handlers/        - special jrpc handlers
     argreflect/      - go-ethereum style struct reflection
+  middleware/      - pre implemented middleware
   extension/       - extensions to the protocol
-    middleware/      - pre implemented middleware
-  subscription/    - WIP: subscription engine for go-ethereum style subs
+    subscription/    - WIP: subscription engine for go-ethereum style subs
 
 ```
 
