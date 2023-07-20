@@ -132,7 +132,7 @@ func (c *Client) post(req *codec.Request) (*http.Response, error) {
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
-	req, err := codec.NewNotification(ctx, method, params)
+	req, err := codec.NewRequest(ctx, nil, method, params)
 	if err != nil {
 		return err
 	}
