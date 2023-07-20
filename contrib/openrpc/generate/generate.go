@@ -18,9 +18,7 @@ var funcs = template.FuncMap{
 	"list": func(v ...any) []any {
 		return v
 	},
-	"camelCase": func(v string) string {
-		return strcase.ToCamel(v)
-	},
+	"camelCase": strcase.ToCamel,
 	"goType": func(v string) string {
 		switch v {
 		case "boolean":
@@ -37,9 +35,7 @@ var funcs = template.FuncMap{
 			panic(fmt.Sprintln("unknown go type:", v))
 		}
 	},
-	"refName": func(v string) string {
-		return filepath.Base(v)
-	},
+	"refName": filepath.Base,
 }
 
 func Generate(rpc *types.OpenRPC, ts string, output string) error {
