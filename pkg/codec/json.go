@@ -177,10 +177,6 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (msg *Message) isNotification() bool {
-	return msg.ID == nil && len(msg.Method) > 0
-}
-
 func (msg *Message) String() string {
 	b, _ := msg.MarshalJSON()
 	return string(b)

@@ -76,18 +76,6 @@ func NewRequest(ctx context.Context, id *ID, method string, params any) (r *Requ
 	return NewRawRequest(ctx, id, method, raw), nil
 }
 
-func (r *Request) isNotification() bool {
-	return r.ID == nil && len(r.Method) > 0
-}
-
-func (r *Request) isCall() bool {
-	return r.hasValidID() && len(r.Method) > 0
-}
-
-func (r *Request) hasValidID() bool {
-	return r.ID != nil && !r.ID.IsNull()
-}
-
 func (r *Request) ParamArray(a ...any) error {
 	var params []json.RawMessage
 	err := json.Unmarshal(r.Params, &params)
