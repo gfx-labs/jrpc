@@ -1,12 +1,12 @@
 package codec
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/go-faster/jx"
-
-	gojson "github.com/goccy/go-json"
 )
 
 var Null = json.RawMessage("null")
@@ -15,22 +15,109 @@ func NewNull() json.RawMessage {
 	return json.RawMessage("null")
 }
 
+// RequestField is an idea borrowed from sourcegraphs implementation.
+type RequestField struct {
+	Name  string
+	Value json.RawMessage
+}
+
 // A value of this type can a JSON-RPC request, notification, successful response or
 // error response. Which one it is depends on the fields.
 type Message struct {
-	Version Version         `json:"jsonrpc,omitempty"`
-	ID      *ID             `json:"id,omitempty"`
-	Method  string          `json:"method,omitempty"`
-	Params  json.RawMessage `json:"params,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
+	ID     *ID             `json:"id,omitempty"`
+	Method string          `json:"method,omitempty"`
+	Params json.RawMessage `json:"params,omitempty"`
+	Result json.RawMessage `json:"result,omitempty"`
+	Error  error           `json:"error,omitempty"`
 
-	Error *JsonError `json:"error,omitempty"`
+	ExtraFields []RequestField `json:"-"`
 }
 
-func (m *Message) MarshalJSON() ([]byte, error) {
-	var enc jx.Encoder
+func (m *Message) UnmarshalJSON(xs []byte) error {
+	var dec jx.Decoder
+	dec.ResetBytes(xs)
+	err := dec.Obj(func(d *jx.Decoder, key string) error {
+		switch key {
+		default:
+			val, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			xs := make(json.RawMessage, len(val))
+			copy(xs, val)
+			m.ExtraFields = append(m.ExtraFields, RequestField{
+				Name:  key,
+				Value: xs,
+			})
+		case "jsonrpc":
+			value, err := d.Str()
+			if err != nil {
+				return err
+			}
+			if value != VersionString {
+				return NewInvalidRequestError("Invalid Version")
+			}
+		case "id":
+			raw, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			id := &ID{}
+			err = id.UnmarshalJSON(raw)
+			m.ID = id
+			if err != nil {
+				return err
+			}
+		case "method":
+			value, err := d.Str()
+			if err != nil {
+				return err
+			}
+			m.Method = value
+		case "params":
+			val, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			if len(m.Params) >= len(val) {
+				m.Params = m.Params[len(val):]
+			} else {
+				m.Params = make(json.RawMessage, len(val))
+			}
+			copy(m.Params, val)
+		case "result":
+			val, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			if len(m.Result) >= len(val) {
+				m.Result = m.Result[len(val):]
+			} else {
+				m.Result = make(json.RawMessage, len(val))
+			}
+			copy(m.Result, val)
+		case "error":
+			val, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			m.Error = &JsonError{}
+			err = json.Unmarshal(val, m.Error)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func MarshalMessage(m *Message, enc *jx.Encoder) error {
 	// use encoder
-	enc.Obj(func(e *jx.Encoder) {
+	fail := enc.Obj(func(e *jx.Encoder) {
 		e.Field("jsonrpc", func(e *jx.Encoder) {
 			e.Str("2.0")
 		})
@@ -44,11 +131,16 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 				e.Str(m.Method)
 			})
 		}
+		for _, v := range m.ExtraFields {
+			e.Field(v.Name, func(e *jx.Encoder) {
+				e.Raw(v.Value)
+			})
+		}
 		if m.Error != nil {
 			e.Field("error", func(e *jx.Encoder) {
-				xs, _ := json.Marshal(m.Error)
-				e.Raw(xs)
+				EncodeError(e, m.Error)
 			})
+			return
 		}
 		if len(m.Params) != 0 {
 			e.Field("params", func(e *jx.Encoder) {
@@ -60,15 +152,27 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 				e.Raw(m.Result)
 			})
 		}
+
 	})
+	if fail {
+		return fmt.Errorf("jx encoding error")
+	}
 	// output
-	return enc.Bytes(), nil
+	return nil
 }
 
-func MakeCall(id int, method string, params []any) *Message {
-	return &Message{
-		ID: NewNumberIDPtr(int64(id)),
+func (m *Message) MarshalJSON() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	enc := jx.NewStreamingEncoder(buf, 4096)
+	err := MarshalMessage(m, enc)
+	if err != nil {
+		return nil, err
 	}
+	err = enc.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func (msg *Message) isNotification() bool {
@@ -88,27 +192,16 @@ func (msg *Message) hasValidID() bool {
 }
 
 func (msg *Message) String() string {
-	b, _ := json.Marshal(msg)
+	b, _ := msg.MarshalJSON()
 	return string(b)
 }
 
-func (msg *Message) ErrorResponse(err error) *Message {
-	resp := ErrorMessage(err)
+func (msg *Message) ErrorResponse(id *ID, err error) *Message {
+	resp := ErrorMessage(id, err)
 	if resp.ID != nil {
 		resp.ID = msg.ID
 	}
 	return resp
-}
-func (msg *Message) response(result any) *Message {
-	// do a funny marshaling
-	enc, err := gojson.Marshal(result)
-	if err != nil {
-		return msg.ErrorResponse(err)
-	}
-	if len(enc) == 0 {
-		enc = []byte("null")
-	}
-	return &Message{ID: msg.ID, Result: enc}
 }
 
 // encapsulate json rpc error into struct
@@ -134,23 +227,25 @@ func (err *JsonError) ErrorData() any {
 }
 
 // error message produces json rpc message with error message
-func ErrorMessage(err error) *Message {
+func ErrorMessage(id *ID, err error) *Message {
 	if err == nil {
 		return nil
 	}
+	je := &JsonError{
+		Code:    ErrorCodeDefault,
+		Message: err.Error(),
+	}
 	msg := &Message{
-		ID: NewNullIDPtr(),
-		Error: &JsonError{
-			Code:    ErrorCodeDefault,
-			Message: err.Error(),
-		}}
-	ec, ok := err.(Error)
+		ID:    id,
+		Error: je,
+	}
+	ec, ok := err.(*JsonError)
 	if ok {
-		msg.Error.Code = ec.ErrorCode()
+		je.Code = ec.ErrorCode()
 	}
 	de, ok := err.(DataError)
 	if ok {
-		msg.Error.Data = de.ErrorData()
+		je.Data = de.ErrorData()
 	}
 	return msg
 }
@@ -175,7 +270,7 @@ func IsBatchMessage(raw json.RawMessage) bool {
 func ParseMessage(raw json.RawMessage) ([]*Message, bool) {
 	if !IsBatchMessage(raw) {
 		msgs := []*Message{{}}
-		gojson.Unmarshal(raw, &msgs[0])
+		msgs[0].UnmarshalJSON(raw)
 		return msgs, false
 	}
 	// TODO:
@@ -197,4 +292,20 @@ func ParseMessage(raw json.RawMessage) ([]*Message, bool) {
 		return nil
 	})
 	return msgs, true
+}
+
+func (m *Message) SetExtraField(name string, v any) error {
+	switch name {
+	case "id", "jsonrpc", "method", "params", "result", "error":
+		return fmt.Errorf("%w: %q", ErrIllegalExtraField, name)
+	}
+	val, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	m.ExtraFields = append(m.ExtraFields, RequestField{
+		Name:  name,
+		Value: val,
+	})
+	return nil
 }

@@ -3,6 +3,7 @@ package codec
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	json "github.com/goccy/go-json"
@@ -10,34 +11,6 @@ import (
 
 // Version represents a JSON-RPC version.
 const VersionString = "2.0"
-
-// version is a special 0 sized struct that encodes as the jsonrpc version tag.
-//
-// It will fail during decode if it is not the correct version tag in the stream.
-type Version struct{}
-
-// compile time check whether the version implements a json.Marshaler and json.Unmarshaler interfaces.
-var (
-	_ json.Marshaler   = (*Version)(nil)
-	_ json.Unmarshaler = (*Version)(nil)
-)
-
-// MarshalJSON implements json.Marshaler.
-func (Version) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + VersionString + `"`), nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (Version) UnmarshalJSON(data []byte) error {
-	version := ""
-	if err := json.Unmarshal(data, &version); err != nil {
-		return fmt.Errorf("failed to Unmarshal: %w", err)
-	}
-	if version != VersionString {
-		return fmt.Errorf("invalid RPC version %v", version)
-	}
-	return nil
-}
 
 // ID is a Request identifier.
 //
@@ -58,6 +31,41 @@ var (
 	_ json.Marshaler   = (*ID)(nil)
 	_ json.Unmarshaler = (*ID)(nil)
 )
+
+func NewId(v any) *ID {
+	switch cast := v.(type) {
+	case uint8:
+		return NewNumberIDPtr(int64(cast))
+	case int8:
+		return NewNumberIDPtr(int64(cast))
+	case uint16:
+		return NewNumberIDPtr(int64(cast))
+	case int16:
+		return NewNumberIDPtr(int64(cast))
+	case uint32:
+		return NewNumberIDPtr(int64(cast))
+	case int32:
+		return NewNumberIDPtr(int64(cast))
+	case uint64:
+		return NewNumberIDPtr(int64(cast))
+	case int64:
+		return NewNumberIDPtr(int64(cast))
+	case int:
+		return NewNumberIDPtr(int64(cast))
+	case uint:
+		return NewNumberIDPtr(int64(cast))
+	case string:
+		return NewStringIDPtr(cast)
+	case []byte:
+		r := ID(cast)
+		return &r
+	case json.RawMessage:
+		r := ID(cast)
+		return &r
+	default:
+		panic(fmt.Sprintf("invalid id: %s %+v", reflect.TypeOf(v), v))
+	}
+}
 
 // NewNumberID returns a new number request ID.
 func NewNumberID(v int64) ID { return *NewNumberIDPtr(v) }

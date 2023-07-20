@@ -79,11 +79,13 @@ func (c *Client) listen() error {
 				// writer should only be allowed to send notifications
 				// reader should contain the message above
 				// the context is the client context
-				handler.ServeRPC(nil, codec.NewRequestFromRaw(c.ctx, &codec.RequestMarshaling{
-					Method: v.Method,
-					Params: v.Result,
-					Peer:   c.handlerPeer,
-				}))
+				req := codec.NewRawRequest(c.ctx,
+					nil,
+					v.Method,
+					v.Params,
+				)
+				req.Peer = c.handlerPeer
+				handler.ServeRPC(nil, req)
 				continue
 			}
 			var err error
@@ -97,16 +99,16 @@ func (c *Client) listen() error {
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	id := c.p.NextId()
-	req := codec.NewRequestInt(ctx, id, method, params)
+	req, err := codec.NewRequest(ctx, codec.NewId(id), method, params)
+	if err != nil {
+		return err
+	}
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
-	err = c.writeContext(ctx, fwd)
+	err = c.writeContext(req.Context(), fwd)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,10 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	ids := make([]int, 0, len(b))
 	for _, v := range b {
 		id := c.p.NextId()
-		req := codec.NewRequestInt(ctx, id, v.Method, v.Params)
+		req, err := codec.NewRequest(ctx, codec.NewId(id), v.Method, v.Params)
+		if err != nil {
+			return err
+		}
 		ids = append(ids, id)
 		reqs = append(reqs, req)
 	}
@@ -174,7 +179,10 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	req := codec.NewRequest(ctx, "", method, params)
+	req, err := codec.NewRequest(ctx, nil, method, params)
+	if err != nil {
+		return err
+	}
 	fwd, err := json.Marshal(req)
 	if err != nil {
 		return err

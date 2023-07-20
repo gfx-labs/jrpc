@@ -10,8 +10,9 @@ import (
 // http.ResponseWriter interface, but for jrpc
 type ResponseWriter interface {
 	Send(v any, err error) error
-	Option(k string, v any)
 	Header() http.Header
+
+	SetExtraField(k string, v any) error
 
 	Notify(method string, v any) error
 }
@@ -32,90 +33,51 @@ type BatchElem struct {
 	Error error
 }
 
-type Response struct {
-	Version Version         `json:"jsonrpc,omitempty"`
-	ID      *ID             `json:"id,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *JsonError      `json:"error,omitempty"`
-}
-
-func (r *Response) Msg() *Message {
-	out := &Message{}
-	if r.ID != nil {
-		out.ID = r.ID
-	}
-	if r.Error != nil {
-		out.Error = r.Error
-	} else {
-		out.Result = r.Result
-	}
-	return out
-}
-
 type Request struct {
-	RequestMarshaling
-	ctx context.Context
-}
+	ctx  context.Context
+	Peer PeerInfo `json:"-"`
 
-func NewRequestFromRaw(ctx context.Context, req *RequestMarshaling) *Request {
-	return &Request{ctx: ctx, RequestMarshaling: *req}
+	Message
 }
 
 func (r *Request) UnmarshalJSON(xs []byte) error {
-	return json.Unmarshal(xs, &r.RequestMarshaling)
+	return json.Unmarshal(xs, &r.Message)
 }
 
 func (r *Request) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.RequestMarshaling)
+	return json.Marshal(r.Message)
 }
 
-type RequestMarshaling struct {
-	Version Version         `json:"jsonrpc"`
-	ID      *ID             `json:"id,omitempty"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params"`
-	Peer    PeerInfo        `json:"-"`
-}
-
-func NewRequestInt(ctx context.Context, id int, method string, params any) *Request {
+func NewRequestFromMessage(ctx context.Context, message *Message) (r *Request) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	r := &Request{ctx: ctx}
-	pms, _ := json.Marshal(params)
-	r.ID = NewNumberIDPtr(int64(id))
-	r.Method = method
-	r.Params = pms
+	r = &Request{ctx: ctx, Message: *message}
 	return r
 }
 
-func NewRequest(ctx context.Context, id string, method string, params any) *Request {
+func NewRawRequest(ctx context.Context, id *ID, method string, params json.RawMessage) (r *Request) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	r := &Request{ctx: ctx}
-	pms, _ := json.Marshal(params)
-	r.ID = NewStringIDPtr(id)
+	r = &Request{ctx: ctx}
+	r.ID = id
 	r.Method = method
-	r.Params = pms
+	r.Params = params
 	return r
 }
 
-func NewNotification(ctx context.Context, method string, params any) *Request {
-	if ctx == nil {
-		ctx = context.Background()
+// NewRequest makes a new request
+func NewRequest(ctx context.Context, id *ID, method string, params any) (r *Request, err error) {
+	raw, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
 	}
-	r := &Request{ctx: ctx}
-	pms, _ := json.Marshal(params)
-	r.ID = nil
-	r.Method = method
-	r.Params = pms
-	return r
+	return NewRawRequest(ctx, id, method, raw), nil
 }
 
-func (r *Request) makeError(err error) *Message {
-	m := r.Msg()
-	return m.ErrorResponse(err)
+func NewNotification(ctx context.Context, method string, params any) (*Request, error) {
+	return NewRequest(ctx, nil, method, params)
 }
 
 func (r *Request) isNotification() bool {
@@ -132,7 +94,10 @@ func (r *Request) hasValidID() bool {
 
 func (r *Request) ParamArray(a ...any) error {
 	var params []json.RawMessage
-	json.Unmarshal(r.Params, &params)
+	err := json.Unmarshal(r.Params, &params)
+	if err != nil {
+		return err
+	}
 	for idx, v := range params {
 		if len(v) > idx {
 			err := json.Unmarshal(v, &a[idx])
@@ -173,6 +138,8 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.ID = r.ID
 	r2.Method = r.Method
 	r2.Params = r.Params
+	r2.Error = r.Error
+	r2.ExtraFields = r.ExtraFields
 	r2.Peer = r.Peer
 	return r2
 }

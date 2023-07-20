@@ -2,6 +2,7 @@ package codec
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/go-faster/jx"
@@ -22,6 +23,10 @@ const (
 	ErrorCodeDefault     = -32000
 	ErrorCodeApplication = -32080
 	ErrorCodeJrpc        = -42000
+)
+
+var (
+	ErrIllegalExtraField = errors.New("invalid extra field")
 )
 
 // Error wraps RPC errors, which contain an error code in addition to the message.

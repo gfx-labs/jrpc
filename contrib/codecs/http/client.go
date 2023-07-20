@@ -74,7 +74,10 @@ func (c *Client) SetHeader(key string, value string) {
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	req := codec.NewRequestInt(ctx, int(c.id.Add(1)), method, params)
+	req, err := codec.NewRequest(ctx, codec.NewId(c.id.Add(1)), method, params)
+	if err != nil {
+		return err
+	}
 	resp, err := c.post(req)
 	if err != nil {
 		return err
@@ -129,7 +132,10 @@ func (c *Client) post(req *codec.Request) (*http.Response, error) {
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
-	req := codec.NewNotification(ctx, method, params)
+	req, err := codec.NewNotification(ctx, method, params)
+	if err != nil {
+		return err
+	}
 	resp, err := c.post(req)
 	if err != nil {
 		return err
@@ -142,13 +148,18 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	reqs := make([]*codec.Request, len(b))
 	ids := make(map[int]int, len(b))
 	for idx, v := range b {
+		var rid *codec.ID
 		if v.IsNotification {
-			reqs = append(reqs, codec.NewRequest(ctx, "", v.Method, v.Params))
 		} else {
 			id := int(c.id.Add(1))
 			ids[idx] = id
-			reqs = append(reqs, codec.NewRequestInt(ctx, id, v.Method, v.Params))
+			rid = codec.NewNumberIDPtr(int64(id))
 		}
+		req, err := codec.NewRequest(ctx, rid, v.Method, v.Params)
+		if err != nil {
+			return err
+		}
+		reqs = append(reqs, req)
 	}
 	dat, err := json.Marshal(reqs)
 	if err != nil {
