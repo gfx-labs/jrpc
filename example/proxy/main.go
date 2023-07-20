@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	r.HandleFunc("eth/*", func(w codec.ResponseWriter, r *codec.Request) {
+	r.HandleFunc("eth_*", func(w codec.ResponseWriter, r *codec.Request) {
 		var res json.RawMessage
 		err = c.Do(r.Context(), &res, r.Method, json.RawMessage(r.Params))
 		w.Send(res, err)
