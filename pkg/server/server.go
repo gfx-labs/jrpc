@@ -49,13 +49,12 @@ func (s *Server) printError(remote codec.ReaderWriter, err error) {
 }
 
 func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, responder *callResponder) error {
-	msgs, err := remote.ReadBatch(ctx)
+	incoming, batch, err := remote.ReadBatch(ctx)
 	if err != nil {
 		remote.Flush()
 		s.printError(remote, err)
 		return err
 	}
-	incoming, batch := codec.ParseMessage(msgs)
 	env := &callEnv{
 		batch: batch,
 	}

@@ -78,9 +78,7 @@ func MarshalMessage(m *Message, enc *jx.Encoder) error {
 	return nil
 }
 
-func (m *Message) UnmarshalJSON(xs []byte) error {
-	var dec jx.Decoder
-	dec.ResetBytes(xs)
+func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 	err := dec.Obj(func(d *jx.Decoder, key string) error {
 		switch key {
 		default:
@@ -161,6 +159,14 @@ func (m *Message) UnmarshalJSON(xs []byte) error {
 	}
 	return nil
 }
+
+func (m *Message) UnmarshalJSON(xs []byte) error {
+	dec := jx.GetDecoder()
+	defer jx.PutDecoder(dec)
+	dec.ResetBytes(xs)
+	return UnmarshalMessage(m, dec)
+}
+
 func (m *Message) MarshalJSON() ([]byte, error) {
 	buf := &bytes.Buffer{}
 	enc := jx.NewStreamingEncoder(buf, 4096)
@@ -219,37 +225,6 @@ func IsBatchMessage(raw json.RawMessage) bool {
 	return false
 }
 
-// parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
-// checks in this function because the raw message has already been syntax-checked when it
-// is called. Any non-JSON-RPC messages in the input return the zero value of
-// Message.
-func ParseMessage(raw json.RawMessage) ([]*Message, bool) {
-	if !IsBatchMessage(raw) {
-		msgs := []*Message{{}}
-		msgs[0].UnmarshalJSON(raw)
-		return msgs, false
-	}
-	// TODO:
-	// for some reason other json decoders are incompatible with our test suite
-	// pretty sure its how we horle EOFs and stuff
-	dec := jx.DecodeBytes(raw)
-	var msgs []*Message
-	dec.Arr(func(d *jx.Decoder) error {
-		msg := new(Message)
-		raw, err := d.Raw()
-		if err != nil {
-			return nil
-		}
-		err = json.Unmarshal(raw, msg)
-		if err != nil {
-			msg = nil
-		}
-		msgs = append(msgs, msg)
-		return nil
-	})
-	return msgs, true
-}
-
 func (m *Message) SetExtraField(name string, v any) error {
 	switch name {
 	case "id", "jsonrpc", "method", "params", "result", "error":
@@ -264,4 +239,43 @@ func (m *Message) SetExtraField(name string, v any) error {
 		Value: val,
 	})
 	return nil
+}
+
+// parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
+// checks in this function because the raw message has already been syntax-checked when it
+// is called. Any non-JSON-RPC messages in the input return the zero value of
+// Message.
+func ParseMessage(in json.RawMessage) ([]*Message, bool) {
+	return ReadMessage(jx.DecodeBytes(in))
+
+}
+
+// parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
+// checks in this function because the raw message has already been syntax-checked when it
+// is called. Any non-JSON-RPC messages in the input return the zero value of
+// Message.
+func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
+	msgs := []*Message{{}}
+
+	switch dec.Next() {
+	case jx.Object:
+		_ = UnmarshalMessage(msgs[0], dec)
+		return msgs, false
+	default:
+		return msgs, false
+	case jx.Array:
+		msgs = []*Message{}
+		dec.Arr(func(d *jx.Decoder) error {
+			msg := new(Message)
+			//err := UnmarshalMessage(msg, d)
+			raw, err := d.Raw()
+			err = json.Unmarshal(raw, msg)
+			if err != nil {
+				msg = nil
+			}
+			msgs = append(msgs, msg)
+			return nil
+		})
+		return msgs, true
+	}
 }

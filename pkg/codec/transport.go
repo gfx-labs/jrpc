@@ -2,7 +2,6 @@ package codec
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 )
 
@@ -17,7 +16,7 @@ type Reader interface {
 	// gets the peer info
 	PeerInfo() PeerInfo
 	// json.RawMessage can be an array of requests. if it is, then it is a batch request
-	ReadBatch(ctx context.Context) (msgs json.RawMessage, err error)
+	ReadBatch(ctx context.Context) (msgs []*Message, batch bool, err error)
 	// closes the connection
 	Close() error
 }

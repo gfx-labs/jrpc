@@ -1,13 +1,13 @@
 package inproc
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 type Client struct {
@@ -48,8 +48,8 @@ func (c *Client) listen() error {
 		msgs, _ := codec.ParseMessage(msg)
 		for i := range msgs {
 			v := msgs[i]
-			id := v.ID.Number()
-			if id == 0 {
+			id := v.ID
+			if id == nil {
 				if c.handler != nil {
 					req := codec.NewRawRequest(c.c.ctx,
 						nil,
@@ -68,28 +68,35 @@ func (c *Client) listen() error {
 			if v.Error != nil {
 				err = v.Error
 			}
-			c.p.Resolve(id, v.Result, err)
+			c.p.Resolve(*id, v.Result, err)
 		}
 	}
 
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	id := c.p.NextId()
-	req, err := codec.NewRequest(ctx, codec.NewId(id), method, params)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	dat, err := json.Marshal(params)
 	if err != nil {
 		return err
 	}
-	fwd, err := json.Marshal(req)
-	if err != nil {
-		return err
+	id := c.p.NextId()
+	fwd := &serverutil.Bundle{
+		Messages: []*codec.Message{{
+			ID:     id,
+			Method: method,
+			Params: dat,
+		}},
+		Batch: false,
 	}
 	select {
 	case c.c.msgs <- fwd:
-	case <-req.Context().Done():
-		return req.Context().Err()
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	ans, err := c.p.Ask(req.Context(), id)
+	ans, err := c.p.Ask(ctx, *id)
 	if err != nil {
 		return err
 	}
@@ -103,24 +110,22 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 }
 
 func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
-	reqs := make([]*codec.Request, 0, len(b))
-	ids := make([]int, 0, len(b))
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ids := make([]*codec.ID, 0, len(b))
+	reqs := &serverutil.Bundle{Batch: true}
 	for _, v := range b {
 		id := c.p.NextId()
-		req, err := codec.NewRequest(ctx, codec.NewId(id), v.Method, v.Params)
+		dat, err := json.Marshal(v.Params)
 		if err != nil {
 			return err
 		}
+		req := &codec.Message{ID: id, Method: v.Method, Params: dat}
 		ids = append(ids, id)
-		reqs = append(reqs, req)
+		reqs.Messages = append(reqs.Messages, req)
 	}
-	err := enc.Encode(reqs)
-	if err != nil {
-		return err
-	}
-	c.c.msgs <- buf.Bytes()
+	c.c.msgs <- reqs
 	// TODO: wait for response
 	wg := sync.WaitGroup{}
 	wg.Add(len(ids))
@@ -128,7 +133,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 		idx := i
 		go func() {
 			defer wg.Done()
-			ans, err := c.p.Ask(reqs[idx].Context(), ids[idx])
+			ans, err := c.p.Ask(ctx, *ids[idx])
 			if err != nil {
 				b[idx].Error = err
 				return
@@ -144,7 +149,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	}
 	wg.Wait()
 
-	return err
+	return nil
 }
 
 func (c *Client) SetHeader(key string, value string) {
@@ -158,16 +163,20 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	req, err := codec.NewRequest(ctx, nil, method, params)
+	dat, err := json.Marshal(params)
 	if err != nil {
 		return err
 	}
-	fwd, err := json.Marshal(req)
-	if err != nil {
-		return err
+	msg := &serverutil.Bundle{
+		Messages: []*codec.Message{{
+			ID:     nil,
+			Method: method,
+			Params: dat,
+		}},
+		Batch: false,
 	}
 	select {
-	case c.c.msgs <- fwd:
+	case c.c.msgs <- msg:
 	case <-ctx.Done():
 		return ctx.Err()
 	}

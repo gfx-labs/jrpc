@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +13,10 @@ import (
 	"strings"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
+
+var _ codec.ReaderWriter = (*Codec)(nil)
 
 type Codec struct {
 	ctx context.Context
@@ -23,7 +25,7 @@ type Codec struct {
 	r     *http.Request
 	w     http.ResponseWriter
 	wr    *bufio.Writer
-	msgs  chan json.RawMessage
+	msgs  chan *serverutil.Bundle
 	errCh chan httpError
 
 	i codec.PeerInfo
@@ -39,7 +41,7 @@ func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
 		r:     r,
 		w:     w,
 		wr:    bufio.NewWriter(w),
-		msgs:  make(chan json.RawMessage, 1),
+		msgs:  make(chan *serverutil.Bundle, 1),
 		errCh: make(chan httpError, 1),
 	}
 	ctx := r.Context()
@@ -74,7 +76,7 @@ func (c *Codec) PeerInfo() codec.PeerInfo {
 	return c.i
 }
 
-func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
+func (r *Codec) doReadGet() (msg *serverutil.Bundle, err error) {
 	method_up := r.r.URL.Query().Get("method")
 	if method_up == "" {
 		method_up = r.r.URL.Path
@@ -88,12 +90,17 @@ func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 	if id == "" {
 		id = "1"
 	}
-
-	req := codec.NewRawRequest(r.ctx, codec.NewId(id), method_up, json.RawMessage(param))
-	return req.MarshalJSON()
+	return &serverutil.Bundle{
+		Messages: []*codec.Message{{
+			ID:     codec.NewId(id),
+			Method: method_up,
+			Params: param,
+		}},
+		Batch: false,
+	}, nil
 }
 
-func (r *Codec) doReadRPC() (msgs json.RawMessage, err error) {
+func (r *Codec) doReadRPC() (msg *serverutil.Bundle, err error) {
 	method_up := r.r.URL.Query().Get("method")
 	if method_up == "" {
 		method_up = r.r.URL.Path
@@ -106,8 +113,22 @@ func (r *Codec) doReadRPC() (msgs json.RawMessage, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req := codec.NewRawRequest(r.ctx, codec.NewId(id), method_up, json.RawMessage(data))
-	return req.MarshalJSON()
+	return &serverutil.Bundle{
+		Messages: []*codec.Message{{
+			ID:     codec.NewId(id),
+			Method: method_up,
+			Params: data,
+		}},
+		Batch: false,
+	}, nil
+}
+
+func (r *Codec) doReadPost() (msg *serverutil.Bundle, err error) {
+	data, err := io.ReadAll(r.r.Body)
+	if err != nil {
+		return nil, err
+	}
+	return serverutil.ParseBundle(data), nil
 }
 
 // validateRequest returns a non-zero response code and error message if the
@@ -148,7 +169,7 @@ func (c *Codec) doRead() {
 		return
 	}
 	go func() {
-		var data json.RawMessage
+		var data *serverutil.Bundle
 		// TODO: implement eventsource
 		switch strings.ToUpper(c.r.Method) {
 		case http.MethodGet:
@@ -156,7 +177,7 @@ func (c *Codec) doRead() {
 		case "RPC":
 			data, err = c.doReadRPC()
 		case http.MethodPost:
-			data, err = io.ReadAll(c.r.Body)
+			data, err = c.doReadPost()
 		}
 		if err != nil {
 			c.errCh <- httpError{
@@ -169,18 +190,17 @@ func (c *Codec) doRead() {
 	}()
 }
 
-// json.RawMessage can be an array of requests. if it is, then it is a batch request
-func (c *Codec) ReadBatch(ctx context.Context) (msgs json.RawMessage, err error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 	select {
 	case ans := <-c.msgs:
-		return ans, nil
+		return ans.Messages, ans.Batch, nil
 	case err := <-c.errCh:
 		http.Error(c.w, err.err.Error(), err.code)
-		return nil, err.err
+		return nil, false, err.err
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, false, ctx.Err()
 	case <-c.ctx.Done():
-		return nil, c.ctx.Err()
+		return nil, false, c.ctx.Err()
 	}
 }
 

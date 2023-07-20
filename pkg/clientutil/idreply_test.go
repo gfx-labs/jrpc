@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"sync"
 	"testing"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
 const count = 1000
@@ -23,7 +25,7 @@ func TestIdReply(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			id := reply.NextId()
-			v, err := reply.Ask(context.Background(), id)
+			v, err := reply.Ask(context.Background(), *id)
 			if err != nil {
 				t.Error(err)
 				return
@@ -38,7 +40,7 @@ func TestIdReply(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		go func(id int) {
-			reply.Resolve(id+1, testMessage, nil)
+			reply.Resolve(codec.NewNumberID(int64(id+1)), testMessage, nil)
 		}(i)
 	}
 

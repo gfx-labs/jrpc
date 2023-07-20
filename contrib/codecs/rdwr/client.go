@@ -69,9 +69,9 @@ func (c *Client) listen() error {
 			if v == nil {
 				continue
 			}
-			id := v.ID.Number()
+			id := v.ID
 			//  messages without ids are notifications
-			if id == 0 {
+			if id == nil {
 				var handler codec.Handler
 				c.mu.RLock()
 				handler = c.handler
@@ -92,7 +92,7 @@ func (c *Client) listen() error {
 			if v.Error != nil {
 				err = v.Error
 			}
-			c.p.Resolve(id, v.Result, err)
+			c.p.Resolve(*id, v.Result, err)
 		}
 	}
 
@@ -112,7 +112,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	if err != nil {
 		return err
 	}
-	ans, err := c.p.Ask(req.Context(), id)
+	ans, err := c.p.Ask(req.Context(), *id)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	reqs := make([]*codec.Request, 0, len(b))
-	ids := make([]int, 0, len(b))
+	ids := make([]*codec.ID, 0, len(b))
 	for _, v := range b {
 		id := c.p.NextId()
 		req, err := codec.NewRequest(ctx, codec.NewId(id), v.Method, v.Params)
@@ -157,7 +157,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 		idx := i
 		go func() {
 			defer wg.Done()
-			ans, err := c.p.Ask(reqs[idx].Context(), ids[idx])
+			ans, err := c.p.Ask(reqs[idx].Context(), *ids[idx])
 			if err != nil {
 				b[idx].Error = err
 				return

@@ -62,6 +62,10 @@ func NewId(v any) *ID {
 	case json.RawMessage:
 		r := ID(cast)
 		return &r
+	case *ID:
+		return cast
+	case ID:
+		return &cast
 	default:
 		panic(fmt.Sprintf("invalid id: %s %+v", reflect.TypeOf(v), v))
 	}

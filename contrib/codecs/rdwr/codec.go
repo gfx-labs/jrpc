@@ -9,6 +9,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 type Codec struct {
@@ -18,7 +19,7 @@ type Codec struct {
 	rd     io.Reader
 	wrLock sync.Mutex
 	wr     *bufio.Writer
-	msgs   chan json.RawMessage
+	msgs   chan *serverutil.Bundle
 }
 
 func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
@@ -28,7 +29,7 @@ func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 		cn:   cn,
 		rd:   bufio.NewReader(rd),
 		wr:   bufio.NewWriter(wr),
-		msgs: make(chan json.RawMessage, 8),
+		msgs: make(chan *serverutil.Bundle, 8),
 	}
 	go func() {
 		err := c.listen()
@@ -40,15 +41,16 @@ func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 }
 
 func (c *Codec) listen() error {
+	var msg json.RawMessage
 	for {
-		var msg json.RawMessage
 		// reading a message
 		err := json.NewDecoder(c.rd).Decode(&msg)
 		if err != nil {
 			c.cn()
 			return err
 		}
-		c.msgs <- msg
+		c.msgs <- serverutil.ParseBundle(msg)
+		msg = msg[:0]
 	}
 }
 
@@ -61,15 +63,14 @@ func (c *Codec) PeerInfo() codec.PeerInfo {
 	}
 }
 
-// json.RawMessage can be an array of requests. if it is, then it is a batch request
-func (c *Codec) ReadBatch(ctx context.Context) (msgs json.RawMessage, err error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 	select {
 	case ans := <-c.msgs:
-		return ans, nil
+		return ans.Messages, ans.Batch, nil
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, false, ctx.Err()
 	case <-c.ctx.Done():
-		return nil, c.ctx.Err()
+		return nil, false, c.ctx.Err()
 	}
 }
 
