@@ -81,7 +81,7 @@ func (m *Message) UnmarshalJSON(xs []byte) error {
 			}
 			buf := bytes.NewBuffer(m.Params)
 			buf.Reset()
-			_, err := buf.Write(val)
+			_, err = buf.Write(val)
 			if err != nil {
 				return err
 			}
@@ -93,7 +93,7 @@ func (m *Message) UnmarshalJSON(xs []byte) error {
 			}
 			buf := bytes.NewBuffer(m.Result)
 			buf.Reset()
-			_, err := buf.Write(val)
+			_, err = buf.Write(val)
 			if err != nil {
 				return err
 			}
