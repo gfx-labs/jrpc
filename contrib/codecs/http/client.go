@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 
@@ -25,12 +24,6 @@ var (
 	ErrSubscriptionQueueOverflow = errors.New("subscription queue overflow")
 	errClientReconnected         = errors.New("client reconnected")
 	errDead                      = errors.New("connection lost")
-)
-
-const (
-	// Timeouts
-	defaultDialTimeout = 10 * time.Second // used if context has no deadline
-	subscribeTimeout   = 5 * time.Second  // overall timeout eth_subscribe, rpc_modules calls
 )
 
 var _ codec.Conn = (*Client)(nil)
