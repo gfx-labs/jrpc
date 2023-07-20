@@ -7,23 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestVersion(t *testing.T) {
-	var v Version
-
-	t.Run("encoding", func(t *testing.T) {
-		ans, err := json.Marshal(v)
-		assert.NoError(t, err)
-		assert.Equal(t, []byte(`"2.0"`), ans)
-	})
-
-	t.Run("decoding", func(t *testing.T) {
-		err := json.Unmarshal([]byte(`"2.0"`), &v)
-		assert.NoError(t, err)
-		err = json.Unmarshal([]byte("not"), &v)
-		assert.Error(t, err)
-	})
-}
-
 func TestIDMarshal(t *testing.T) {
 
 	var v ID

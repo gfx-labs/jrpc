@@ -88,7 +88,8 @@ func (r *Codec) doReadGet() (msgs json.RawMessage, err error) {
 	if id == "" {
 		id = "1"
 	}
-	req := codec.NewRequest(r.ctx, id, method_up, json.RawMessage(param))
+
+	req := codec.NewRawRequest(r.ctx, codec.NewId(id), method_up, json.RawMessage(param))
 	return req.MarshalJSON()
 }
 
@@ -105,7 +106,7 @@ func (r *Codec) doReadRPC() (msgs json.RawMessage, err error) {
 	if err != nil {
 		return nil, err
 	}
-	req := codec.NewRequest(r.ctx, id, method_up, json.RawMessage(data))
+	req := codec.NewRawRequest(r.ctx, codec.NewId(id), method_up, json.RawMessage(data))
 	return req.MarshalJSON()
 }
 
