@@ -445,11 +445,12 @@ func (n *node) findEdge(ntyp nodeTyp, label byte) *node {
 		i, j := 0, num-1
 		for i <= j {
 			idx = i + (j-i)/2
-			if label > nds[idx].label {
+			switch {
+			case label > nds[idx].label:
 				i = idx + 1
-			} else if label < nds[idx].label {
+			case label < nds[idx].label:
 				j = idx - 1
-			} else {
+			default:
 				i = num // breaks cond
 			}
 		}
@@ -670,11 +671,12 @@ func (ns nodes) findEdge(label byte) *node {
 	i, j := 0, num-1
 	for i <= j {
 		idx = i + (j-i)/2
-		if label > ns[idx].label {
+		switch {
+		case label > ns[idx].label:
 			i = idx + 1
-		} else if label < ns[idx].label {
+		case label < ns[idx].label:
 			j = idx - 1
-		} else {
+		default:
 			i = num // breaks cond
 		}
 	}
@@ -714,7 +716,7 @@ func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(codec.
 		handler := route.Handler
 
 		fullRoute := parentRoute + sepString + route.Pattern
-		fullRoute = strings.Replace(fullRoute, sepString+"*"+sepString, sepString, -1)
+		fullRoute = strings.ReplaceAll(fullRoute, sepString+"*"+sepString, sepString)
 
 		if chain, ok := handler.(*ChainHandler); ok {
 			if err := walkFn(fullRoute, chain.Endpoint, append(mws, chain.Middlewares...)...); err != nil {
