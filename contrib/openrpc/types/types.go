@@ -26,10 +26,17 @@ type ServerVariable struct {
 }
 
 type Info struct {
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Version     string  `json:"version"`
-	Contact     Contact `json:"contact,omitempty"`
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	Version     string        `json:"version"`
+	Contact     Contact       `json:"contact,omitempty"`
+	Socials     []*SocialInfo `json:"x-social,omitempty"`
+}
+
+type SocialInfo struct {
+	Name  string `json:"name"`
+	URL   string `json:"url"`
+	Color string `json:"color"`
 }
 
 type Contact struct {
