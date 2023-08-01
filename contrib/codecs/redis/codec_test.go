@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"testing"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -14,16 +13,15 @@ import (
 )
 
 func TestBasicSuite(t *testing.T) {
-	redisServer := miniredis.RunT(t)
-	_ = redisServer
-	connOpts := &redis.UniversalOptions{
-		Addrs: []string{"localhost:6379"},
-	}
 	domain := "jrpc"
 
 	jrpctest.RunBasicTestSuite(t, jrpctest.BasicTestSuiteArgs{
 		ServerMaker: func() (*server.Server, jrpctest.ClientMaker, func()) {
-			ctx, cn := context.WithCancel(context.Background())
+			redisServer := miniredis.RunT(t)
+			connOpts := &redis.UniversalOptions{
+				Addrs: []string{redisServer.Addr()},
+			}
+			ctx := redisServer.Ctx
 			ss, err := CreateServerStream(ctx, domain, connOpts)
 			require.NoError(t, err)
 			s := jrpctest.NewServer()
@@ -32,7 +30,7 @@ func TestBasicSuite(t *testing.T) {
 					conn := NewClient(redis.NewUniversalClient(connOpts), domain)
 					return conn
 				}, func() {
-					cn()
+					redisServer.CtxCancel()
 				}
 		},
 	})

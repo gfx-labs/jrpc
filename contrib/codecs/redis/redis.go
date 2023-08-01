@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 	"unsafe"
 
@@ -48,10 +47,8 @@ func (s *ServerStream) ReadRequest(ctx context.Context) (*RedisRequest, func(jso
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Println("got req", redisReq.ReplyChannel, string(redisReq.Message))
 	return redisReq, func(rm json.RawMessage) error {
 		target := s.domain + "." + redisReq.ReplyChannel
-		log.Println("replying", target, string(rm))
 		return s.client.Publish(context.Background(), target, string(rm)).Err()
 	}, nil
 }
