@@ -122,7 +122,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResposeType", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("ResposeType2", func(t *testing.T, server *server.Server, client codec.Conn) {
 		if err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 		}

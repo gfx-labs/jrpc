@@ -8,11 +8,14 @@ require (
 	gfx.cafe/util/go/frand v0.0.0-20230121041905-80dafb1e973e
 	gfx.cafe/util/go/generic v0.0.0-20230502013805-237fcc25d586
 	github.com/alecthomas/kong v0.7.1
+	github.com/alicebob/miniredis/v2 v2.30.4
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/go-faster/jx v1.0.0
 	github.com/goccy/go-json v0.10.0
 	github.com/iancoleman/strcase v0.3.0
+	github.com/redis/go-redis/v9 v9.0.5
+	github.com/rs/xid v1.4.0
 	github.com/stretchr/testify v1.8.2
 	sigs.k8s.io/yaml v1.3.0
 	tuxpa.in/a/zlog v1.61.0
@@ -20,6 +23,9 @@ require (
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
+	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -28,6 +34,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
+	github.com/yuin/gopher-lua v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

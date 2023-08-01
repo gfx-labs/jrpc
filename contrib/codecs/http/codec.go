@@ -37,10 +37,14 @@ type httpError struct {
 }
 
 func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
+	ir := io.Writer(w)
+	if w == nil {
+		ir = io.Discard
+	}
 	c := &Codec{
 		r:     r,
 		w:     w,
-		wr:    bufio.NewWriter(w),
+		wr:    bufio.NewWriter(ir),
 		msgs:  make(chan *serverutil.Bundle, 1),
 		errCh: make(chan httpError, 1),
 	}
