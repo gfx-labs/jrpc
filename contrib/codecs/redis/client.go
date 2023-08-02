@@ -30,6 +30,12 @@ type Client struct {
 	handlerPeer codec.PeerInfo
 }
 
+func Dial(url string, domain string) *Client {
+	return NewClient(redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs: []string{url},
+	}), domain)
+}
+
 func NewClient(c redis.UniversalClient, domain string) *Client {
 	cl := &Client{
 		c: c,
