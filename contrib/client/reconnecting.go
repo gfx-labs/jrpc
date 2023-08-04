@@ -11,6 +11,7 @@ import (
 type Reconnecting struct {
 	dialer     func(ctx context.Context) (jrpc.Conn, error)
 	base       codec.Conn
+	alive      bool
 	middleware []codec.Middleware
 
 	mu sync.Mutex
@@ -24,7 +25,31 @@ func NewReconnecting(dialer func(ctx context.Context) (jrpc.Conn, error)) *Recon
 }
 
 func (r *Reconnecting) getClient(ctx context.Context) (jrpc.Conn, error) {
-
+	reconnect := func() error {
+		conn, err := r.dialer(ctx)
+		if err != nil {
+			return err
+		}
+		r.base = conn
+		r.alive = true
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.base == nil {
+		err := reconnect()
+		if err != nil {
+			return nil, err
+		}
+	}
+	select {
+	case <-r.base.Closed():
+		err := reconnect()
+		if err != nil {
+			return nil, err
+		}
+	default:
+	}
 	return r.base, nil
 }
 
