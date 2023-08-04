@@ -41,14 +41,15 @@ func (r *Reconnecting) getClient(ctx context.Context) (jrpc.Conn, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	select {
-	case <-r.base.Closed():
-		err := reconnect()
-		if err != nil {
-			return nil, err
+	} else {
+		select {
+		case <-r.base.Closed():
+			err := reconnect()
+			if err != nil {
+				return nil, err
+			}
+		default:
 		}
-	default:
 	}
 	return r.base, nil
 }
