@@ -47,6 +47,10 @@ func (c *Client) SetHandlerPeer(pi codec.PeerInfo) {
 	c.handlerPeer = pi
 }
 
+func (c *Client) Closed() <-chan struct{} {
+	return c.ctx.Done()
+}
+
 func (c *Client) Mount(h codec.Middleware) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -58,6 +62,7 @@ func (c *Client) Mount(h codec.Middleware) {
 
 func (c *Client) listen() error {
 	var msg json.RawMessage
+	defer c.cn()
 	for {
 		err := json.NewDecoder(c.rd).Decode(&msg)
 		if err != nil {

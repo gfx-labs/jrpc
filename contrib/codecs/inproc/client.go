@@ -14,6 +14,9 @@ type Client struct {
 	p *clientutil.IdReply
 	c *Codec
 
+	ctx context.Context
+	cn  context.CancelFunc
+
 	m       codec.Middlewares
 	handler codec.Handler
 	mu      sync.Mutex
@@ -34,12 +37,19 @@ func NewClient(c *Codec, handler codec.Handler) *Client {
 		c:       c,
 		handler: handler,
 	}
+	cl.ctx, cl.cn = context.WithCancel(context.Background())
 	go cl.listen()
+
 	return cl
+}
+
+func (c *Client) Closed() <-chan struct{} {
+	return c.ctx.Done()
 }
 
 func (c *Client) listen() error {
 	var msg json.RawMessage
+	defer c.cn()
 	for {
 		err := json.NewDecoder(c.c.rd).Decode(&msg)
 		if err != nil {

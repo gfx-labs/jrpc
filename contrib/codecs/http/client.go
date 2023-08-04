@@ -66,6 +66,10 @@ func (c *Client) SetHeader(key string, value string) {
 	c.headers.Set(key, value)
 }
 
+func (c *Client) Closed() <-chan struct{} {
+	return make(chan struct{})
+}
+
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	req, err := codec.NewRequest(ctx, codec.NewId(c.id.Add(1)), method, params)
 	if err != nil {

@@ -54,6 +54,10 @@ func NewClient(c redis.UniversalClient, domain string) *Client {
 	return cl
 }
 
+func (c *Client) Closed() <-chan struct{} {
+	return c.ctx.Done()
+}
+
 func (c *Client) SetHandlerPeer(pi codec.PeerInfo) {
 	c.handlerPeer = pi
 }

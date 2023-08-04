@@ -33,12 +33,18 @@ type Mounter interface {
 	Mount(Middleware)
 }
 
+type Closeder interface {
+	Closed() <-chan struct{}
+}
+
 type Conn interface {
 	Doer
 	BatchCaller
-	io.Closer
 
 	Mounter
+
+	io.Closer
+	Closeder
 }
 
 type StreamingConn interface {
