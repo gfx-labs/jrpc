@@ -2,7 +2,13 @@ package codec
 
 import "context"
 
+var _ Conn = (*DummyClient)(nil)
+
 type DummyClient struct{}
+
+func (d *DummyClient) Closed() <-chan struct{} {
+	panic("not implemented") // TODO: Implement
+}
 
 func (d *DummyClient) Notify(ctx context.Context, method string, params any) error {
 	panic("not implemented") // TODO: Implement
