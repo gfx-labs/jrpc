@@ -86,7 +86,11 @@ func (r *Reconnecting) Mount(m codec.Middleware) {
 
 // why would you want to do this....
 func (r *Reconnecting) Close() error {
-	return nil
+	conn, err := r.getClient(context.Background())
+	if err != nil {
+		return err
+	}
+	return conn.Close()
 }
 
 // never....
