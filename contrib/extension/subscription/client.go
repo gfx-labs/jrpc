@@ -11,11 +11,17 @@ import (
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
+var _ codec.StreamingConn = (*WrapClient)(nil)
+
 type WrapClient struct {
 	subs map[string]*clientSub
 
 	conn codec.StreamingConn
 	mu   sync.RWMutex
+}
+
+func (w *WrapClient) Closed() <-chan struct{} {
+	return w.conn.Closed()
 }
 
 func NewWrapClient(conn codec.StreamingConn) *WrapClient {
