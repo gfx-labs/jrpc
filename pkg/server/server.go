@@ -34,8 +34,6 @@ func NewServer(r codec.Handler) *Server {
 		run:    1,
 	}
 	server.services = r
-	// Register the default service providing meta information about the RPC service such
-	// as the services and methods it offers.
 	return server
 }
 
