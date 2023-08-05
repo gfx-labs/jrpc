@@ -1,10 +1,11 @@
 package http
 
 import (
-	"gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/server"
 	"net/http/httptest"
 	"testing"
+
+	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 	"github.com/stretchr/testify/require"

@@ -34,6 +34,10 @@ func (s *testService) EchoAny(n any) any {
 	return n
 }
 
+func (s *testService) Ping(ctx context.Context) string {
+	return "pong"
+}
+
 func (s *testService) Echo(str string, i int, args *EchoArgs) EchoResult {
 	return EchoResult{str, i, args}
 }

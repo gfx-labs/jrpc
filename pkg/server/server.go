@@ -222,7 +222,13 @@ type notifyEnv struct {
 }
 
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
-	enc := jx.NewStreamingEncoder(c.remote, 4096)
+	enc := jx.GetEncoder()
+	if cap(enc.Bytes()) < 4096 {
+		enc.SetBytes(make([]byte, 0, 4096))
+	}
+	enc.ResetWriter(c.remote)
+	defer jx.PutEncoder(enc)
+	//enc := jx.NewStreamingEncoder(c.remote, 4096)
 	msg := &codec.Message{}
 	var err error
 	//  allocate a temp buffer for this packet
@@ -242,7 +248,6 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 		return err
 	}
 	return enc.Close()
-
 }
 
 type callEnv struct {
@@ -265,7 +270,12 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 		}
 	}
 	// create the streaming encoder
-	enc := jx.NewStreamingEncoder(c.remote, 4096)
+	enc := jx.GetEncoder()
+	if cap(enc.Bytes()) < 4096 {
+		enc.SetBytes(make([]byte, 0, 4096))
+	}
+	enc.ResetWriter(c.remote)
+	defer jx.PutEncoder(enc)
 	if env.batch {
 		enc.ArrStart()
 	}
