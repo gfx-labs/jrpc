@@ -1,7 +1,6 @@
 package rdwr
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -9,6 +8,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/util/go/bufpool"
 )
 
 type Client struct {
@@ -106,15 +106,17 @@ func (c *Client) listen() error {
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	id := c.p.NextId()
+	buf := bufpool.GetStd()
+	defer bufpool.PutStd(buf)
 	req, err := codec.NewRequest(ctx, codec.NewId(id), method, params)
 	if err != nil {
 		return err
 	}
-	fwd, err := json.Marshal(req)
+	err = json.NewEncoder(buf).Encode(req)
 	if err != nil {
 		return err
 	}
-	err = c.writeContext(req.Context(), fwd)
+	err = c.writeContext(req.Context(), buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -135,7 +137,8 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	buf := new(bytes.Buffer)
+	buf := bufpool.GetStd()
+	defer bufpool.PutStd(buf)
 	enc := json.NewEncoder(buf)
 	reqs := make([]*codec.Request, 0, len(b))
 	ids := make([]*codec.ID, 0, len(b))

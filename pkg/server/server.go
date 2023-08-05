@@ -154,19 +154,14 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 		if err != nil {
 			s.printError(remote, err)
 		}
-		// lose
-		err = remote.Close()
-		if err != nil {
-			s.printError(remote, err)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		remote.Close()
 	}()
 
 	for {
+		select {
+		case <-ctx.Done():
+			remote.Close()
+		default:
+		}
 		err := s.codecLoop(ctx, remote, responder)
 		if err != nil {
 			s.printError(remote, err)
