@@ -7,8 +7,8 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/contrib/codecs/redis"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
+	"gfx.cafe/open/jrpc/exp/redis"
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
