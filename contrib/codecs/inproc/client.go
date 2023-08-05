@@ -50,8 +50,9 @@ func (c *Client) Closed() <-chan struct{} {
 func (c *Client) listen() error {
 	var msg json.RawMessage
 	defer c.cn()
+	dec := json.NewDecoder(c.c.rd)
 	for {
-		err := json.NewDecoder(c.c.rd).Decode(&msg)
+		err := dec.Decode(&msg)
 		if err != nil {
 			return err
 		}

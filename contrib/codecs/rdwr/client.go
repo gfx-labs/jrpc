@@ -63,8 +63,9 @@ func (c *Client) Mount(h codec.Middleware) {
 func (c *Client) listen() error {
 	var msg json.RawMessage
 	defer c.cn()
+	dec := json.NewDecoder(c.rd)
 	for {
-		err := json.NewDecoder(c.rd).Decode(&msg)
+		err := dec.Decode(&msg)
 		if err != nil {
 			return err
 		}

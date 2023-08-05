@@ -1,6 +1,7 @@
-package http
+package websocket
 
 import (
+	"context"
 	"net/http/httptest"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -12,7 +13,7 @@ func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
 	s := jrpctest.NewServer()
 	hsrv := httptest.NewServer(&Server{Server: s})
 	return s, func() codec.Conn {
-		conn, err := DialHTTP(hsrv.URL)
+		conn, err := DialWebsocket(context.Background(), hsrv.URL, "")
 		if err != nil {
 			panic(err)
 		}

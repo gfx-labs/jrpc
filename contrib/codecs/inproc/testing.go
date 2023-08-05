@@ -1,7 +1,7 @@
-package http
+package inproc
 
 import (
-	"net/http/httptest"
+	"context"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
@@ -10,12 +10,11 @@ import (
 
 func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
 	s := jrpctest.NewServer()
-	hsrv := httptest.NewServer(&Server{Server: s})
+	clientCodec := NewCodec()
+	go func() {
+		s.ServeCodec(context.Background(), clientCodec)
+	}()
 	return s, func() codec.Conn {
-		conn, err := DialHTTP(hsrv.URL)
-		if err != nil {
-			panic(err)
-		}
-		return conn
-	}, hsrv.Close
+		return NewClient(clientCodec, nil)
+	}, func() {}
 }

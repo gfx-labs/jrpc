@@ -24,19 +24,34 @@ type BasicTestSuiteArgs struct {
 }
 
 type TestContext func(t *testing.T, server *server.Server, client codec.Conn)
+type BenchContext func(t *testing.B, server *server.Server, client codec.Conn)
 
-// go:embed testdata/
-var testData embed.FS
-
-func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
-	var executeTest = func(t *testing.T, c TestContext) {
-		server, dialer, cn := args.ServerMaker()
+func TestExecutor(sm ServerMaker) func(t *testing.T, c TestContext) {
+	return func(t *testing.T, c TestContext) {
+		server, dialer, cn := sm()
 		defer cn()
 		defer server.Stop()
 		client := dialer()
 		defer client.Close()
 		c(t, server, client)
 	}
+}
+func BenchExecutor(sm ServerMaker) func(t *testing.B, c BenchContext) {
+	return func(t *testing.B, c BenchContext) {
+		server, dialer, cn := sm()
+		defer cn()
+		defer server.Stop()
+		client := dialer()
+		defer client.Close()
+		c(t, server, client)
+	}
+}
+
+// go:embed testdata/
+var testData embed.FS
+
+func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
+	var executeTest = TestExecutor(args.ServerMaker)
 
 	var makeTest = func(name string, fm TestContext) {
 		t.Run(name, func(t *testing.T) {

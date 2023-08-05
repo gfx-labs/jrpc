@@ -18,6 +18,7 @@ import (
 
 var _ codec.ReaderWriter = (*Codec)(nil)
 
+// Reusable codec. use Reset()
 type Codec struct {
 	ctx context.Context
 	cn  func()
@@ -37,23 +38,32 @@ type httpError struct {
 }
 
 func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
+	c := &Codec{}
+	c.Reset(w, r)
+	return c
+}
+
+func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 	ir := io.Writer(w)
 	if w == nil {
 		ir = io.Discard
 	}
-	c := &Codec{
-		r:     r,
-		w:     w,
-		wr:    bufio.NewWriter(ir),
-		msgs:  make(chan *serverutil.Bundle, 1),
-		errCh: make(chan httpError, 1),
+	c.r = r
+	c.w = w
+	if c.wr == nil {
+		c.wr = bufio.NewWriter(ir)
+	} else {
+		c.wr.Reset(ir)
 	}
-	ctx := r.Context()
+	c.msgs = make(chan *serverutil.Bundle, 1)
+	c.errCh = make(chan httpError, 1)
+
+	ctx := c.r.Context()
 	c.ctx, c.cn = context.WithCancel(ctx)
 	c.peerInfo()
 	c.doRead()
-	return c
 }
+
 func (c *Codec) peerInfo() {
 	c.i.Transport = "http"
 	c.i.RemoteAddr = c.r.RemoteAddr

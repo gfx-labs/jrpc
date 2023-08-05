@@ -1,7 +1,8 @@
-package http
+package rdwr
 
 import (
-	"net/http/httptest"
+	"context"
+	"io"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
@@ -9,13 +10,14 @@ import (
 )
 
 func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
+	rd_s, wr_s := io.Pipe()
+	rd_c, wr_c := io.Pipe()
 	s := jrpctest.NewServer()
-	hsrv := httptest.NewServer(&Server{Server: s})
+	clientCodec := NewCodec(rd_c, wr_s, nil)
+	go func() {
+		s.ServeCodec(context.Background(), clientCodec)
+	}()
 	return s, func() codec.Conn {
-		conn, err := DialHTTP(hsrv.URL)
-		if err != nil {
-			panic(err)
-		}
-		return conn
-	}, hsrv.Close
+		return NewClient(rd_s, wr_c)
+	}, func() {}
 }
