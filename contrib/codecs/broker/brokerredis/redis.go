@@ -103,8 +103,7 @@ type RedisRequest struct {
 }
 
 func (s *Broker) ReadRequest(ctx context.Context) (json.RawMessage, func(json.RawMessage) error, error) {
-	timeout := time.Hour
-
+	timeout := time.Second
 	res, err := s.client.BLPop(ctx, timeout, s.domain+reqDomainSuffix).Result()
 	if err != nil {
 		return nil, nil, err
