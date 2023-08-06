@@ -8,6 +8,8 @@ import (
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
+var _ jrpc.Conn = (*Reconnecting)(nil)
+
 type Reconnecting struct {
 	dialer     func(ctx context.Context) (jrpc.Conn, error)
 	base       codec.Conn
