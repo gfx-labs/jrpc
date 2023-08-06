@@ -1,4 +1,4 @@
-package redis
+package broker
 
 import (
 	"bytes"
@@ -30,14 +30,14 @@ type httpError struct {
 	err  error
 }
 
-func NewCodec(req *RedisRequest, replier func(json.RawMessage) error) *Codec {
+func NewCodec(req json.RawMessage, replier func(json.RawMessage) error) *Codec {
 	c := &Codec{
 		replier: replier,
 		ansCh:   make(chan *serverutil.Bundle, 1),
 		closeCh: make(chan struct{}),
 	}
 	c.ctx, c.cn = context.WithCancel(context.Background())
-	bundle := serverutil.ParseBundle(req.Message)
+	bundle := serverutil.ParseBundle(req)
 	c.ansCh <- bundle
 	return c
 }

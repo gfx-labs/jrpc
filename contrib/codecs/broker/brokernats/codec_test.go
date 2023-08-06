@@ -1,19 +1,19 @@
-package redis
+package nats
 
 import (
+	"context"
 	"testing"
 
+	"gfx.cafe/open/jrpc/contrib/codecs/broker"
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBasicSuite(t *testing.T) {
-	domain := "jrpc"
 
 	jrpctest.RunBasicTestSuite(t, jrpctest.BasicTestSuiteArgs{
 		ServerMaker: func() (*server.Server, jrpctest.ClientMaker, func()) {
@@ -22,14 +22,15 @@ func TestBasicSuite(t *testing.T) {
 				Addrs: []string{redisServer.Addr()},
 			}
 			ctx := redisServer.Ctx
-			ss, err := CreateServerStream(ctx, domain, connOpts)
-			require.NoError(t, err)
+			ctx, cn := context.WithCancel(ctx)
+			b := CreateBroker(ctx, "jrpc", connOpts)
 			s := jrpctest.NewServer()
-			go (&Server{Server: s}).ServeRedis(ctx, ss)
+			spokeServer := (&broker.Server{Server: s})
+			go spokeServer.ServeSpoke(ctx, b)
 			return s, func() codec.Conn {
-					conn := NewClient(redis.NewUniversalClient(connOpts), domain)
-					return conn
+					return broker.NewClient(b)
 				}, func() {
+					cn()
 					redisServer.CtxCancel()
 				}
 		},

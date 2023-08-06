@@ -1,24 +1,21 @@
-package redis
+package broker
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/codec"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/xid"
 )
 
 type Client struct {
 	p *clientutil.IdReply
 
-	c        redis.UniversalClient
+	c        ClientSpoke
 	clientId string
-	domain   string
 
 	ctx context.Context
 	cn  context.CancelFunc
@@ -30,21 +27,14 @@ type Client struct {
 	handlerPeer codec.PeerInfo
 }
 
-func Dial(url string, domain string) *Client {
-	return NewClient(redis.NewUniversalClient(&redis.UniversalOptions{
-		Addrs: []string{url},
-	}), domain)
-}
-
-func NewClient(c redis.UniversalClient, domain string) *Client {
+func NewClient(spoke ClientSpoke) *Client {
 	cl := &Client{
-		c: c,
+		c: spoke,
 		p: clientutil.NewIdReply(),
 		handlerPeer: codec.PeerInfo{
-			Transport:  "redis",
+			Transport:  "broker",
 			RemoteAddr: "",
 		},
-		domain: domain,
 		// this doesn't need to be secure bc... you have access to the redis instance lol
 		clientId: xid.New().String(),
 		handler:  codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {}),
@@ -72,12 +62,20 @@ func (c *Client) Mount(h codec.Middleware) {
 }
 
 func (c *Client) listen() error {
-	subCh := fmt.Sprintf(c.domain + "." + c.clientId)
-	sub := c.c.PSubscribe(c.ctx, subCh)
-	msgCh := sub.Channel()
+	defer c.cn()
+	sub, err := c.c.Subscribe(c.ctx, c.clientId)
+	if err != nil {
+		return err
+	}
+	defer sub.Close()
 	for {
-		incomingMsg := <-msgCh
-		msgs, _ := codec.ParseMessage(stringToBytes(incomingMsg.Payload))
+		var incomingMsg json.RawMessage
+		select {
+		case incomingMsg = <-sub.Listen():
+		case <-c.ctx.Done():
+			return c.ctx.Err()
+		}
+		msgs, _ := codec.ParseMessage(incomingMsg)
 		for i := range msgs {
 			v := msgs[i]
 			if v == nil {
@@ -122,11 +120,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	if err != nil {
 		return err
 	}
-	toFwd, _ := json.Marshal(&RedisRequest{
-		ReplyChannel: c.clientId,
-		Message:      fwd,
-	})
-	err = c.writeContext(req.Context(), toFwd)
+	err = c.writeContext(req.Context(), fwd)
 	if err != nil {
 		return err
 	}
@@ -164,11 +158,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	if err != nil {
 		return err
 	}
-	pkg, _ := json.Marshal(&RedisRequest{
-		ReplyChannel: c.clientId,
-		Message:      buf.Bytes(),
-	})
-	err = c.writeContext(ctx, pkg)
+	err = c.writeContext(ctx, buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -223,7 +213,7 @@ func (c *Client) Close() error {
 func (c *Client) writeContext(ctx context.Context, xs []byte) error {
 	errch := make(chan error)
 	go func() {
-		err := c.c.LPush(ctx, c.domain+reqDomainSuffix, xs).Err()
+		err := c.c.WriteRequest(ctx, c.clientId, xs)
 		select {
 		case errch <- err:
 		case <-ctx.Done():

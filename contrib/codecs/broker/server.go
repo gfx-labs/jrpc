@@ -1,17 +1,16 @@
-package redis
+package broker
 
 import (
 	"context"
 
 	"gfx.cafe/open/jrpc/pkg/server"
-	"tuxpa.in/a/zlog/log"
 )
 
 type Server struct {
 	Server *server.Server
 }
 
-func (s *Server) ServeRedis(ctx context.Context, stream *ServerStream) {
+func (s *Server) ServeSpoke(ctx context.Context, stream ServerSpoke) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -20,7 +19,6 @@ func (s *Server) ServeRedis(ctx context.Context, stream *ServerStream) {
 		}
 		req, fn, err := stream.ReadRequest(ctx)
 		if err != nil {
-			log.Err(err).Msg("while reading bpop")
 			continue
 		}
 		if req == nil {
