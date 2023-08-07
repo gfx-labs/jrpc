@@ -20,7 +20,7 @@ type (
 	// ResponseWriter is used to write responses to the request
 	ResponseWriter = codec.ResponseWriter
 	// StreamingConn is a conn that supports streaming methods
-	StreamingConn = codec.Conn
+	StreamingConn = codec.StreamingConn
 	// Request is the request object
 	Request = codec.Request
 	// Server is a jrpc server
