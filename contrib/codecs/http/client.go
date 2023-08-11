@@ -125,6 +125,7 @@ func (c *Client) post(req *codec.Request) (*http.Response, error) {
 			hreq.Header.Add(k, vv)
 		}
 	}
+	c.headers.Add("Content-Type", "application/json")
 	return c.c.Do(hreq)
 }
 
