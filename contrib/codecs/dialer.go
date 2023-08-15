@@ -8,7 +8,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/exp/redis"
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
@@ -22,12 +21,12 @@ func DialContext(ctx context.Context, u string) (codec.Conn, error) {
 		return http.Dial(ctx, nil, u)
 	case "ws", "wss":
 		return websocket.DialWebsocket(ctx, u, "")
-	case "redis":
-		domain := pu.Query().Get("domain")
-		if domain == "" {
-			domain = "jrpc"
-		}
-		return redis.Dial(pu.Host, domain), nil
+//	case "redis":
+//		domain := pu.Query().Get("domain")
+//		if domain == "" {
+//			domain = "jrpc"
+//		}
+//		return redis.Dial(pu.Host, domain), nil
 	case "tcp":
 		tcpAddr, err := net.ResolveTCPAddr("tcp", u)
 		if err != nil {
