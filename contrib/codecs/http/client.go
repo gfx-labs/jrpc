@@ -63,11 +63,9 @@ func Dial(ctx context.Context, client *http.Client, target string) (*Client, err
 }
 
 func (c *Client) SetHeader(key string, value string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.headers.Set(key, value)
-}
-
-func (c *Client) Closed() <-chan struct{} {
-	return make(chan struct{})
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
@@ -88,7 +86,6 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 			Body:       b,
 		}
 	}
-	// TODO: this can be reused
 	msg := clientutil.GetMessage()
 	defer clientutil.PutMessage(msg)
 	err = json.NewDecoder(resp.Body).Decode(&msg)
@@ -105,28 +102,6 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		}
 	}
 	return nil
-}
-
-func (c *Client) post(req *codec.Request) (*http.Response, error) {
-	// TODO: use buffer for this
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
-	buf.Reset()
-	err := json.NewEncoder(buf).Encode(req)
-	if err != nil {
-		return nil, err
-	}
-	hreq, err := http.NewRequestWithContext(req.Context(), http.MethodPost, c.remote, buf)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range c.headers {
-		for _, vv := range v {
-			hreq.Header.Add(k, vv)
-		}
-	}
-	c.headers.Add("Content-Type", "application/json")
-	return c.c.Do(hreq)
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
@@ -163,7 +138,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	if err != nil {
 		return err
 	}
-	resp, err := c.c.Post(c.remote, "application/json", bytes.NewBuffer(dat))
+	resp, err := c.postBuf(ctx, bytes.NewBuffer(dat))
 	if err != nil {
 		return err
 	}
@@ -185,4 +160,41 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 
 func (c *Client) Close() error {
 	return nil
+}
+
+func (c *Client) Closed() <-chan struct{} {
+	return make(chan struct{})
+}
+
+func (c *Client) post(req *codec.Request) (*http.Response, error) {
+	// TODO: use buffer for this
+	buf := bufpool.GetStd()
+	defer bufpool.PutStd(buf)
+	buf.Reset()
+	err := json.NewEncoder(buf).Encode(req)
+	if err != nil {
+		return nil, err
+	}
+	return c.postBuf(req.Context(), buf)
+}
+
+func (c *Client) postBuf(ctx context.Context, rd io.Reader) (*http.Response, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.remote, rd)
+	if err != nil {
+		return nil, err
+	}
+	func() {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		for k, v := range c.headers {
+			for _, vv := range v {
+				hreq.Header.Add(k, vv)
+			}
+		}
+	}()
+	hreq.Header.Add("Content-Type", "application/json")
+	return c.c.Do(hreq)
 }
