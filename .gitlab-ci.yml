@@ -10,6 +10,12 @@
 stages:
   - test
 
+lint:
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+  stage: test
+  extends: .go-cache
+  script:
+    - go test -race ./...
 
 lint:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
