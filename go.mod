@@ -16,7 +16,6 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/stretchr/testify v1.8.4
 	sigs.k8s.io/yaml v1.3.0
-	tuxpa.in/a/zlog v1.61.0
 )
 
 require (
@@ -24,10 +23,7 @@ require (
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rs/zerolog v1.30.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/sys v0.11.0 // indirect

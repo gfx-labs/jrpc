@@ -6,8 +6,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"tuxpa.in/a/zlog/log"
 )
 
 type subscription struct {
@@ -47,6 +45,8 @@ type ChannelBroker struct {
 	subs     map[int]*subscription
 	subCount int
 
+	onDroppedMessage func(string, []byte)
+
 	msgs chan *frame
 
 	domain string
@@ -57,6 +57,11 @@ func NewChannelBroker() *ChannelBroker {
 		subs: map[int]*subscription{},
 		msgs: make(chan *frame, 128),
 	}
+}
+
+func (b *ChannelBroker) SetDroppedMessageHandler(fn func(string, []byte)) *ChannelBroker {
+	b.onDroppedMessage = fn
+	return b
 }
 
 func (b *ChannelBroker) ReadRequest(ctx context.Context) (json.RawMessage, func(json.RawMessage) error, error) {
@@ -90,7 +95,9 @@ func (b *ChannelBroker) Publish(ctx context.Context, topic string, data []byte) 
 			select {
 			case v.ch <- data:
 			default:
-				log.Trace().Str("topic", topic).Msg("dropped message")
+				if b.onDroppedMessage != nil {
+					b.onDroppedMessage(topic, data)
+				}
 			}
 		}
 	}
