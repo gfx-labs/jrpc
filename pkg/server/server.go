@@ -218,9 +218,7 @@ type notifyEnv struct {
 
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	enc := jx.GetEncoder()
-	if cap(enc.Bytes()) < 4096 {
-		enc.SetBytes(make([]byte, 0, 4096))
-	}
+	enc.Grow(4096)
 	enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	//enc := jx.NewStreamingEncoder(c.remote, 4096)
@@ -266,9 +264,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	}
 	// create the streaming encoder
 	enc := jx.GetEncoder()
-	if cap(enc.Bytes()) < 4096 {
-		enc.SetBytes(make([]byte, 0, 4096))
-	}
+	enc.Grow(4096)
 	enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	if env.batch {
