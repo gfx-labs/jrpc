@@ -1,6 +1,6 @@
 module gfx.cafe/open/jrpc
 
-go 1.18
+go 1.21
 
 require (
 	gfx.cafe/open/websocket v1.9.2
