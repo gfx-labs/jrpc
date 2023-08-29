@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	subscribeMethodSuffix    = "/subscribe"
-	notificationMethodSuffix = "/subscription"
-	unsubscribeMethodSuffix  = "/unsubscribe"
 	serviceMethodSeparator   = "/"
+	subscribeMethodSuffix    = serviceMethodSeparator + "subscribe"
+	notificationMethodSuffix = serviceMethodSeparator + "subscription"
+	unsubscribeMethodSuffix  = serviceMethodSeparator + "unsubscribe"
 
 	maxClientSubscriptionBuffer = 12800
 )
