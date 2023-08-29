@@ -231,7 +231,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	if err != nil {
 		msg.Error = err
 	} else {
-		msg.Result = buf.Bytes()
+		msg.Params = buf.Bytes()
 	}
 	msg.ExtraFields = env.extra
 	// add the method
