@@ -41,11 +41,11 @@ func (e *Engine) Middleware() func(codec.Handler) codec.Handler {
 		return codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
 			// its a subscription, so install a notification handler
 			switch {
-			case strings.HasSuffix(r.Method, subscribeMethodSuffix):
+			case strings.HasSuffix(r.Method, serviceMethodSeparator+subscribeMethodSuffix):
 				// create the notifier to inject into the context
 				n := &Notifier{
 					h:         w,
-					namespace: strings.TrimSuffix(r.Method, subscribeMethodSuffix),
+					namespace: strings.TrimSuffix(r.Method, serviceMethodSeparator+subscribeMethodSuffix),
 					id:        e.idgen(),
 					err:       make(chan error, 1),
 				}
@@ -59,7 +59,7 @@ func (e *Engine) Middleware() func(codec.Handler) codec.Handler {
 				// then inject the notifier
 				r = r.WithContext(context.WithValue(r.Context(), notifierKey{}, n))
 				h.ServeRPC(w, r)
-			case strings.HasSuffix(r.Method, unsubscribeMethodSuffix):
+			case strings.HasSuffix(r.Method, serviceMethodSeparator+unsubscribeMethodSuffix):
 				// read the subscription id to close
 				var subid SubID
 				err := r.ParamArray(subid)

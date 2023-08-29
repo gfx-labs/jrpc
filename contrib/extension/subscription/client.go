@@ -68,7 +68,7 @@ func (c *WrapClient) Subscribe(ctx context.Context, namespace string, channel an
 
 	// send the actual message to initialize the subscription
 	var result string
-	err := c.conn.Do(ctx, &result, namespace+subscribeMethodSuffix, args)
+	err := c.conn.Do(ctx, &result, namespace+serviceMethodSeparator+subscribeMethodSuffix, args)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (c *clientSub) Err() <-chan error {
 func (c *clientSub) Unsubscribe() error {
 	// TODO: dont use context background here...
 	var result string
-	err := c.conn.Do(context.Background(), &result, c.namespace+unsubscribeMethodSuffix, nil)
+	err := c.conn.Do(context.Background(), &result, c.namespace+serviceMethodSeparator+unsubscribeMethodSuffix, nil)
 	if err != nil {
 		return err
 	}

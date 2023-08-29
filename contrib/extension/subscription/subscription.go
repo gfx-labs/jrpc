@@ -15,11 +15,16 @@ import (
 	json "github.com/goccy/go-json"
 )
 
+var serviceMethodSeparator = "/"
+
+func SetServiceMethodSeparator(val string) {
+	serviceMethodSeparator = val
+}
+
 const (
-	serviceMethodSeparator   = "/"
-	subscribeMethodSuffix    = serviceMethodSeparator + "subscribe"
-	notificationMethodSuffix = serviceMethodSeparator + "subscription"
-	unsubscribeMethodSuffix  = serviceMethodSeparator + "unsubscribe"
+	subscribeMethodSuffix    = "subscribe"
+	notificationMethodSuffix = "subscription"
+	unsubscribeMethodSuffix  = "unsubscribe"
 
 	maxClientSubscriptionBuffer = 12800
 )
@@ -105,5 +110,8 @@ func (n *Notifier) Err() <-chan error {
 
 func (n *Notifier) send(data json.RawMessage) error {
 	params, _ := json.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
-	return n.h.Notify(n.namespace+notificationMethodSuffix, json.RawMessage(params))
+	return n.h.Notify(
+		n.namespace+
+			serviceMethodSeparator+
+			notificationMethodSuffix, json.RawMessage(params))
 }
