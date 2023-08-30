@@ -10,7 +10,6 @@ require (
 	github.com/alecthomas/kong v0.8.0
 	github.com/go-faster/jx v1.1.0
 	github.com/goccy/go-json v0.10.2
-	github.com/iancoleman/strcase v0.3.0
 	github.com/rs/xid v1.5.0
 	github.com/stretchr/testify v1.8.4
 	sigs.k8s.io/yaml v1.3.0

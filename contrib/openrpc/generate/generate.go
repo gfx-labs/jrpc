@@ -11,14 +11,14 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/openrpc/templates"
 	"gfx.cafe/open/jrpc/contrib/openrpc/types"
-	"github.com/iancoleman/strcase"
+	"gfx.cafe/open/jrpc/contrib/openrpc/util"
 )
 
 var funcs = template.FuncMap{
 	"list": func(v ...any) []any {
 		return v
 	},
-	"camelCase": strcase.ToCamel,
+	"camelCase": util.ToCamel,
 	"goType": func(v string) string {
 		switch v {
 		case "boolean":
