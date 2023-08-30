@@ -7,10 +7,10 @@ import (
 	"sync/atomic"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/util/mapset"
 
 	"gfx.cafe/util/go/bufpool"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/go-faster/jx"
 	"github.com/goccy/go-json"
 )
@@ -19,7 +19,7 @@ import (
 type Server struct {
 	services codec.Handler
 	run      int32
-	codecs   mapset.Set
+	codecs   *mapset.Set[codec.ReaderWriter]
 	Tracing  Tracing
 }
 
@@ -30,7 +30,7 @@ type Tracing struct {
 // NewServer creates a new server instance with no registered handlers.
 func NewServer(r codec.Handler) *Server {
 	server := &Server{
-		codecs: mapset.NewSet(),
+		codecs: mapset.NewSet[codec.ReaderWriter](),
 		run:    1,
 	}
 	server.services = r
@@ -175,8 +175,8 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 // subscriptions.
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		s.codecs.Each(func(c any) bool {
-			c.(codec.ReaderWriter).Close()
+		s.codecs.Each(func(c codec.ReaderWriter) bool {
+			c.Close()
 			return true
 		})
 	}

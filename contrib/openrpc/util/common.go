@@ -4,8 +4,6 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func SanitizeBackticks(s string) string {
@@ -19,10 +17,6 @@ func SanitizeBackticks(s string) string {
 
 func Slice(val []interface{}, index int) interface{} {
 	return val[index]
-}
-
-func Inpect(val interface{}) string {
-	return spew.Sdump(val)
 }
 
 func CamelCase(name string) string {
