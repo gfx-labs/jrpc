@@ -11,7 +11,7 @@ stages:
   - test
 
 test:
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+  image: golang:1.21-alpine
   stage: test
   extends: .go-cache
   script:
