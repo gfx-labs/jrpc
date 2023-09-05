@@ -91,7 +91,10 @@ func (c *Codec) Flush() (err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
 	if c.wr.Buffered() > 0 {
-		c.wr.WriteByte('\n')
+		err = c.wr.WriteByte('\n')
+		if err != nil {
+			return err
+		}
 		err = c.wr.Flush()
 		if err != nil {
 			return err
