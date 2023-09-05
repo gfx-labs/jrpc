@@ -90,8 +90,14 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 func (c *Codec) Flush() (err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	c.wr.WriteByte('\n')
-	return c.wr.Flush()
+	if c.wr.Buffered() > 0 {
+		c.wr.WriteByte('\n')
+		err = c.wr.Flush()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Closed returns a channel which is closed when the connection is closed.
