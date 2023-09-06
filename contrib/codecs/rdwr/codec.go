@@ -44,9 +44,9 @@ func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 }
 
 func (c *Codec) listen() error {
-	var msg json.RawMessage
 	dec := json.NewDecoder(c.rd)
 	for {
+		var msg json.RawMessage
 		// reading a message
 		err := dec.Decode(&msg)
 		if err != nil {
