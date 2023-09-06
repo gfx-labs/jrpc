@@ -2,6 +2,7 @@ package rdwr
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"sync"
@@ -18,7 +19,8 @@ type Codec struct {
 
 	rd     io.Reader
 	wrLock sync.Mutex
-	wr     *bufio.Writer
+	wr     *bytes.Buffer
+	w      io.Writer
 	msgs   chan *serverutil.Bundle
 }
 
@@ -28,7 +30,8 @@ func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
 		ctx:  ctx,
 		cn:   cn,
 		rd:   bufio.NewReader(rd),
-		wr:   bufio.NewWriter(wr),
+		wr:   new(bytes.Buffer),
+		w:    wr,
 		msgs: make(chan *serverutil.Bundle, 8),
 	}
 	go func() {
@@ -90,15 +93,17 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 func (c *Codec) Flush() (err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	if c.wr.Buffered() > 0 {
-		err = c.wr.WriteByte('\n')
-		if err != nil {
-			return err
-		}
-		err = c.wr.Flush()
-		if err != nil {
-			return err
-		}
+	if c.wr.Len() == 0 {
+		return nil
+	}
+	defer c.wr.Reset()
+	err = c.wr.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+	_, err = c.wr.WriteTo(c.w)
+	if err != nil {
+		return err
 	}
 	return nil
 }
