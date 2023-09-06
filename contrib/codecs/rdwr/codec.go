@@ -93,9 +93,6 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 func (c *Codec) Flush() (err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	if c.wr.Len() == 0 {
-		return nil
-	}
 	defer c.wr.Reset()
 	err = c.wr.WriteByte('\n')
 	if err != nil {
