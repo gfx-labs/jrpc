@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client, err := jrpc.Dial("ws://localhost:8545")
+	client, err := jrpc.Dial("https://mainnet.boba.network/")
 	if err != nil {
 		panic(err)
 	}

@@ -163,10 +163,10 @@ func (m *Message) UnmarshalJSON(xs []byte) error {
 	return UnmarshalMessage(m, dec)
 }
 
-func (m *Message) MarshalJSON() ([]byte, error) {
+func (m Message) MarshalJSON() ([]byte, error) {
 	buf := &bytes.Buffer{}
 	enc := jx.NewStreamingEncoder(buf, 4096)
-	err := MarshalMessage(m, enc)
+	err := MarshalMessage(&m, enc)
 	if err != nil {
 		return nil, err
 	}

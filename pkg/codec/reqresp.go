@@ -41,11 +41,11 @@ type Request struct {
 }
 
 func (r *Request) UnmarshalJSON(xs []byte) error {
-	return json.Unmarshal(xs, &r.Message)
+	return r.Message.UnmarshalJSON(xs)
 }
 
-func (r *Request) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.Message)
+func (r Request) MarshalJSON() ([]byte, error) {
+	return r.Message.MarshalJSON()
 }
 
 func NewRequestFromMessage(ctx context.Context, message *Message) (r *Request) {
