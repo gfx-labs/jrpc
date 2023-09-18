@@ -25,6 +25,9 @@ type (
 	Request = codec.Request
 	// Server is a jrpc server
 	Server = server.Server
+
+	// Middleware is a middleware
+	Middleware = func(Handler) Handler
 )
 type (
 	// BatchElem is an element of a batch request
