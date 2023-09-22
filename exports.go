@@ -13,7 +13,7 @@ import (
 type (
 	// Conn is used to make requests to jsonrpc2 servers
 	Conn = codec.Conn
-	// Handler is the equivilant of http.Handler, but for jsonrpc.
+	// Handler is the equivalent of http.Handler, but for jsonrpc.
 	Handler = codec.Handler
 	// HandlerFunc is a Handler that exists as a function
 	HandlerFunc = codec.HandlerFunc

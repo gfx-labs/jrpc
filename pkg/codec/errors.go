@@ -46,15 +46,17 @@ func EncodeError(enc *jx.Encoder, err error) error {
 	enc.Obj(func(e *jx.Encoder) {
 		switch er := err.(type) {
 		case DataError:
-			data, err := json.Marshal(er.ErrorData())
-			if err != nil {
-				data = []byte(`"failed to marshal error data"`)
-			}
 			e.Field("code", func(e *jx.Encoder) { e.Int(er.ErrorCode()) })
 			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
-			e.Field("data", func(e *jx.Encoder) {
-				e.Raw(data)
-			})
+			if dat := er.ErrorData(); dat != nil {
+				data, err := json.Marshal(er.ErrorData())
+				if err != nil {
+					data = []byte(`"failed to marshal error data"`)
+				}
+				e.Field("data", func(e *jx.Encoder) {
+					e.Raw(data)
+				})
+			}
 		case Error:
 			e.FieldStart("code")
 			e.Int(er.ErrorCode())
@@ -68,31 +70,30 @@ func EncodeError(enc *jx.Encoder, err error) error {
 	return nil
 }
 
-type JrpcErr struct {
-	Data any
-}
-
-func (j *JrpcErr) ErrorData() any {
-	return j.Data
-}
-
-func (j *JrpcErr) Error() string {
-	return "Jrpc Error"
-}
-
-func (j *JrpcErr) ErrorCode() int {
-	return ErrorCodeJrpc
-}
-
-func WrapJrpcErr(err error) error {
-	if err == nil {
-		return nil
+func WrapErr(data any, code int, err error) error {
+	return &jrpcErr{
+		data: data,
+		err:  err,
+		code: code,
 	}
-	return fmt.Errorf("%w: %w", &JrpcErr{}, err)
 }
 
-func MakeJrpcErr(s string) error {
-	return fmt.Errorf("%w: %s", &JrpcErr{}, s)
+type jrpcErr struct {
+	data any
+	err  error
+	code int
+}
+
+func (j *jrpcErr) ErrorData() any {
+	return j.data
+}
+
+func (j *jrpcErr) Error() string {
+	return j.err.Error()
+}
+
+func (j *jrpcErr) ErrorCode() int {
+	return j.code
 }
 
 type ErrorMethodNotFound struct{ method string }
