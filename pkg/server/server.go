@@ -256,7 +256,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	for _, v := range env.responses {
 		msg := v.pkt
 		// if we are a batch AND we are supposed to skip, then continue
-		// this means that for a non-batch notification, we do not skip!
+		// this means that for a non-batch notification, we do not skip! this is to ensure we get always a "response" for http-like endpoints
 		if env.batch && v.skip {
 			continue
 		}
