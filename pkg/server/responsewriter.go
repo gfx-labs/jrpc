@@ -17,7 +17,7 @@ type callRespWriter struct {
 	skip   bool
 	header http.Header
 
-	notifications chan *notifyEnv
+	notifications func(env *notifyEnv) error
 }
 
 func (c *callRespWriter) Send(v any, err error) error {
@@ -39,10 +39,9 @@ func (c *callRespWriter) Header() http.Header {
 }
 
 func (c *callRespWriter) Notify(method string, v any) error {
-	c.notifications <- &notifyEnv{
+	return c.notifications(&notifyEnv{
 		method: method,
 		dat:    v,
 		extra:  c.pkt.ExtraFields,
-	}
-	return nil
+	})
 }

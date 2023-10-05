@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -16,6 +17,8 @@ import (
 )
 
 // Server is an RPC server.
+// it is in charge of calling the handler on the message object, the json encoding of responses, and dealing with batch semantics.
+// a server can be used to listenandserve multiple codecs at a time
 type Server struct {
 	services codec.Handler
 	run      int32
@@ -24,7 +27,6 @@ type Server struct {
 }
 
 type Tracing struct {
-	ErrorLogger func(remote codec.ReaderWriter, err error)
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -37,20 +39,10 @@ func NewServer(r codec.Handler) *Server {
 	return server
 }
 
-func (s *Server) printError(remote codec.ReaderWriter, err error) {
-	if err != nil {
-		return
-	}
-	if s.Tracing.ErrorLogger != nil {
-		s.Tracing.ErrorLogger(remote, err)
-	}
-}
-
 func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, responder *callResponder) error {
 	incoming, batch, err := remote.ReadBatch(ctx)
 	if err != nil {
 		remote.Flush()
-		s.printError(remote, err)
 		return err
 	}
 	env := &callEnv{
@@ -59,8 +51,8 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 
 	// check for empty batch
 	if batch && len(incoming) == 0 {
-		// if it is empty batch, send the empty batch warning
-		responder.toSend <- &callEnv{
+		// if it is empty batch, send the empty batch error and immediately return
+		return responder.send(ctx, &callEnv{
 			responses: []*callRespWriter{{
 				pkt: &codec.Message{
 					ID:    codec.NewNullIDPtr(),
@@ -68,94 +60,84 @@ func (s *Server) codecLoop(ctx context.Context, remote codec.ReaderWriter, respo
 				},
 			}},
 			batch: false,
-		}
-		return nil
+		})
 	}
 
-	// populate the envelope
+	// populate the envelope we are about to send. this is synchronous pre-prpcessing
 	for _, v := range incoming {
+		// create the response writer
 		rw := &callRespWriter{
-			pkt: &codec.Message{
-				ID: codec.NewNullIDPtr(),
-			},
-			msg: &codec.Message{
-				ID: codec.NewNullIDPtr(),
-			},
-			notifications: responder.toNotify,
+			notifications: func(env *notifyEnv) error { return responder.notify(ctx, env) },
 			header:        remote.PeerInfo().HTTP.Headers,
 		}
-		if v != nil {
-			rw.msg = v
-			if v.ID != nil {
-				rw.pkt.ID = v.ID
-			}
-		}
 		env.responses = append(env.responses, rw)
+		// a nil incoming message means an empty response
+		if v == nil {
+			rw.msg = &codec.Message{ID: codec.NewNullIDPtr()}
+			rw.pkt = &codec.Message{ID: codec.NewNullIDPtr()}
+			continue
+		}
+		rw.msg = v
+		if v.ID == nil {
+			rw.pkt = &codec.Message{ID: codec.NewNullIDPtr()}
+			continue
+		}
+		rw.pkt = &codec.Message{ID: v.ID}
 	}
 
 	// create a waitgroup
 	wg := sync.WaitGroup{}
 	wg.Add(len(env.responses))
+	// for each item in the envelope
+	peerInfo := remote.PeerInfo()
 	for _, vRef := range env.responses {
 		v := vRef
-		// early respond to nil requests
-		if v.msg == nil || len(v.msg.Method) == 0 {
-			v.pkt.Error = codec.NewInvalidRequestError("invalid request")
-			wg.Done()
-			continue
-		}
-		if v.msg.ID == nil || v.msg.ID.IsNull() {
-			// it's a notification, so we mark skip and we don't write anything for it
-			v.skip = true
-			wg.Done()
-			continue
-		}
+		// process each request in its own goroutine
 		go func() {
 			defer wg.Done()
+			// early respond to nil requests
+			if v.msg == nil || len(v.msg.Method) == 0 {
+				v.pkt.Error = codec.NewInvalidRequestError("invalid request")
+				return
+			}
+			if v.msg.ID == nil || v.msg.ID.IsNull() {
+				// it's a notification, so we mark skip and we don't write anything for it
+				v.skip = true
+				return
+			}
 			r := codec.NewRequestFromMessage(
 				ctx,
 				v.msg,
 			)
-			r.Peer = remote.PeerInfo()
+			r.Peer = peerInfo
 			s.services.ServeRPC(v, r)
 		}()
 	}
 	wg.Wait()
-	responder.toSend <- env
-	return nil
+	return responder.send(ctx, env)
 }
 
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
-func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
+func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) error {
 	defer remote.Close()
 
 	// Don't serve if server is stopped.
 	if atomic.LoadInt32(&s.run) == 0 {
-		return
+		return fmt.Errorf("Server stopped")
 	}
 	// Add the codec to the set so it can be closed by Stop.
 	s.codecs.Add(remote)
 	defer s.codecs.Remove(remote)
 
 	responder := &callResponder{
-		toSend:   make(chan *callEnv, 8),
-		toNotify: make(chan *notifyEnv, 8),
-		remote:   remote,
+		remote: remote,
 	}
 
 	ctx, cn := context.WithCancel(pctx)
 	defer cn()
 	ctx = ContextWithPeerInfo(ctx, remote.PeerInfo())
-	go func() {
-		defer cn()
-		err := responder.run(ctx)
-		if err != nil {
-			s.printError(remote, err)
-		}
-	}()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -164,8 +146,7 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) {
 		}
 		err := s.codecLoop(ctx, remote, responder)
 		if err != nil {
-			s.printError(remote, err)
-			return
+			return err
 		}
 	}
 }
@@ -183,31 +164,7 @@ func (s *Server) Stop() {
 }
 
 type callResponder struct {
-	toSend   chan *callEnv
-	toNotify chan *notifyEnv
-	remote   codec.ReaderWriter
-}
-
-func (c *callResponder) run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case env := <-c.toSend:
-			err := c.send(ctx, env)
-			if err != nil {
-				return err
-			}
-		case env := <-c.toNotify:
-			err := c.notify(ctx, env)
-			if err != nil {
-				return err
-			}
-		}
-		if c.remote != nil {
-			c.remote.Flush()
-		}
-	}
+	remote codec.ReaderWriter
 }
 
 type notifyEnv struct {

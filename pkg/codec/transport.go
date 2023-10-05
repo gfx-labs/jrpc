@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+// ReaderWriter represents a single stream
+// this stream can be used to send/receive an arbitrary amount of requests and notifications
 type ReaderWriter interface {
 	Reader
 	Writer
