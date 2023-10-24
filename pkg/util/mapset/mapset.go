@@ -26,6 +26,8 @@ func (s *Set[T]) Remove(x T) {
 }
 
 func (s *Set[T]) Each(fn func(x T) bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for k := range s.m {
 		if !fn(k) {
 			return

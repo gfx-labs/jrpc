@@ -3,7 +3,6 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -66,13 +65,10 @@ func (b *ChannelBroker) SetDroppedMessageHandler(fn func(string, []byte)) *Chann
 }
 
 func (b *ChannelBroker) ReadRequest(ctx context.Context) (json.RawMessage, func(json.RawMessage) error, error) {
-	log.Println("start recv")
 	select {
 	case <-ctx.Done():
-		log.Println("doned")
 		return nil, nil, ctx.Err()
 	case f := <-b.msgs:
-		log.Println("recv", string(f.data))
 		return f.data, func(resp json.RawMessage) error {
 			return b.Publish(context.Background(), f.topic, resp)
 		}, nil
@@ -84,7 +80,6 @@ func (b *ChannelBroker) WriteRequest(ctx context.Context, topic string, msg json
 	case <-ctx.Done():
 		return ctx.Err()
 	case b.msgs <- &frame{data: msg, topic: topic}:
-		log.Println("wrote", string(msg))
 	}
 	return nil
 }

@@ -25,6 +25,6 @@ func (s *Server) ServeSpoke(ctx context.Context, stream ServerSpoke) {
 			continue
 		}
 		cd := NewCodec(req, fn)
-		s.Server.ServeCodec(ctx, cd)
+		go s.Server.ServeCodec(ctx, cd)
 	}
 }
