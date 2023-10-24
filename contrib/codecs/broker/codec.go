@@ -67,15 +67,8 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Write(p []byte) (n int, err error) {
-	return c.wr.Write(p)
-}
-
-func (c *Codec) Flush() (err error) {
-	c.replier(c.wr.Bytes())
-	c.wr.Reset()
-	c.Close()
-	return
+func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
+	return c.replier(msg)
 }
 
 // Closed returns a channel which is closed when the connection is closed.

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -224,17 +225,12 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Write(p []byte) (n int, err error) {
-	return c.wr.Write(p)
-}
-
-func (c *Codec) Flush() (err error) {
-	err = c.wr.Flush()
+func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
+	_, err = c.wr.Write(msg)
 	if err != nil {
 		return err
 	}
-	c.cn()
-	return
+	return c.wr.Flush()
 }
 
 // Closed returns a channel which is closed when the connection is closed.

@@ -159,9 +159,6 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) err
 	case <-ctx.Done():
 		return nil
 	case err := <-errch:
-		// perform a flush on error just in case there are dangling things to be sent, states to be cleaned up, etc.
-		// the connection is already dead, so at this point there are no rules, so this is okay to do i think
-		remote.Flush()
 		return err
 	}
 }
@@ -192,10 +189,9 @@ type notifyEnv struct {
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	defer c.remote.Flush()
 	enc := jx.GetEncoder()
+	enc.Reset()
 	enc.Grow(4096)
-	enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	//enc := jx.NewStreamingEncoder(c.remote, 4096)
 	msg := &codec.Message{}
@@ -216,7 +212,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
 	if err != nil {
 		return err
 	}
-	err = enc.Close()
+	err = c.remote.Send(ctx, enc.Bytes())
 	if err != nil {
 		return err
 	}
@@ -231,7 +227,6 @@ type callEnv struct {
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	defer c.remote.Flush()
 	// notification gets nothing
 	// if all msgs in batch are notification, we trigger an allSkip and write nothing
 	if env.batch {
@@ -247,8 +242,8 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	}
 	// create the streaming encoder
 	enc := jx.GetEncoder()
+	enc.Reset()
 	enc.Grow(4096)
-	enc.ResetWriter(c.remote)
 	defer jx.PutEncoder(enc)
 	if env.batch {
 		enc.ArrStart()
@@ -282,7 +277,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	if env.batch {
 		enc.ArrEnd()
 	}
-	err = enc.Close()
+	err = c.remote.Send(ctx, enc.Bytes())
 	if err != nil {
 		return err
 	}
