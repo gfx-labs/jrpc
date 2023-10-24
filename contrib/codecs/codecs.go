@@ -1,12 +1,15 @@
 package codecs
 
 import (
+	"fmt"
+
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/inproc"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	gohttp "net/http"
+	"net/url"
 )
 
 var NewInProc = inproc.NewCodec
@@ -23,4 +26,19 @@ var HttpWebsocketHandler = func(srv *server.Server, origins []string) gohttp.Han
 		}
 		chttp.ServeHTTP(w, r)
 	})
+}
+
+func ListenAndServe(u string, srv *server.Server, opts map[string]any) error {
+	pu, err := url.Parse(u)
+	if err != nil {
+		return err
+	}
+	if opts == nil {
+		opts = map[string]any{}
+	}
+	handler := handlerFuncs[pu.Scheme]
+	if handler == nil {
+		return fmt.Errorf("%w: %s", ErrSchemeNotSupported, pu.Scheme)
+	}
+	return handler(pu, srv, opts)
 }
