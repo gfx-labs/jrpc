@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -26,7 +25,7 @@ type Codec struct {
 
 	r     *http.Request
 	w     http.ResponseWriter
-	wr    *bufio.Writer
+	wr    io.Writer
 	msgs  chan *serverutil.Bundle
 	errCh chan httpError
 
@@ -45,17 +44,12 @@ func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
 }
 
 func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
-	ir := io.Writer(w)
+	c.wr = w
 	if w == nil {
-		ir = io.Discard
+		c.wr = io.Discard
 	}
 	c.r = r
 	c.w = w
-	if c.wr == nil {
-		c.wr = bufio.NewWriter(ir)
-	} else {
-		c.wr.Reset(ir)
-	}
 	c.msgs = make(chan *serverutil.Bundle, 1)
 	c.errCh = make(chan httpError, 1)
 
@@ -210,7 +204,7 @@ func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 	case ans := <-c.msgs:
 		return ans.Messages, ans.Batch, nil
 	case err := <-c.errCh:
-		http.Error(c.w, err.err.Error(), err.code)
+		//	http.Error(c.w, err.err.Error(), err.code)
 		return nil, false, err.err
 	case <-ctx.Done():
 		return nil, false, ctx.Err()
@@ -226,11 +220,12 @@ func (c *Codec) Close() error {
 }
 
 func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
+	defer c.cn()
 	_, err = c.wr.Write(msg)
 	if err != nil {
 		return err
 	}
-	return c.wr.Flush()
+	return nil
 }
 
 // Closed returns a channel which is closed when the connection is closed.

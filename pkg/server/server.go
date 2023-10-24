@@ -159,6 +159,9 @@ func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) err
 	case <-ctx.Done():
 		return nil
 	case err := <-errch:
+		// perform a flush on error just in case there are dangling things to be sent, states to be cleaned up, etc.
+		// the connection is already dead, so at this point there are no rules, so this is okay to do i think
+		remote.Send(context.Background(), nil)
 		return err
 	}
 }
@@ -237,7 +240,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			}
 		}
 		if allSkip {
-			return nil
+			return c.remote.Send(ctx, nil)
 		}
 	}
 	// create the streaming encoder

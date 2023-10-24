@@ -77,7 +77,7 @@ func (c *Codec) Close() error {
 func (c *Codec) Send(ctx context.Context, buf json.RawMessage) error {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	_, err := c.w.Write(buf)
+	_, err := c.w.Write(append(buf, '\n'))
 	return err
 }
 
