@@ -10,26 +10,35 @@ import (
 
 // to make the repo cleaner, we export everything here. this way the packages dont need to ever import this
 
+// Conn is used to make requests to jsonrpc2 servers
+type Conn interface {
+	codec.Conn
+}
+
+// Handler is the equivalent of http.Handler, but for jsonrpc.
+type Handler interface {
+	codec.Handler
+}
+
+// StreamingConn is a conn that supports streaming methods
+type StreamingConn interface {
+	codec.StreamingConn
+}
+
+// ResponseWriter is used to write responses to the request
+type ResponseWriter interface {
+	codec.ResponseWriter
+}
+
 type (
-	// Conn is used to make requests to jsonrpc2 servers
-	Conn = codec.Conn
-	// Handler is the equivalent of http.Handler, but for jsonrpc.
-	Handler = codec.Handler
 	// HandlerFunc is a Handler that exists as a function
 	HandlerFunc = codec.HandlerFunc
-	// ResponseWriter is used to write responses to the request
-	ResponseWriter = codec.ResponseWriter
-	// StreamingConn is a conn that supports streaming methods
-	StreamingConn = codec.StreamingConn
 	// Request is the request object
 	Request = codec.Request
 	// Server is a jrpc server
 	Server = server.Server
-
 	// Middleware is a middleware
 	Middleware = func(Handler) Handler
-)
-type (
 	// BatchElem is an element of a batch request
 	BatchElem = codec.BatchElem
 )
