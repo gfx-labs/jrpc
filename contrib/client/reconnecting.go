@@ -8,25 +8,29 @@ import (
 	"gfx.cafe/open/jrpc/pkg/codec"
 )
 
-var _ jrpc.Conn = (*Reconnecting)(nil)
+var _ jrpc.StreamingConn = (*Reconnecting)(nil)
 
 type Reconnecting struct {
-	dialer     func(ctx context.Context) (jrpc.Conn, error)
-	base       codec.Conn
+	dialer     func(ctx context.Context) (jrpc.StreamingConn, error)
+	base       codec.StreamingConn
 	alive      bool
 	middleware []codec.Middleware
 
 	mu sync.Mutex
 }
 
-func NewReconnecting(dialer func(ctx context.Context) (jrpc.Conn, error)) *Reconnecting {
+func (r *Reconnecting) Notify(ctx context.Context, method string, params any) error {
+	return r.base.Notify(ctx, method, params)
+}
+
+func NewReconnecting(dialer func(ctx context.Context) (jrpc.StreamingConn, error)) *Reconnecting {
 	r := &Reconnecting{
 		dialer: dialer,
 	}
 	return r
 }
 
-func (r *Reconnecting) getClient(ctx context.Context) (jrpc.Conn, error) {
+func (r *Reconnecting) getClient(ctx context.Context) (jrpc.StreamingConn, error) {
 	reconnect := func() error {
 		conn, err := r.dialer(ctx)
 		if err != nil {
