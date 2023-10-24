@@ -204,7 +204,7 @@ func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 	case ans := <-c.msgs:
 		return ans.Messages, ans.Batch, nil
 	case err := <-c.errCh:
-		//	http.Error(c.w, err.err.Error(), err.code)
+		http.Error(c.w, err.err.Error(), err.code)
 		return nil, false, err.err
 	case <-ctx.Done():
 		return nil, false, ctx.Err()
