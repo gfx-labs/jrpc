@@ -19,6 +19,10 @@ type Broker interface {
 	ClientSpoke
 }
 
+type Replier interface {
+	Send(json.RawMessage)
+}
+
 type Subscription interface {
 	// channel that will close when done or error
 	Listen() <-chan json.RawMessage
