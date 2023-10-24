@@ -22,7 +22,7 @@ func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, r
 	conn.SetReadLimit(WsMessageSizeLimit)
 	netConn := websocket.NetConn(ctx, conn, websocket.MessageText)
 	c := &Codec{
-		Codec: rdwr.NewCodec(netConn, netConn, nil),
+		Codec: rdwr.NewCodec(netConn, netConn),
 		conn:  conn,
 	}
 	c.i.Transport = "ws"

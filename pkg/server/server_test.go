@@ -21,9 +21,7 @@ func TestGoEthereumTestScripts(t *testing.T) {
 			rd, wr := net.Pipe()
 			readbuf := bufio.NewReader(rd)
 			srv := jrpctest.NewServer()
-			c := rdwr.NewCodec(wr, wr, func(err error) {
-				require.NoError(t, err)
-			})
+			c := rdwr.NewCodec(wr, wr)
 			go srv.ServeCodec(context.TODO(), c)
 			defer srv.Stop()
 			for _, act := range tf.Action {

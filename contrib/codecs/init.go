@@ -42,7 +42,7 @@ func init() {
 			if err != nil {
 				return err
 			}
-			go rdwr.NewCodec(conn, conn, nil)
+			go rdwr.NewCodec(conn, conn)
 		}
 	}, "tcp")
 

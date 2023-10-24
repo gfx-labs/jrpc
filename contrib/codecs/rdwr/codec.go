@@ -22,40 +22,25 @@ type Codec struct {
 	wr     *bytes.Buffer
 	w      io.Writer
 	msgs   chan *serverutil.Bundle
+
+	dec     *json.Decoder
+	decBuf  json.RawMessage
+	decLock sync.Mutex
 }
 
-func NewCodec(rd io.Reader, wr io.Writer, onError func(error)) *Codec {
+func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
+	bufr := bufio.NewReader(rd)
 	c := &Codec{
 		ctx:  ctx,
 		cn:   cn,
-		rd:   bufio.NewReader(rd),
+		rd:   bufr,
+		dec:  json.NewDecoder(rd),
 		wr:   new(bytes.Buffer),
 		w:    wr,
 		msgs: make(chan *serverutil.Bundle, 8),
 	}
-	go func() {
-		err := c.listen()
-		if err != nil && onError != nil {
-			onError(err)
-		}
-	}()
 	return c
-}
-
-func (c *Codec) listen() error {
-	dec := json.NewDecoder(c.rd)
-	for {
-		var msg json.RawMessage
-		// reading a message
-		err := dec.Decode(&msg)
-		if err != nil {
-			c.cn()
-			return err
-		}
-		c.msgs <- serverutil.ParseBundle(msg)
-		msg = msg[:0]
-	}
 }
 
 // gets the peer info
@@ -67,15 +52,23 @@ func (c *Codec) PeerInfo() codec.PeerInfo {
 	}
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
-	select {
-	case ans := <-c.msgs:
-		return ans.Messages, ans.Batch, nil
-	case <-ctx.Done():
-		return nil, false, ctx.Err()
-	case <-c.ctx.Done():
-		return nil, false, c.ctx.Err()
+func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
+	c.decLock.Lock()
+	defer c.decLock.Unlock()
+	c.decBuf = c.decBuf[:0]
+	err := c.dec.DecodeContext(ctx, &c.decBuf)
+	if err != nil {
+		return nil, err
 	}
+	return serverutil.ParseBundle(c.decBuf), nil
+}
+
+func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+	ans, err := c.decodeSingleMessage(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	return ans.Messages, ans.Batch, nil
 }
 
 // closes the connection
