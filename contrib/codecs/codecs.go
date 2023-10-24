@@ -28,6 +28,11 @@ var HttpWebsocketHandler = func(srv *server.Server, origins []string) gohttp.Han
 	})
 }
 
+// TODO: create ListenAndServeContext
+//func ListenAndServe(ctx context.Context, u string, srv *server.Server, opts map[string]any) error {
+//}
+
+// ListenAndServe
 func ListenAndServe(u string, srv *server.Server, opts map[string]any) error {
 	pu, err := url.Parse(u)
 	if err != nil {
