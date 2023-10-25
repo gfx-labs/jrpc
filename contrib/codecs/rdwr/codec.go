@@ -21,7 +21,6 @@ type Codec struct {
 	wrLock sync.Mutex
 	wr     *bytes.Buffer
 	w      io.Writer
-	msgs   chan *serverutil.Bundle
 
 	dec     *json.Decoder
 	decBuf  json.RawMessage
@@ -32,13 +31,12 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
 	bufr := bufio.NewReader(rd)
 	c := &Codec{
-		ctx:  ctx,
-		cn:   cn,
-		rd:   bufr,
-		dec:  json.NewDecoder(rd),
-		wr:   new(bytes.Buffer),
-		w:    wr,
-		msgs: make(chan *serverutil.Bundle, 8),
+		ctx: ctx,
+		cn:  cn,
+		rd:  bufr,
+		dec: json.NewDecoder(rd),
+		wr:  new(bytes.Buffer),
+		w:   wr,
 	}
 	return c
 }
