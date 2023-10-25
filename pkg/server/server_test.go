@@ -23,7 +23,6 @@ func TestGoEthereumTestScripts(t *testing.T) {
 			srv := jrpctest.NewServer()
 			c := rdwr.NewCodec(wr, wr)
 			go srv.ServeCodec(context.TODO(), c)
-			defer srv.Stop()
 			for _, act := range tf.Action {
 				switch act.Direction {
 				case jrpctest.DirectionRecv:

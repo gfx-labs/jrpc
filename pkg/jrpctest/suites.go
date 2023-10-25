@@ -30,7 +30,6 @@ func TestExecutor(sm ServerMaker) func(t *testing.T, c TestContext) {
 	return func(t *testing.T, c TestContext) {
 		server, dialer, cn := sm()
 		defer cn()
-		defer server.Stop()
 		client := dialer()
 		defer client.Close()
 		c(t, server, client)
@@ -40,7 +39,6 @@ func BenchExecutor(sm ServerMaker) func(t *testing.B, c BenchContext) {
 	return func(t *testing.B, c BenchContext) {
 		server, dialer, cn := sm()
 		defer cn()
-		defer server.Stop()
 		client := dialer()
 		defer client.Close()
 		c(t, server, client)

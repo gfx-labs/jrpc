@@ -40,7 +40,6 @@ func TestWebsocketOriginCheck(t *testing.T) {
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"http://example.com"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
-	defer srv.Stop()
 	defer httpsrv.Close()
 
 	client, err := websocket.DialWebsocket(context.Background(), wsURL, "http://ekzample.com")
@@ -70,7 +69,6 @@ func TestWebsocketLargeCall(t *testing.T) {
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"*"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
-	defer srv.Stop()
 	defer httpsrv.Close()
 
 	client, err := websocket.DialWebsocket(context.Background(), wsURL, "")
@@ -103,7 +101,6 @@ func TestWebsocketPeerInfo(t *testing.T) {
 		ts    = httptest.NewServer(websocket.WebsocketHandler(s, []string{"origin.example.com"}))
 		tsurl = "ws:" + strings.TrimPrefix(ts.URL, "http:")
 	)
-	defer s.Stop()
 	defer ts.Close()
 
 	ctx := context.Background()
@@ -140,7 +137,6 @@ func TestClientWebsocketLargeMessage(t *testing.T) {
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, nil))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
-	defer srv.Stop()
 	defer httpsrv.Close()
 
 	respLength := websocket.WsMessageSizeLimit - 50

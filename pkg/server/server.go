@@ -3,12 +3,9 @@ package server
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
-	"gfx.cafe/open/jrpc/pkg/util/mapset"
 
 	"gfx.cafe/util/go/bufpool"
 
@@ -21,22 +18,53 @@ import (
 // a server can be used to listenandserve multiple codecs at a time
 type Server struct {
 	services codec.Handler
-	run      int32
-	codecs   *mapset.Set[codec.ReaderWriter]
-	Tracing  Tracing
-}
-
-type Tracing struct {
 }
 
 // NewServer creates a new server instance with no registered handlers.
 func NewServer(r codec.Handler) *Server {
-	server := &Server{
-		codecs: mapset.NewSet[codec.ReaderWriter](),
-		run:    1,
-	}
-	server.services = r
+	server := &Server{services: r}
 	return server
+}
+
+// ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
+// the response back using the given codec. It will block until the codec is closed
+func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) error {
+	defer remote.Close()
+	responder := &callResponder{
+		remote: remote,
+	}
+	// add a cancel to the context so we can cancel all the child tasks on return
+	ctx, cn := context.WithCancel(ContextWithPeerInfo(ctx, remote.PeerInfo()))
+	defer cn()
+
+	errch := make(chan error)
+	go func() {
+		for {
+			// read messages from the stream synchronously
+			incoming, batch, err := remote.ReadBatch(ctx)
+			if err != nil {
+				errch <- err
+				return
+			}
+			go func() {
+				err = s.serveBatch(ctx, incoming, batch, remote, responder)
+				if err != nil {
+					errch <- err
+					return
+				}
+			}()
+		}
+	}()
+	// exit on either the first error, or the context closing.
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errch:
+		// perform a flush on error just in case there are dangling things to be sent, states to be cleaned up, etc.
+		// the connection is already dead, so at this point there are no rules, so this is okay to do i think
+		remote.Flush()
+		return err
+	}
 }
 
 func (s *Server) serveBatch(ctx context.Context,
@@ -113,69 +141,6 @@ func (s *Server) serveBatch(ctx context.Context,
 	}
 	wg.Wait()
 	return responder.send(ctx, env)
-}
-
-// ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
-// the response back using the given codec. It will block until the codec is closed or the
-// server is stopped. In either case the codec is closed when this function returns.
-func (s *Server) ServeCodec(pctx context.Context, remote codec.ReaderWriter) error {
-	defer remote.Close()
-	// Don't serve if server is stopped.
-	if atomic.LoadInt32(&s.run) == 0 {
-		return fmt.Errorf("Server stopped")
-	}
-	// Add the codec to the set so it can be closed by Stop.
-	s.codecs.Add(remote)
-	defer s.codecs.Remove(remote)
-	responder := &callResponder{
-		remote: remote,
-	}
-	// add a cancel to the context so we can cancel all the child tasks on return
-	ctx, cn := context.WithCancel(ContextWithPeerInfo(pctx, remote.PeerInfo()))
-	defer cn()
-
-	errch := make(chan error)
-	go func() {
-		for {
-			// read messages from the stream synchronously
-			incoming, batch, err := remote.ReadBatch(ctx)
-			if err != nil {
-				errch <- err
-				return
-			}
-			// process each in a goroutine
-			go func() {
-				// the only reason this should error is if
-				err = s.serveBatch(ctx, incoming, batch, remote, responder)
-				if err != nil {
-					errch <- err
-					return
-				}
-			}()
-		}
-	}()
-	// exit on either the first error, or the context closing.
-	select {
-	case <-ctx.Done():
-		return nil
-	case err := <-errch:
-		// perform a flush on error just in case there are dangling things to be sent, states to be cleaned up, etc.
-		// the connection is already dead, so at this point there are no rules, so this is okay to do i think
-		remote.Flush()
-		return err
-	}
-}
-
-// Stop stops reading new requests, waits for stopPendingRequestTimeout to allow pending
-// requests to finish, then closes all codecs which will cancel pending requests and
-// subscriptions.
-func (s *Server) Stop() {
-	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		s.codecs.Each(func(c codec.ReaderWriter) bool {
-			c.Close()
-			return true
-		})
-	}
 }
 
 type callResponder struct {

@@ -95,7 +95,6 @@ func TestHTTPErrorResponseWithValidRequest(t *testing.T) {
 func confirmHTTPRequestYieldsStatusCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
 	t.Helper()
 	s := server.NewServer(jmux.NewMux())
-	defer s.Stop()
 	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
@@ -120,7 +119,6 @@ func TestHTTPResponseWithEmptyGet(t *testing.T) {
 // This checks that maxRequestContentLength is not applied to the response of a request.
 func TestHTTPRespBodyUnlimited(t *testing.T) {
 	s := jrpctest.NewServer()
-	defer s.Stop()
 	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
@@ -180,7 +178,6 @@ func TestHTTPErrorResponse(t *testing.T) {
 
 func TestHTTPPeerInfo(t *testing.T) {
 	s := jrpctest.NewServer()
-	defer s.Stop()
 	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 
@@ -215,7 +212,6 @@ func TestHTTPPeerInfo(t *testing.T) {
 }
 func TestClientHTTP(t *testing.T) {
 	s := jrpctest.NewServer()
-	defer s.Stop()
 	ts := httptest.NewServer(&Server{Server: s})
 	defer ts.Close()
 	c, err := DialHTTP(ts.URL)
