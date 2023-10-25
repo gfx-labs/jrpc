@@ -2,7 +2,6 @@ package rdwr
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"sync"
@@ -19,7 +18,6 @@ type Codec struct {
 
 	rd     io.Reader
 	wrLock sync.Mutex
-	wr     *bytes.Buffer
 	w      io.Writer
 
 	dec     *json.Decoder
@@ -35,7 +33,6 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 		cn:  cn,
 		rd:  bufr,
 		dec: json.NewDecoder(rd),
-		wr:  new(bytes.Buffer),
 		w:   wr,
 	}
 	return c
@@ -75,25 +72,11 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Write(p []byte) (n int, err error) {
+func (c *Codec) Send(ctx context.Context, buf json.RawMessage) error {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	return c.wr.Write(p)
-}
-
-func (c *Codec) Flush() (err error) {
-	c.wrLock.Lock()
-	defer c.wrLock.Unlock()
-	defer c.wr.Reset()
-	err = c.wr.WriteByte('\n')
-	if err != nil {
-		return err
-	}
-	_, err = c.wr.WriteTo(c.w)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := c.w.Write(append(buf, '\n'))
+	return err
 }
 
 // Closed returns a channel which is closed when the connection is closed.

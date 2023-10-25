@@ -3,6 +3,7 @@ package inproc
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"io"
 	"sync"
 
@@ -58,15 +59,13 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Write(p []byte) (n int, err error) {
+func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
-	return c.wr.Write(p)
-}
-
-func (c *Codec) Flush() (err error) {
-	c.wrLock.Lock()
-	defer c.wrLock.Unlock()
+	_, err = c.wr.Write(msg)
+	if err != nil {
+		return err
+	}
 	return c.wr.Flush()
 }
 

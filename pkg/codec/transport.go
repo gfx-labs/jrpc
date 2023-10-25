@@ -2,7 +2,7 @@ package codec
 
 import (
 	"context"
-	"io"
+	"encoding/json"
 )
 
 // ReaderWriter represents a single stream
@@ -27,10 +27,7 @@ type Reader interface {
 // Implementations must be safe for concurrent use.
 type Writer interface {
 	// write json blob to stream
-	io.Writer
-	// Flush flushes the writer to the stream  between messages
-	Flush() error
-
+	Send(context.Context, json.RawMessage) error
 	// Closed returns a channel which is closed when the connection is closed.
 	Closed() <-chan struct{}
 	// RemoteAddr returns the peer address of the connection.
