@@ -1,6 +1,7 @@
 package rdwr
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -30,7 +31,7 @@ type Client struct {
 func NewClient(rd io.Reader, wr io.Writer) *Client {
 	cl := &Client{
 		p:  clientutil.NewIdReply(),
-		rd: rd,
+		rd: bufio.NewReader(rd),
 		wr: wr,
 		handlerPeer: codec.PeerInfo{
 			Transport:  "ipc",

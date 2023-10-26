@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/go-faster/jx"
 )
 
 type subscription struct {
@@ -64,14 +66,19 @@ func (b *ChannelBroker) SetDroppedMessageHandler(fn func(string, []byte)) *Chann
 	return b
 }
 
-func (b *ChannelBroker) ReadRequest(ctx context.Context) (json.RawMessage, func(json.RawMessage) error, error) {
+func (b *ChannelBroker) ReadRequest(ctx context.Context) (json.RawMessage, Replier, error) {
 	select {
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
 	case f := <-b.msgs:
-		return f.data, func(resp json.RawMessage) error {
-			return b.Publish(context.Background(), f.topic, resp)
-		}, nil
+		return f.data, ReplierFunc(func(fn func(*jx.Encoder) error) error {
+			enc := &jx.Encoder{}
+			err := fn(enc)
+			if err != nil {
+				return err
+			}
+			return b.Publish(context.Background(), f.topic, json.RawMessage(enc.Bytes()))
+		}), nil
 	}
 }
 

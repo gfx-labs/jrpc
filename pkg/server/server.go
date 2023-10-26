@@ -152,32 +152,27 @@ type notifyEnv struct {
 }
 
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	enc := jx.GetEncoder()
-	enc.Reset()
-	enc.Grow(4096)
-	defer jx.PutEncoder(enc)
-	//enc := jx.NewStreamingEncoder(c.remote, 4096)
-	msg := &codec.Message{}
-	var err error
-	//  allocate a temp buffer for this packet
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
-	err = json.NewEncoder(buf).Encode(env.dat)
-	if err != nil {
-		msg.Error = err
-	} else {
-		msg.Params = buf.Bytes()
-	}
-	msg.ExtraFields = env.extra
-	// add the method
-	msg.Method = env.method
-	err = codec.MarshalMessage(msg, enc)
-	if err != nil {
-		return err
-	}
-	err = c.remote.Send(ctx, enc.Bytes())
+	err := c.remote.Send(func(e *jx.Encoder) error {
+		msg := &codec.Message{}
+		var err error
+		//  allocate a temp buffer for this packet
+		buf := bufpool.GetStd()
+		defer bufpool.PutStd(buf)
+		err = json.NewEncoder(buf).Encode(env.dat)
+		if err != nil {
+			msg.Error = err
+		} else {
+			msg.Params = buf.Bytes()
+		}
+		msg.ExtraFields = env.extra
+		// add the method
+		msg.Method = env.method
+		err = codec.MarshalMessage(msg, e)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -190,8 +185,6 @@ type callEnv struct {
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	// notification gets nothing
 	// if all msgs in batch are notification, we trigger an allSkip and write nothing
 	if env.batch {
@@ -202,47 +195,45 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			}
 		}
 		if allSkip {
-			return c.remote.Send(ctx, nil)
+			return c.remote.Send(func(e *jx.Encoder) error { return nil })
 		}
 	}
 	// create the streaming encoder
-	enc := jx.GetEncoder()
-	enc.Reset()
-	enc.Grow(4096)
-	defer jx.PutEncoder(enc)
-	if env.batch {
-		enc.ArrStart()
-	}
-	for _, v := range env.responses {
-		msg := v.pkt
-		// if we are a batch AND we are supposed to skip, then continue
-		// this means that for a non-batch notification, we do not skip! this is to ensure we get always a "response" for http-like endpoints
-		if env.batch && v.skip {
-			continue
+	err = c.remote.Send(func(enc *jx.Encoder) error {
+		if env.batch {
+			enc.ArrStart()
 		}
-		// if there is no error, we try to marshal the result
-		if msg.Error == nil {
-			buf := bufpool.GetStd()
-			defer bufpool.PutStd(buf)
-			je := json.NewEncoder(buf)
-			err = je.EncodeWithOption(v.dat)
+		for _, v := range env.responses {
+			msg := v.pkt
+			// if we are a batch AND we are supposed to skip, then continue
+			// this means that for a non-batch notification, we do not skip! this is to ensure we get always a "response" for http-like endpoints
+			if env.batch && v.skip {
+				continue
+			}
+			// if there is no error, we try to marshal the result
+			if msg.Error == nil {
+				buf := bufpool.GetStd()
+				defer bufpool.PutStd(buf)
+				je := json.NewEncoder(buf)
+				err = je.EncodeWithOption(v.dat)
+				if err != nil {
+					msg.Error = err
+				} else {
+					msg.Result = buf.Bytes()
+					msg.Result = bytes.TrimSuffix(msg.Result, []byte{'\n'})
+				}
+			}
+			// then marshal the whole message into the stream
+			err := codec.MarshalMessage(msg, enc)
 			if err != nil {
-				msg.Error = err
-			} else {
-				msg.Result = buf.Bytes()
-				msg.Result = bytes.TrimSuffix(msg.Result, []byte{'\n'})
+				return err
 			}
 		}
-		// then marshal the whole message into the stream
-		err := codec.MarshalMessage(msg, enc)
-		if err != nil {
-			return err
+		if env.batch {
+			enc.ArrEnd()
 		}
-	}
-	if env.batch {
-		enc.ArrEnd()
-	}
-	err = c.remote.Send(ctx, enc.Bytes())
+		return nil
+	})
 	if err != nil {
 		return err
 	}

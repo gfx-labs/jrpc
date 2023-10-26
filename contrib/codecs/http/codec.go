@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
+	"github.com/go-faster/jx"
 )
 
 var _ codec.ReaderWriter = (*Codec)(nil)
@@ -26,6 +26,7 @@ type Codec struct {
 	r     *http.Request
 	w     http.ResponseWriter
 	wr    io.Writer
+	jx    *jx.Encoder
 	msgs  chan *serverutil.Bundle
 	errCh chan httpError
 
@@ -52,6 +53,7 @@ func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 	c.w = w
 	c.msgs = make(chan *serverutil.Bundle, 1)
 	c.errCh = make(chan httpError, 1)
+	c.jx = jx.NewStreamingEncoder(w, 4096)
 
 	ctx := c.r.Context()
 	c.ctx, c.cn = context.WithCancel(ctx)
@@ -219,13 +221,12 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
+func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
 	defer c.cn()
-	_, err = c.wr.Write(msg)
-	if err != nil {
+	if err := fn(c.jx); err != nil {
 		return err
 	}
-	return nil
+	return c.jx.Close()
 }
 
 // Closed returns a channel which is closed when the connection is closed.

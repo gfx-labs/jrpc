@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
-	"gfx.cafe/open/jrpc/contrib/codecs/inproc"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/server"
 
@@ -12,7 +11,6 @@ import (
 	"net/url"
 )
 
-var NewInProc = inproc.NewCodec
 var WebsocketHandler = websocket.WebsocketHandler
 var HttpHandler = http.HttpHandler
 

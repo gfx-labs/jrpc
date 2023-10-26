@@ -8,6 +8,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
+	"github.com/go-faster/jx"
 )
 
 var _ codec.ReaderWriter = (*Codec)(nil)
@@ -17,7 +18,7 @@ type Codec struct {
 	cn  func()
 
 	wr      bytes.Buffer
-	replier func(json.RawMessage) error
+	replier Replier
 	ansCh   chan *serverutil.Bundle
 	closed  atomic.Bool
 	closeCh chan struct{}
@@ -30,7 +31,7 @@ type httpError struct {
 	err  error
 }
 
-func NewCodec(req json.RawMessage, replier func(json.RawMessage) error) *Codec {
+func NewCodec(req json.RawMessage, replier Replier) *Codec {
 	c := &Codec{
 		replier: replier,
 		ansCh:   make(chan *serverutil.Bundle, 1),
@@ -67,8 +68,8 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Send(ctx context.Context, msg json.RawMessage) (err error) {
-	return c.replier(msg)
+func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
+	return c.replier.Send(fn)
 }
 
 // Closed returns a channel which is closed when the connection is closed.

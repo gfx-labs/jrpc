@@ -3,10 +3,12 @@ package broker
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/go-faster/jx"
 )
 
 type ServerSpoke interface {
-	ReadRequest(ctx context.Context) (json.RawMessage, func(json.RawMessage) error, error)
+	ReadRequest(ctx context.Context) (json.RawMessage, Replier, error)
 }
 
 type ClientSpoke interface {
@@ -20,7 +22,13 @@ type Broker interface {
 }
 
 type Replier interface {
-	Send(json.RawMessage)
+	Send(fn func(*jx.Encoder) error) error
+}
+
+type ReplierFunc func(fn func(*jx.Encoder) error) error
+
+func (r ReplierFunc) Send(fn func(*jx.Encoder) error) error {
+	return r(fn)
 }
 
 type Subscription interface {

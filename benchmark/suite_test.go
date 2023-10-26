@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
-	"gfx.cafe/open/jrpc/contrib/codecs/inproc"
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -36,7 +35,6 @@ func BenchmarkSimpleSuite(b *testing.B) {
 	makers := map[string]jrpctest.ServerMaker{
 		"Http":      http.ServerMaker,
 		"WebSocket": websocket.ServerMaker,
-		"InProc":    inproc.ServerMaker,
 		"IoPipe":    rdwr.ServerMaker,
 	}
 

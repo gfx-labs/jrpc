@@ -2,7 +2,8 @@ package codec
 
 import (
 	"context"
-	"encoding/json"
+
+	"github.com/go-faster/jx"
 )
 
 // ReaderWriter represents a single stream
@@ -27,7 +28,7 @@ type Reader interface {
 // Implementations must be safe for concurrent use.
 type Writer interface {
 	// write json blob to stream
-	Send(context.Context, json.RawMessage) error
+	Send(fn func(e *jx.Encoder) error) error
 	// Closed returns a channel which is closed when the connection is closed.
 	Closed() <-chan struct{}
 	// RemoteAddr returns the peer address of the connection.
