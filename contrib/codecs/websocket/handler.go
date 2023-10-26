@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"log/slog"
 	"net/http"
 
 	"gfx.cafe/open/websocket"
@@ -23,7 +24,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := newWebsocketCodec(r.Context(), conn, "", r.Header)
-	s.Server.ServeCodec(r.Context(), c)
+	err = s.Server.ServeCodec(r.Context(), c)
+	if err != nil {
+		slog.Error("codec err", "error", err)
+	}
 }
 
 // WebsocketHandler returns a handler that serves JSON-RPC to WebSocket connections.
@@ -41,6 +45,9 @@ func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
 			return
 		}
 		codec := newWebsocketCodec(r.Context(), conn, r.Host, r.Header)
-		s.ServeCodec(r.Context(), codec)
+		err = s.ServeCodec(r.Context(), codec)
+		if err != nil {
+			slog.Error("codec err", "error", err)
+		}
 	})
 }
