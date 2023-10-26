@@ -26,9 +26,7 @@ type StreamingConn interface {
 }
 
 // ResponseWriter is used to write responses to the request
-type ResponseWriter interface {
-	codec.ResponseWriter
-}
+type ResponseWriter = codec.ResponseWriter
 
 type (
 	// HandlerFunc is a Handler that exists as a function
