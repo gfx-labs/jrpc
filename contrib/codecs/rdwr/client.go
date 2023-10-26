@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
@@ -71,7 +70,6 @@ func (c *Client) listen() error {
 		if err != nil {
 			return err
 		}
-		log.Println("got", msg)
 		msgs, _ := codec.ParseMessage(msg)
 		for i := range msgs {
 			v := msgs[i]
