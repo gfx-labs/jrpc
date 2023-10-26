@@ -237,15 +237,25 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 					// if there is no error, we try to marshal the result
 					e.Field("result", func(e *jx.Encoder) {
 						if v.dat != nil {
-							err = json.NewEncoder(e).EncodeWithOption(v.dat, func(eo *json.EncodeOption) {
-								eo.DisableNewline = true
-							})
-							if err != nil {
+							switch c := v.dat.(type) {
+							case json.RawMessage:
+								e.Raw(c)
+							default:
+								err = json.NewEncoder(e).EncodeWithOption(v.dat, func(eo *json.EncodeOption) {
+									eo.DisableNewline = true
+								})
 							}
 						} else {
 							e.Null()
 						}
 					})
+					// a json encoding error here is possibly fatal.... try to encode the error, but there are no promises
+					if err != nil {
+						e.Field("error", func(e *jx.Encoder) {
+							codec.EncodeError(e, m.Error)
+						})
+						return
+					}
 				}
 			})
 		}
