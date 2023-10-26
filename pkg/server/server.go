@@ -244,20 +244,20 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 								err = json.NewEncoder(e).EncodeWithOption(v.dat, func(eo *json.EncodeOption) {
 									eo.DisableNewline = true
 								})
+								if err != nil {
+									return
+								}
 							}
 						} else {
 							e.Null()
 						}
 					})
 					// a json encoding error here is possibly fatal.... try to encode the error, but there are no promises
-					if err != nil {
-						e.Field("error", func(e *jx.Encoder) {
-							codec.EncodeError(e, m.Error)
-						})
-						return
-					}
 				}
 			})
+			if err != nil {
+				return err
+			}
 		}
 		if env.batch {
 			enc.ArrEnd()
