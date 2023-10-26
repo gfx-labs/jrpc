@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"sync"
 
@@ -210,24 +209,45 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			if env.batch && v.skip {
 				continue
 			}
-			// if there is no error, we try to marshal the result
-			if msg.Error == nil {
-				buf := bufpool.GetStd()
-				defer bufpool.PutStd(buf)
-				je := json.NewEncoder(buf)
-				err = je.EncodeWithOption(v.dat)
-				if err != nil {
-					msg.Error = err
-				} else {
-					msg.Result = buf.Bytes()
-					msg.Result = bytes.TrimSuffix(msg.Result, []byte{'\n'})
+			m := msg
+			enc.Obj(func(e *jx.Encoder) {
+				e.Field("jsonrpc", func(e *jx.Encoder) {
+					e.Str("2.0")
+				})
+				if m.ID != nil {
+					e.Field("id", func(e *jx.Encoder) {
+						e.Raw(m.ID.RawMessage())
+					})
 				}
-			}
-			// then marshal the whole message into the stream
-			err := codec.MarshalMessage(msg, enc)
-			if err != nil {
-				return err
-			}
+				if m.Method != "" {
+					e.Field("method", func(e *jx.Encoder) {
+						e.Str(m.Method)
+					})
+				}
+				for _, v := range m.ExtraFields {
+					e.Field(v.Name, func(e *jx.Encoder) {
+						e.Raw(v.Value)
+					})
+				}
+				if m.Error != nil {
+					e.Field("error", func(e *jx.Encoder) {
+						codec.EncodeError(e, m.Error)
+					})
+				} else {
+					// if there is no error, we try to marshal the result
+					e.Field("result", func(e *jx.Encoder) {
+						if v.dat != nil {
+							err = json.NewEncoder(e).EncodeWithOption(v.dat, func(eo *json.EncodeOption) {
+								eo.DisableNewline = true
+							})
+							if err != nil {
+							}
+						} else {
+							e.Null()
+						}
+					})
+				}
+			})
 		}
 		if env.batch {
 			enc.ArrEnd()

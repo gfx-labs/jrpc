@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
@@ -64,12 +65,13 @@ func (c *Client) Mount(h codec.Middleware) {
 func (c *Client) listen() error {
 	var msg json.RawMessage
 	defer c.cn()
-	dec := json.NewDecoder(c.rd)
+	dec := json.NewDecoder(bufio.NewReader(c.rd))
 	for {
 		err := dec.Decode(&msg)
 		if err != nil {
 			return err
 		}
+		log.Println("got", msg)
 		msgs, _ := codec.ParseMessage(msg)
 		for i := range msgs {
 			v := msgs[i]

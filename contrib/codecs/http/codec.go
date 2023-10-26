@@ -223,6 +223,7 @@ func (c *Codec) Close() error {
 
 func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
 	defer c.cn()
+	defer c.jx.ResetWriter(c.wr)
 	if err := fn(c.jx); err != nil {
 		return err
 	}

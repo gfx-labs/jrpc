@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"io"
+	"os"
 	"sync"
 
 	"github.com/go-faster/jx"
@@ -19,7 +20,7 @@ type Codec struct {
 
 	rd     io.Reader
 	wrLock sync.Mutex
-	wr     *bufio.Writer
+	wr     io.Writer
 	jx     *jx.Encoder
 
 	dec     *json.Decoder
@@ -29,14 +30,15 @@ type Codec struct {
 
 func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 	ctx, cn := context.WithCancel(context.TODO())
+	mw := io.MultiWriter(wr, os.Stdout)
 	c := &Codec{
 		ctx: ctx,
 		cn:  cn,
 		rd:  bufio.NewReader(rd),
-		wr:  bufio.NewWriter(wr),
+		wr:  mw,
 		dec: json.NewDecoder(rd),
 	}
-	c.jx = jx.NewStreamingEncoder(wr, 4096)
+	c.jx = jx.NewStreamingEncoder(mw, 4096)
 	return c
 }
 
@@ -81,13 +83,11 @@ func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
 	if err := fn(c.jx); err != nil {
 		return err
 	}
+
 	if err := c.jx.Close(); err != nil {
 		return err
 	}
 	if _, err := c.wr.Write([]byte("\n")); err != nil {
-		return err
-	}
-	if err := c.wr.Flush(); err != nil {
 		return err
 	}
 	return nil
