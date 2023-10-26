@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -252,10 +253,11 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 							e.Null()
 						}
 					})
-					// a json encoding error here is possibly fatal.... try to encode the error, but there are no promises
 				}
 			})
+			// a json encoding error here is possibly fatal....
 			if err != nil {
+				slog.Error("codec json encoding err", "err", err)
 				return err
 			}
 		}

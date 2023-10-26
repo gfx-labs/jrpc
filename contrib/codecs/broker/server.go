@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"log/slog"
 
 	"gfx.cafe/open/jrpc/pkg/server"
 )
@@ -29,7 +28,7 @@ func (s *Server) ServeSpoke(ctx context.Context, stream ServerSpoke) {
 		go func() {
 			err := s.Server.ServeCodec(ctx, cd)
 			if err != nil {
-				slog.Error("codec err", "err", err)
+				//			slog.Error("codec err", "err", err)
 			}
 			cd.Close()
 		}()

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"log/slog"
 	"net/http"
 	"sync"
 
@@ -32,7 +31,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", contentType)
 	err := s.Server.ServeCodec(r.Context(), c)
 	if err != nil {
-		slog.Error("codec err", "err", err)
+		//	slog.Error("codec err", "err", err)
 	}
 	go func() {
 		<-c.Closed()

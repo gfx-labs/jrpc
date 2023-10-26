@@ -47,7 +47,7 @@ func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
 		codec := newWebsocketCodec(r.Context(), conn, r.Host, r.Header)
 		err = s.ServeCodec(r.Context(), codec)
 		if err != nil {
-			slog.Error("codec err", "error", err)
+			//	slog.Error("codec err", "error", err)
 		}
 	})
 }
