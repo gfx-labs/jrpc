@@ -15,15 +15,13 @@ type Conn interface {
 	codec.Conn
 }
 
-// Handler is the equivalent of http.Handler, but for jsonrpc.
-type Handler interface {
-	codec.Handler
-}
-
 // StreamingConn is a conn that supports streaming methods
 type StreamingConn interface {
 	codec.StreamingConn
 }
+
+// Handler is the equivalent of http.Handler, but for jsonrpc.
+type Handler = codec.Handler
 
 // ResponseWriter is used to write responses to the request
 type ResponseWriter = codec.ResponseWriter
