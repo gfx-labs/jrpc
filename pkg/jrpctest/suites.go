@@ -220,6 +220,31 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 		wg.Wait()
 	})
+
+	makeTest("big", func(t *testing.T, server *server.Server, client codec.Conn) {
+		var (
+			wg       sync.WaitGroup
+			nreqs    = 2
+			ncallers = 10
+		)
+		wg.Add(ncallers)
+		// create a bunch of parallel requests with lots of data to see if any buffers are overwritten causing a failure
+		for i := 0; i < ncallers; i++ {
+			go func() {
+				defer wg.Done()
+
+				for j := 0; j < nreqs; j++ {
+					if err := codec.CallInto(context.Background(), client, nil, "large_largeResp"); err != nil {
+						t.Error(err)
+						return
+					}
+				}
+			}()
+		}
+
+		wg.Wait()
+	})
+
 	makeTest("", func(t *testing.T, server *server.Server, client codec.Conn) {
 	})
 }

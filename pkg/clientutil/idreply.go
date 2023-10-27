@@ -31,26 +31,41 @@ func (i *IdReply) NextId() *codec.ID {
 	return codec.NewNumberIDPtr(i.id.Add(1))
 }
 
-func (i *IdReply) makeOrTake(id []byte) chan msgOrError {
+func (i *IdReply) make(id []byte) <-chan msgOrError {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	if val, ok := i.chs[string(id)]; ok {
-		delete(i.chs, string(id))
-		return val
-	}
-	o := make(chan msgOrError)
-	i.chs[string(id)] = o
-	return o
+	ch := make(chan msgOrError, 1)
+	i.chs[string(id)] = ch
+	return ch
+}
+
+func (i *IdReply) take(id []byte) chan<- msgOrError {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	ch := i.chs[string(id)]
+	delete(i.chs, string(id))
+	return ch
+}
+
+func (i *IdReply) remove(id []byte) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	delete(i.chs, string(id))
 }
 
 func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
+	ch := i.take(id)
+	if ch == nil {
+		return
+	}
+
 	if err != nil {
-		i.makeOrTake(id) <- msgOrError{
+		ch <- msgOrError{
 			err: err,
 		}
 		return
 	}
-	i.makeOrTake(id) <- msgOrError{
+	ch <- msgOrError{
 		msg: msg,
 	}
 
@@ -58,9 +73,10 @@ func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
 
 func (i *IdReply) Ask(ctx context.Context, id []byte) (json.RawMessage, error) {
 	select {
-	case resp := <-i.makeOrTake(id):
+	case resp := <-i.make(id):
 		return resp.msg, resp.err
 	case <-ctx.Done():
+		i.remove(id)
 		return nil, ctx.Err()
 	}
 }

@@ -43,13 +43,19 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 			// read messages from the stream synchronously
 			incoming, batch, err := remote.ReadBatch(ctx)
 			if err != nil {
-				errch <- err
+				select {
+				case errch <- err:
+				case <-ctx.Done():
+				}
 				return
 			}
 			go func() {
 				err = s.serveBatch(ctx, incoming, batch, remote, responder)
 				if err != nil {
-					errch <- err
+					select {
+					case errch <- err:
+					case <-ctx.Done():
+					}
 					return
 				}
 			}()

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
-	json "github.com/goccy/go-json"
+	"github.com/goccy/go-json"
 )
 
 // Version represents a JSON-RPC version.
@@ -130,7 +130,7 @@ func (id ID) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *ID) UnmarshalJSON(data []byte) error {
-	*id = data
+	*id = bytes.Clone(data)
 	// now validate
 	if id.IsNull() {
 		return nil
