@@ -2,28 +2,38 @@ package websocket
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"gfx.cafe/open/websocket"
+	"github.com/go-faster/jx"
+	"github.com/goccy/go-json"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 type Codec struct {
-	*rdwr.Codec
-	conn *websocket.Conn
+	closed chan struct{}
+	conn   *websocket.Conn
+
+	jx     *jx.Encoder
+	wrLock sync.Mutex
+
+	decBuf  json.RawMessage
+	decLock sync.Mutex
 
 	i codec.PeerInfo
 }
 
 func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req http.Header) *Codec {
 	conn.SetReadLimit(WsMessageSizeLimit)
-	netConn := websocket.NetConn(ctx, conn, websocket.MessageText)
 	c := &Codec{
-		Codec: rdwr.NewCodec(netConn, netConn),
-		conn:  conn,
+		closed: make(chan struct{}),
+		conn:   conn,
+		jx:     jx.NewStreamingEncoder(nil, 4096),
 	}
 	c.i.Transport = "ws"
 	// Fill in connection details.
@@ -62,13 +72,62 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 	}
 }
 
+func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
+	c.decLock.Lock()
+	defer c.decLock.Unlock()
+	c.decBuf = c.decBuf[:0]
+	_, r, err := c.conn.Reader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer io.Copy(io.Discard, r)
+	err = json.NewDecoder(r).DecodeContext(ctx, &c.decBuf)
+	if err != nil {
+		return nil, err
+	}
+	return serverutil.ParseBundle(c.decBuf), nil
+}
+
+func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+	ans, err := c.decodeSingleMessage(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	return ans.Messages, ans.Batch, nil
+}
+
+func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
+	c.wrLock.Lock()
+	defer c.wrLock.Unlock()
+
+	wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
+	if err != nil {
+		return err
+	}
+	c.jx.ResetWriter(wr)
+	if err = fn(c.jx); err != nil {
+		return err
+	}
+	if err = c.jx.Close(); err != nil {
+		return err
+	}
+	return wr.Close()
+}
+
 func (c *Codec) PeerInfo() codec.PeerInfo {
 	return c.i
 }
 
+func (c *Codec) Closed() <-chan struct{} {
+	return c.closed
+}
+
 func (c *Codec) Close() error {
-	if err := c.Codec.Close(); err != nil {
-		return err
+	select {
+	case <-c.closed:
+		return nil
+	default:
+		close(c.closed)
 	}
 	return c.conn.Close(websocket.StatusNormalClosure, "")
 }
@@ -76,3 +135,5 @@ func (c *Codec) Close() error {
 func (c *Codec) RemoteAddr() string {
 	return c.i.RemoteAddr
 }
+
+var _ codec.ReaderWriter = (*Codec)(nil)

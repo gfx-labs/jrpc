@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"log/slog"
 	"net/http"
 
 	"gfx.cafe/open/websocket"
@@ -26,7 +25,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := newWebsocketCodec(r.Context(), conn, "", r.Header)
 	err = s.Server.ServeCodec(r.Context(), c)
 	if err != nil {
-		slog.Error("codec err", "error", err)
+		// slog.Error("codec err", "error", err)
 	}
 }
 
@@ -47,7 +46,7 @@ func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
 		codec := newWebsocketCodec(r.Context(), conn, r.Host, r.Header)
 		err = s.ServeCodec(r.Context(), codec)
 		if err != nil {
-			//	slog.Error("codec err", "error", err)
+			// slog.Error("codec err", "error", err)
 		}
 	})
 }
