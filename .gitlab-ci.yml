@@ -15,8 +15,8 @@ test:
   stage: test
   extends: .go-cache
   script:
-    - CGO_ENABLED=1 go test -race ./...
     - apk add alpine-sdk
+    - CGO_ENABLED=1 go test -race ./...
 
 lint:
   image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
