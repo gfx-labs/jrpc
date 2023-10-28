@@ -116,7 +116,7 @@ func (s *Server) serveBatch(ctx context.Context,
 			cr:  r,
 		}
 		rs = append(rs, rw)
-		// a nil incoming message means an empty response
+		// a nil incoming message means return an invalid request.
 		if v == nil {
 			v = &codec.Message{ID: codec.NewNullIDPtr()}
 			rw.err = codec.NewInvalidRequestError("invalid request")
@@ -124,12 +124,16 @@ func (s *Server) serveBatch(ctx context.Context,
 		rw.msg = v
 		rw.msg.ExtraFields = codec.ExtraFields{}
 		rw.msg.Error = nil
+		// zero length method is always invalid request
 		if len(v.Method) == 0 {
+			// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
+			// this makes sure we add 1 to totalRequests
 			if v.ID == nil {
 				v.ID = codec.NewNullIDPtr()
 			}
 			rw.err = codec.NewInvalidRequestError("invalid request")
 		}
+		// requests and malformed requests both count as requests
 		if v.ID != nil {
 			totalRequests += 1
 		}
