@@ -214,21 +214,22 @@ func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 }
 
 // closes the connection
-func (c *Codec) Close() error {
-	c.cn()
-	return nil
+func (c *Codec) Write(p []byte) (n int, err error) {
+	return c.wr.Write(p)
 }
 
-func (c *Codec) Send(fn func(e io.Writer) error) error {
-	if err := fn(c.w); err != nil {
+func (c *Codec) Flush() error {
+	defer c.cn()
+	err := c.wr.Flush()
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) Flush() error {
-	defer c.cn()
-	return c.wr.Flush()
+func (c *Codec) Close() error {
+	c.cn()
+	return nil
 }
 
 // Closed returns a channel which is closed when the connection is closed.

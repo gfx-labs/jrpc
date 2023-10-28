@@ -88,6 +88,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	}
 	msg := clientutil.GetMessage()
 	defer clientutil.PutMessage(msg)
+
 	err = json.NewDecoder(resp.Body).Decode(&msg)
 	if err != nil {
 		return fmt.Errorf("decode json: %w", err)

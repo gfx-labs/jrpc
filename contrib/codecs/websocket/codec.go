@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -10,9 +11,17 @@ import (
 	"gfx.cafe/open/websocket"
 	"github.com/goccy/go-json"
 
+	_ "net/http/pprof"
+
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
+
+func init() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+}
 
 type Codec struct {
 	closed chan struct{}
@@ -102,7 +111,6 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 		if err != nil {
 			return 0, err
 		}
-
 		c.currentFrame = wr
 	}
 	return c.currentFrame.Write(p)
@@ -118,7 +126,12 @@ func (c *Codec) Flush() error {
 		}
 		return wr.Close()
 	}
-	return c.currentFrame.Close()
+	err := c.currentFrame.Close()
+	if err != nil {
+		return err
+	}
+	c.currentFrame = nil
+	return nil
 }
 
 func (c *Codec) PeerInfo() codec.PeerInfo {

@@ -26,15 +26,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no server set", http.StatusInternalServerError)
 		return
 	}
-	c := codecPool.Get().(*Codec)
-	c.Reset(w, r)
+	c := NewCodec(w, r)
 	w.Header().Set("content-type", contentType)
 	err := s.Server.ServeCodec(r.Context(), c)
 	if err != nil {
 		//	slog.Error("codec err", "err", err)
 	}
-	go func() {
-		<-c.Closed()
-		codecPool.Put(c)
-	}()
+	<-c.Closed()
 }

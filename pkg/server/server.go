@@ -61,7 +61,6 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 				}
 				err = s.serveBatch(ctx, incoming, responder)
 				if err != nil {
-					//				remote.Flush()
 					mu.Lock()
 					defer mu.Unlock()
 					allErrs = append(allErrs, err)
@@ -69,6 +68,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 			}()
 		}
 	}()
+	wg.Wait()
 	allErrs = append(allErrs, err)
 	if len(allErrs) > 0 {
 		return errors.Join(allErrs...)
@@ -111,10 +111,12 @@ func (s *Server) serveBatch(ctx context.Context,
 		rs = append(rs, rw)
 		// a nil incoming message means an empty response
 		if v == nil {
-			rw.msg = &codec.Message{ID: codec.NewNullIDPtr()}
-			continue
+			v = &codec.Message{ID: codec.NewNullIDPtr()}
 		}
 		rw.msg = v
+		if len(v.Method) == 0 {
+			rw.err = codec.NewInvalidRequestError("invalid request")
+		}
 		if v.ID != nil {
 			totalRequests += 1
 		}
@@ -131,24 +133,27 @@ func (s *Server) serveBatch(ctx context.Context,
 	wg.Add(len(rs))
 	// for each item in the envelope
 	peerInfo := r.remote.PeerInfo()
-	isBatchWithRequests := totalRequests > 1 && !r.batch
 	batchResults := []*callRespWriter{}
 	for _, vRef := range rs {
 		v := vRef
-		v.doneMu = doneMu
-		if isBatchWithRequests {
+		if r.batch {
 			v.noStream = true
-			batchResults = append(batchResults, v)
+			if v.msg.ID != nil {
+				v.doneMu = doneMu
+				batchResults = append(batchResults, v)
+			}
+		}
+		// early respond to nil requests
+		if v.err != nil {
+			v.sendCalled = true
+			v.doneMu.Release(1)
+			wg.Done()
+			continue
 		}
 		// now process each request in its own goroutine
 		// TODO: stress test this.
 		go func() {
 			defer wg.Done()
-			// early respond to nil requests
-			if v.msg == nil || len(v.msg.Method) == 0 {
-				v.msg.Error = codec.NewInvalidRequestError("invalid request")
-				return
-			}
 			req := codec.NewRequestFromMessage(
 				ctx,
 				v.msg,
@@ -157,13 +162,13 @@ func (s *Server) serveBatch(ctx context.Context,
 			s.services.ServeRPC(v, req)
 		}()
 	}
-	// we only need to do this if this is a batch call with requests
-	// first we need to wait for every single request to be completed
-	err = doneMu.Acquire(ctx, int64(totalRequests))
-	if err != nil {
-		return err
-	}
-	if isBatchWithRequests {
+
+	if r.batch {
+		// we only need to do this if this is a batch call with requests
+		err = doneMu.Acquire(ctx, int64(totalRequests))
+		if err != nil {
+			return err
+		}
 		err = r.mu.Acquire(ctx, 1)
 		if err != nil {
 			return err
@@ -175,8 +180,10 @@ func (s *Server) serveBatch(ctx context.Context,
 			return err
 		}
 		for i, v := range batchResults {
+			var a any
+			a = v.payload
 			err = r.send(ctx, &callEnv{
-				v:           v.payload,
+				v:           &a,
 				err:         v.err,
 				id:          v.msg.ID,
 				extrafields: v.msg.ExtraFields,
@@ -198,6 +205,16 @@ func (s *Server) serveBatch(ctx context.Context,
 		if err != nil {
 			return err
 		}
+	} else if totalRequests == 0 {
+		err = r.mu.Acquire(ctx, 1)
+		if err != nil {
+			return err
+		}
+		defer r.mu.Release(1)
+		err := r.remote.Flush()
+		if err != nil {
+			return err
+		}
 	}
 	wg.Wait()
 	return nil
@@ -212,7 +229,7 @@ type callResponder struct {
 }
 
 type callEnv struct {
-	v           any
+	v           *any
 	err         error
 	pkt         *codec.Message
 	id          *codec.ID
@@ -248,7 +265,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			// if there is no error, we try to marshal the result
 			e.Field("result", func(e *jx.Encoder) {
 				if env.v != nil {
-					switch cast := env.v.(type) {
+					switch cast := (*env.v).(type) {
 					case json.RawMessage:
 						e.Raw(cast)
 					default:
