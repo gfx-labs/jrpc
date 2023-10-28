@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
@@ -28,6 +29,8 @@ type Codec struct {
 	wr    *bufio.Writer
 	msgs  chan *serverutil.Bundle
 	errCh chan httpError
+
+	mu sync.Mutex
 
 	i codec.PeerInfo
 }

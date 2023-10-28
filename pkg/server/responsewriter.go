@@ -65,6 +65,11 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 	if err != nil {
 		return err
 	}
+	select {
+	case <-c.ctx.Done():
+		return c.ctx.Err()
+	default:
+	}
 	defer c.cr.mu.Release(1)
 	if c.err != nil {
 		e = c.err
@@ -77,7 +82,6 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 	if v != nil {
 		ce.v = &v
 	}
-
 	err = c.cr.send(c.ctx, ce)
 	if err != nil {
 		return err

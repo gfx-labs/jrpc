@@ -59,7 +59,9 @@ func Dial(ctx context.Context, client *http.Client, target string) (*Client, err
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &Client{remote: target, c: client, headers: http.Header{}}, nil
+	return &Client{remote: target, c: client, headers: http.Header{
+		"Content-Type": []string{"application/json"},
+	}}, nil
 }
 
 func (c *Client) SetHeader(key string, value string) {
@@ -196,6 +198,5 @@ func (c *Client) postBuf(ctx context.Context, rd io.Reader) (*http.Response, err
 			}
 		}
 	}()
-	hreq.Header.Add("Content-Type", "application/json")
 	return c.c.Do(hreq)
 }
