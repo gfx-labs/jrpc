@@ -68,7 +68,6 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 			}()
 		}
 	}()
-	wg.Wait()
 	allErrs = append(allErrs, err)
 	if len(allErrs) > 0 {
 		return errors.Join(allErrs...)
@@ -143,13 +142,6 @@ func (s *Server) serveBatch(ctx context.Context,
 				batchResults = append(batchResults, v)
 			}
 		}
-		// early respond to nil requests
-		if v.err != nil {
-			v.sendCalled = true
-			v.doneMu.Release(1)
-			wg.Done()
-			continue
-		}
 		// now process each request in its own goroutine
 		// TODO: stress test this.
 		go func() {
@@ -162,9 +154,7 @@ func (s *Server) serveBatch(ctx context.Context,
 			s.services.ServeRPC(v, req)
 		}()
 	}
-
 	if r.batch {
-		// we only need to do this if this is a batch call with requests
 		err = doneMu.Acquire(ctx, int64(totalRequests))
 		if err != nil {
 			return err

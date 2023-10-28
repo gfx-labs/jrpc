@@ -48,7 +48,8 @@ func (c *Codec) PeerInfo() codec.PeerInfo {
 func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
 	c.decLock.Lock()
 	defer c.decLock.Unlock()
-	c.decBuf = c.decBuf[:0]
+	//c.decBuf = c.decBuf[:0]
+	c.decBuf = json.RawMessage{}
 	err := c.dec.DecodeContext(ctx, &c.decBuf)
 	if err != nil {
 		return nil, err

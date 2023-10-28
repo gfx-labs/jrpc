@@ -3,7 +3,6 @@ package websocket
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -16,12 +15,6 @@ import (
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
-
-func init() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-}
 
 type Codec struct {
 	closed chan struct{}

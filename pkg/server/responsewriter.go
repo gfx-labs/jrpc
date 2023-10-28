@@ -2,10 +2,8 @@ package server
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"github.com/goccy/go-json"
@@ -63,14 +61,10 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 		}
 		return nil
 	}
-	s := time.Now()
-	log.Println("try")
 	err = c.cr.mu.Acquire(c.ctx, 1)
 	if err != nil {
 		return err
 	}
-	log.Println("release", time.Since(s))
-	s2 := time.Now()
 	defer c.cr.mu.Release(1)
 	err = c.cr.send(c.ctx, &callEnv{
 		v:           &v,
@@ -78,7 +72,6 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 		id:          c.msg.ID,
 		extrafields: c.msg.ExtraFields,
 	})
-	log.Println("release", time.Since(s2))
 	err = c.cr.remote.Flush()
 	if err != nil {
 		return err

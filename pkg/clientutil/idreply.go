@@ -31,6 +31,22 @@ func (i *IdReply) NextId() *codec.ID {
 	return codec.NewNumberIDPtr(i.id.Add(1))
 }
 
+func (i *IdReply) makeOrTake(id []byte) chan msgOrError {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	ch, ok := i.chs[string(id)]
+	if ok {
+		// take
+		delete(i.chs, string(id))
+	} else {
+		// make
+		ch = make(chan msgOrError, 1)
+		i.chs[string(id)] = ch
+	}
+	return ch
+
+}
+
 func (i *IdReply) make(id []byte) <-chan msgOrError {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -54,7 +70,7 @@ func (i *IdReply) remove(id []byte) {
 }
 
 func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
-	ch := i.take(id)
+	ch := i.makeOrTake(id)
 	if ch == nil {
 		return
 	}
@@ -73,7 +89,7 @@ func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
 
 func (i *IdReply) Ask(ctx context.Context, id []byte) (json.RawMessage, error) {
 	select {
-	case resp := <-i.make(id):
+	case resp := <-i.makeOrTake(id):
 		return resp.msg, resp.err
 	case <-ctx.Done():
 		i.remove(id)
