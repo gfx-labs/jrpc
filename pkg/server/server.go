@@ -174,6 +174,7 @@ func (s *Server) serveBatch(ctx context.Context,
 		}()
 	}
 	if r.batch && totalRequests > 0 {
+
 		err = doneMu.Acquire(ctx, int64(totalRequests))
 		if err != nil {
 			return err

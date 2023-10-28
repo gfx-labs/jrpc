@@ -1,14 +1,21 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/util/go/bufpool"
 	"github.com/goccy/go-json"
 	"golang.org/x/sync/semaphore"
 )
+
+// 16mb... should be more than enough for any batch.
+// you shouldn't be batching more than this
+// TODO: make this configurable
+const maxBatchSizeBytes = 1024 * 1024 * 1024 * 16
 
 var _ codec.ResponseWriter = (*callRespWriter)(nil)
 
@@ -54,10 +61,14 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 		}
 		if v != nil {
 			// json marshaling errors are reported to the handler
-			c.payload, err = json.Marshal(v)
+			buf := bufpool.GlobalPool.GetStd()
+			w := newWriter(buf, maxBatchSizeBytes, false)
+			err = json.NewEncoder(w).Encode(v)
 			if err != nil {
 				return err
 			}
+			c.payload = json.RawMessage(bytes.TrimSuffix(buf.Bytes(), []byte{'\n'}))
+			return nil
 		}
 		return nil
 	}
