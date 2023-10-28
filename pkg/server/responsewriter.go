@@ -13,7 +13,7 @@ import (
 )
 
 // 16mb... should be more than enough for any batch.
-// you shouldn't be batching more than this
+// you shouldn't be batching more than this. really, you shouldn't be using batching at all.
 // TODO: make this configurable
 const maxBatchSizeBytes = 1024 * 1024 * 1024 * 16
 
