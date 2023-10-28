@@ -68,6 +68,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 			}()
 		}
 	}()
+	wg.Wait()
 	allErrs = append(allErrs, err)
 	if len(allErrs) > 0 {
 		return errors.Join(allErrs...)
