@@ -49,7 +49,7 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 	// ultimately they need to be buffered. there's some optimistic multiplexing you can
 	// do, but that felt really complicated and not worth the time.
 	if c.noStream {
-		if e != nil {
+		if c.err == nil {
 			c.err = e
 		}
 		if v != nil {
@@ -66,12 +66,22 @@ func (c *callRespWriter) Send(v any, e error) (err error) {
 		return err
 	}
 	defer c.cr.mu.Release(1)
-	err = c.cr.send(c.ctx, &callEnv{
-		v:           &v,
+	if c.err != nil {
+		e = c.err
+	}
+	ce := &callEnv{
 		err:         e,
 		id:          c.msg.ID,
 		extrafields: c.msg.ExtraFields,
-	})
+	}
+	if v != nil {
+		ce.v = &v
+	}
+
+	err = c.cr.send(c.ctx, ce)
+	if err != nil {
+		return err
+	}
 	err = c.cr.remote.Flush()
 	if err != nil {
 		return err

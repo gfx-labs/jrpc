@@ -86,15 +86,23 @@ func (s *Server) serveBatch(ctx context.Context,
 	// check for empty batch
 	if r.batch && len(incoming) == 0 {
 		// if it is empty batch, send the empty batch error and immediately return
-		err := r.send(ctx, &callEnv{
-			pkt: &codec.Message{
-				ID:    codec.NewNullIDPtr(),
-				Error: codec.NewInvalidRequestError("empty batch"),
-			},
+		err := r.mu.Acquire(ctx, 1)
+		if err != nil {
+			return err
+		}
+		defer r.mu.Release(1)
+		err = r.send(ctx, &callEnv{
+			id:  codec.NewNullIDPtr(),
+			err: codec.NewInvalidRequestError("empty batch"),
 		})
 		if err != nil {
 			return err
 		}
+		err = r.remote.Flush()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	rs := []*callRespWriter{}
@@ -111,9 +119,15 @@ func (s *Server) serveBatch(ctx context.Context,
 		// a nil incoming message means an empty response
 		if v == nil {
 			v = &codec.Message{ID: codec.NewNullIDPtr()}
+			rw.err = codec.NewInvalidRequestError("invalid request")
 		}
 		rw.msg = v
+		rw.msg.ExtraFields = codec.ExtraFields{}
+		rw.msg.Error = nil
 		if len(v.Method) == 0 {
+			if v.ID == nil {
+				v.ID = codec.NewNullIDPtr()
+			}
 			rw.err = codec.NewInvalidRequestError("invalid request")
 		}
 		if v.ID != nil {
@@ -154,7 +168,7 @@ func (s *Server) serveBatch(ctx context.Context,
 			s.services.ServeRPC(v, req)
 		}()
 	}
-	if r.batch {
+	if r.batch && totalRequests > 0 {
 		err = doneMu.Acquire(ctx, int64(totalRequests))
 		if err != nil {
 			return err
@@ -221,7 +235,6 @@ type callResponder struct {
 type callEnv struct {
 	v           *any
 	err         error
-	pkt         *codec.Message
 	id          *codec.ID
 	extrafields codec.ExtraFields
 }

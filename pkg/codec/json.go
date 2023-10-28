@@ -84,6 +84,9 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 			}
 			buf := bytes.NewBuffer(make(json.RawMessage, len(val)))
 			buf.Write(val)
+			if m.ExtraFields == nil {
+				m.ExtraFields = ExtraFields{}
+			}
 			m.ExtraFields[key] = buf.Bytes()
 		case "jsonrpc":
 			value, err := d.Str()
