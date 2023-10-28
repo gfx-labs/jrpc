@@ -11,11 +11,11 @@ require (
 	gfx.cafe/util/go/bufpool v0.0.0-20230721185457-c559e86c829c
 	gfx.cafe/util/go/frand v0.0.0-20230721185457-c559e86c829c
 	gfx.cafe/util/go/generic v0.0.0-20230721185457-c559e86c829c
-	github.com/alecthomas/kong v0.8.0
 	github.com/go-faster/jx v1.1.0
 	github.com/goccy/go-json v0.10.2
 	github.com/rs/xid v1.5.0
 	github.com/stretchr/testify v1.8.4
+	golang.org/x/sync v0.4.0
 	sigs.k8s.io/yaml v1.3.0
 )
 

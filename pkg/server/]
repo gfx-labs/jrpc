@@ -36,7 +36,7 @@ func NewServer(r codec.Handler) *Server {
 func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) error {
 	defer remote.Close()
 
-	sema := semaphore.NewWeighted(1)
+	batchMu := semaphore.NewWeighted(1)
 	// add a cancel to the context so we can cancel all the child tasks on return
 	ctx, cn := context.WithCancel(ContextWithPeerInfo(ctx, remote.PeerInfo()))
 	defer cn()
@@ -54,14 +54,14 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
+
 				responder := &callResponder{
-					remote: remote,
-					batch:  batch,
-					mu:     sema,
+					remote:  remote,
+					batchMu: batchMu,
+					batch:   batch,
 				}
 				err = s.serveBatch(ctx, incoming, responder)
 				if err != nil {
-					//				remote.Flush()
 					mu.Lock()
 					defer mu.Unlock()
 					allErrs = append(allErrs, err)
@@ -104,10 +104,7 @@ func (s *Server) serveBatch(ctx context.Context,
 	// populate the envelope we are about to send. this is synchronous pre-prpcessing
 	for _, v := range incoming {
 		// create the response writer
-		rw := &callRespWriter{
-			ctx: ctx,
-			cr:  r,
-		}
+		rw := &callRespWriter{}
 		rs = append(rs, rw)
 		// a nil incoming message means an empty response
 		if v == nil {
@@ -120,10 +117,13 @@ func (s *Server) serveBatch(ctx context.Context,
 		}
 	}
 	var doneMu *semaphore.Weighted
-	doneMu = semaphore.NewWeighted(int64(totalRequests))
-	err := doneMu.Acquire(ctx, int64(totalRequests))
-	if err != nil {
-		return err
+		doneMu = semaphore.NewWeighted(int64(totalRequests))
+
+	if totalRequests == 0 {
+		err := r.remote.Flush()
+		if err != nil {
+			return err
+		}
 	}
 
 	// create a waitgroup for everything
@@ -132,13 +132,11 @@ func (s *Server) serveBatch(ctx context.Context,
 	// for each item in the envelope
 	peerInfo := r.remote.PeerInfo()
 	isBatchWithRequests := totalRequests > 1 && !r.batch
-	batchResults := []*callRespWriter{}
 	for _, vRef := range rs {
 		v := vRef
-		v.doneMu = doneMu
 		if isBatchWithRequests {
-			v.noStream = true
-			batchResults = append(batchResults, v)
+			v.noStream = isBatchWithRequests
+			v.doneMu = doneMu
 		}
 		// now process each request in its own goroutine
 		// TODO: stress test this.
@@ -158,35 +156,26 @@ func (s *Server) serveBatch(ctx context.Context,
 		}()
 	}
 	// we only need to do this if this is a batch call with requests
-	// first we need to wait for every single request to be completed
-	err = doneMu.Acquire(ctx, int64(totalRequests))
-	if err != nil {
-		return err
-	}
 	if isBatchWithRequests {
-		err = r.mu.Acquire(ctx, 1)
+		// first we need to wait for every single request to be completed
+		err := doneMu.Acquire(ctx, int64(totalRequests))
 		if err != nil {
 			return err
 		}
-		defer r.mu.Release(1)
-		// write them, one by one
+		// now write the prefix
 		_, err = r.remote.Write([]byte{'['})
 		if err != nil {
 			return err
 		}
-		for i, v := range batchResults {
-			err = r.send(ctx, &callEnv{
-				v:           v.payload,
-				err:         v.err,
-				id:          v.msg.ID,
-				extrafields: v.msg.ExtraFields,
-			})
-			if err != nil {
-				return err
-			}
+		// release them, one by one
+		for i := 0; i < totalRequests; i++ {
+			// release one
+			canCh <- struct{}{}
+			// wait for finish
+			<-doneCh
 			// write the comma or ]
 			char := ','
-			if i == len(batchResults)-1 {
+			if i == totalRequests-1 {
 				char = ']'
 			}
 			_, err = r.remote.Write([]byte{byte(char)})
@@ -194,18 +183,15 @@ func (s *Server) serveBatch(ctx context.Context,
 				return err
 			}
 		}
-		err = r.remote.Flush()
-		if err != nil {
-			return err
-		}
 	}
 	wg.Wait()
 	return nil
 }
 
 type callResponder struct {
-	remote codec.ReaderWriter
-	mu     *semaphore.Weighted
+	remote  codec.ReaderWriter
+	mu      *semaphore.Weighted
+	batchMu *semaphore.Weighted
 
 	batch        bool
 	batchStarted bool
@@ -220,9 +206,26 @@ type callEnv struct {
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
+	err = c.mu.Acquire(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer c.mu.Release(1)
+	// notification gets nothing
+	// if all msgs in batch are notification, we trigger an allSkip and write nothing
+	//if c.batch {
+	//	allSkip := true
+	//	for _, v := range env.responses {
+	//		if v.skip != true {
+	//			allSkip = false
+	//		}
+	//	}
+	//	if allSkip {
+	//		return c.remote.Send(func(e *jx.Encoder) error { return nil })
+	//	}
+	//}
+	// create the streaming encoder
 	enc := jx.GetEncoder()
-	defer jx.PutEncoder(enc)
-	enc.Grow(4096)
 	enc.ResetWriter(c.remote)
 	enc.Obj(func(e *jx.Encoder) {
 		e.Field("jsonrpc", func(e *jx.Encoder) {
@@ -269,11 +272,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	if err != nil {
 		return err
 	}
-	err = enc.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return enc.Close()
 }
 
 type notifyEnv struct {
@@ -282,7 +281,17 @@ type notifyEnv struct {
 	extra  codec.ExtraFields
 }
 
-func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) {
+func (c *callResponder) notify(ctx context.Context, env *notifyEnv) error {
+	err := c.mu.Acquire(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer c.mu.Release(1)
+	err = c.batchMu.Acquire(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer c.batchMu.Release(1)
 	msg := &codec.Message{}
 	//  allocate a temp buffer for this packet
 	buf := bufpool.GetStd()
@@ -297,8 +306,6 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) 
 	// add the method
 	msg.Method = env.method
 	enc := jx.GetEncoder()
-	defer jx.PutEncoder(enc)
-	enc.Grow(4096)
 	enc.ResetWriter(c.remote)
 	err = codec.MarshalMessage(msg, enc)
 	if err != nil {

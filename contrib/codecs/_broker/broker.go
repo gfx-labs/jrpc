@@ -3,8 +3,7 @@ package broker
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/go-faster/jx"
+	"io"
 )
 
 type ServerSpoke interface {
@@ -22,12 +21,12 @@ type Broker interface {
 }
 
 type Replier interface {
-	Send(fn func(*jx.Encoder) error) error
+	Send(fn func(io.Writer) error) error
 }
 
-type ReplierFunc func(fn func(*jx.Encoder) error) error
+type ReplierFunc func(fn func(io.Writer) error) error
 
-func (r ReplierFunc) Send(fn func(*jx.Encoder) error) error {
+func (r ReplierFunc) Send(fn func(io.Writer) error) error {
 	return r(fn)
 }
 

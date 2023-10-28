@@ -26,7 +26,9 @@ const (
 )
 
 var (
-	ErrIllegalExtraField = errors.New("invalid extra field")
+	ErrIllegalExtraField    = errors.New("invalid extra field")
+	ErrSendAlreadyCalled    = errors.New("send already called")
+	ErrCantSendNotification = errors.New("can't send to a notification")
 )
 
 // Error wraps RPC errors, which contain an error code in addition to the message.

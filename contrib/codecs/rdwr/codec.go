@@ -6,7 +6,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/go-faster/jx"
 	"github.com/goccy/go-json"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -17,10 +16,8 @@ type Codec struct {
 	ctx context.Context
 	cn  func()
 
-	rd     io.Reader
-	wrLock sync.Mutex
-	wr     *bufio.Writer
-	jx     *jx.Encoder
+	rd io.Reader
+	wr *bufio.Writer
 
 	dec     *json.Decoder
 	decBuf  json.RawMessage
@@ -36,7 +33,6 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 		wr:  bufio.NewWriter(wr),
 		dec: json.NewDecoder(rd),
 	}
-	c.jx = jx.NewStreamingEncoder(wr, 4096)
 	return c
 }
 
@@ -74,23 +70,16 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
-	c.wrLock.Lock()
-	defer c.wrLock.Unlock()
-	defer c.jx.ResetWriter(c.wr)
-	if err := fn(c.jx); err != nil {
-		return err
-	}
-	if err := c.jx.Close(); err != nil {
-		return err
-	}
+func (c *Codec) Write(p []byte) (n int, err error) {
+	n, err = c.wr.Write(p)
+	return n, err
+}
+
+func (c *Codec) Flush() error {
 	if _, err := c.wr.Write([]byte("\n")); err != nil {
 		return err
 	}
-	if err := c.wr.Flush(); err != nil {
-		return err
-	}
-	return nil
+	return c.wr.Flush()
 }
 
 // Closed returns a channel which is closed when the connection is closed.

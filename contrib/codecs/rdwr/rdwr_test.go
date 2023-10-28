@@ -9,6 +9,7 @@ import (
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/server"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +25,8 @@ func TestRDWRSetup(t *testing.T) {
 	clientCodec := rdwr.NewCodec(rd_s, wr_c)
 	client := rdwr.NewClient(rd_c, wr_s)
 	go func() {
-		srv.ServeCodec(ctx, clientCodec)
+		err := srv.ServeCodec(ctx, clientCodec)
+		assert.NoError(t, err)
 	}()
 
 	var res any

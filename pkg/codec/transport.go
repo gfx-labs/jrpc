@@ -2,9 +2,15 @@ package codec
 
 import (
 	"context"
-
-	"github.com/go-faster/jx"
+	"io"
+	"net"
 )
+
+type Listener interface {
+	Accept() (ReaderWriter, error)
+	Close() error
+	Addr() net.Addr
+}
 
 // ReaderWriter represents a single stream
 // this stream can be used to send/receive an arbitrary amount of requests and notifications
@@ -18,7 +24,7 @@ type ReaderWriter interface {
 type Reader interface {
 	// gets the peer info
 	PeerInfo() PeerInfo
-	// json.RawMessage can be an array of requests. if it is, then it is a batch request
+	// reads a batch of messages
 	ReadBatch(ctx context.Context) (msgs []*Message, batch bool, err error)
 	// closes the connection
 	Close() error
@@ -28,9 +34,8 @@ type Reader interface {
 // Implementations must be safe for concurrent use.
 type Writer interface {
 	// write json blob to stream
-	Send(fn func(e *jx.Encoder) error) error
+	io.Writer
+	Flush() error
 	// Closed returns a channel which is closed when the connection is closed.
 	Closed() <-chan struct{}
-	// RemoteAddr returns the peer address of the connection.
-	RemoteAddr() string
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"gfx.cafe/open/websocket"
-	"github.com/go-faster/jx"
 	"github.com/goccy/go-json"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
@@ -19,8 +18,8 @@ type Codec struct {
 	closed chan struct{}
 	conn   *websocket.Conn
 
-	jx     *jx.Encoder
-	wrLock sync.Mutex
+	currentFrame io.WriteCloser
+	wrLock       sync.Mutex
 
 	decBuf  json.RawMessage
 	decLock sync.Mutex
@@ -33,7 +32,6 @@ func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, r
 	c := &Codec{
 		closed: make(chan struct{}),
 		conn:   conn,
-		jx:     jx.NewStreamingEncoder(nil, 4096),
 	}
 	c.i.Transport = "ws"
 	// Fill in connection details.
@@ -96,22 +94,31 @@ func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
 	return ans.Messages, ans.Batch, nil
 }
 
-func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
+func (c *Codec) Write(p []byte) (n int, err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
+	if c.currentFrame == nil {
+		wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
+		if err != nil {
+			return 0, err
+		}
 
-	wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
-	if err != nil {
-		return err
+		c.currentFrame = wr
 	}
-	c.jx.ResetWriter(wr)
-	if err = fn(c.jx); err != nil {
-		return err
+	return c.currentFrame.Write(p)
+}
+
+func (c *Codec) Flush() error {
+	c.wrLock.Lock()
+	defer c.wrLock.Unlock()
+	if c.currentFrame == nil {
+		wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
+		if err != nil {
+			return err
+		}
+		return wr.Close()
 	}
-	if err = c.jx.Close(); err != nil {
-		return err
-	}
-	return wr.Close()
+	return c.currentFrame.Close()
 }
 
 func (c *Codec) PeerInfo() codec.PeerInfo {

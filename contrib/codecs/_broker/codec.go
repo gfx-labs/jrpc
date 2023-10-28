@@ -8,7 +8,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
-	"github.com/go-faster/jx"
+	"github.com/gogo/protobuf/io"
 )
 
 var _ codec.ReaderWriter = (*Codec)(nil)
@@ -68,16 +68,15 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
+func (c *Codec) Send(fn func(io.Writer) error) error {
+	return c.replier.Send(fn)
+}
+
+func (c *Codec) Flush() error {
 	return c.replier.Send(fn)
 }
 
 // Closed returns a channel which is closed when the connection is closed.
 func (c *Codec) Closed() <-chan struct{} {
 	return c.closeCh
-}
-
-// RemoteAddr returns the peer address of the connection.
-func (c *Codec) RemoteAddr() string {
-	return ""
 }

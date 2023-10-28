@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -13,7 +14,6 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
-	"github.com/go-faster/jx"
 )
 
 var _ codec.ReaderWriter = (*Codec)(nil)
@@ -25,8 +25,7 @@ type Codec struct {
 
 	r     *http.Request
 	w     http.ResponseWriter
-	wr    io.Writer
-	jx    *jx.Encoder
+	wr    *bufio.Writer
 	msgs  chan *serverutil.Bundle
 	errCh chan httpError
 
@@ -45,15 +44,14 @@ func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
 }
 
 func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
-	c.wr = w
+	c.wr = bufio.NewWriter(w)
 	if w == nil {
-		c.wr = io.Discard
+		c.wr = bufio.NewWriter(io.Discard)
 	}
 	c.r = r
 	c.w = w
 	c.msgs = make(chan *serverutil.Bundle, 1)
 	c.errCh = make(chan httpError, 1)
-	c.jx = jx.NewStreamingEncoder(w, 4096)
 
 	ctx := c.r.Context()
 	c.ctx, c.cn = context.WithCancel(ctx)
@@ -221,13 +219,16 @@ func (c *Codec) Close() error {
 	return nil
 }
 
-func (c *Codec) Send(fn func(e *jx.Encoder) error) error {
-	defer c.cn()
-	defer c.jx.ResetWriter(c.wr)
-	if err := fn(c.jx); err != nil {
+func (c *Codec) Send(fn func(e io.Writer) error) error {
+	if err := fn(c.w); err != nil {
 		return err
 	}
-	return c.jx.Close()
+	return nil
+}
+
+func (c *Codec) Flush() error {
+	defer c.cn()
+	return c.wr.Flush()
 }
 
 // Closed returns a channel which is closed when the connection is closed.

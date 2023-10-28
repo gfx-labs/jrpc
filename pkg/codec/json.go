@@ -15,11 +15,7 @@ func NewNull() json.RawMessage {
 	return json.RawMessage("null")
 }
 
-// RequestField is an idea borrowed from sourcegraphs implementation.
-type RequestField struct {
-	Name  string
-	Value json.RawMessage
-}
+type ExtraFields map[string]json.RawMessage
 
 // A value of this type can a JSON-RPC request, notification, successful response or
 // error response. Which one it is depends on the fields.
@@ -30,7 +26,7 @@ type Message struct {
 	Result json.RawMessage `json:"result,omitempty"`
 	Error  error           `json:"error,omitempty"`
 
-	ExtraFields []RequestField `json:"-"`
+	ExtraFields ExtraFields `json:"-"`
 }
 
 func MarshalMessage(m *Message, enc *jx.Encoder) error {
@@ -49,9 +45,9 @@ func MarshalMessage(m *Message, enc *jx.Encoder) error {
 				e.Str(m.Method)
 			})
 		}
-		for _, v := range m.ExtraFields {
-			e.Field(v.Name, func(e *jx.Encoder) {
-				e.Raw(v.Value)
+		for k, v := range m.ExtraFields {
+			e.Field(k, func(e *jx.Encoder) {
+				e.Raw(v)
 			})
 		}
 		if m.Error != nil {
@@ -88,10 +84,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 			}
 			buf := bytes.NewBuffer(make(json.RawMessage, len(val)))
 			buf.Write(val)
-			m.ExtraFields = append(m.ExtraFields, RequestField{
-				Name:  key,
-				Value: buf.Bytes(),
-			})
+			m.ExtraFields[key] = buf.Bytes()
 		case "jsonrpc":
 			value, err := d.Str()
 			if err != nil {
@@ -217,20 +210,29 @@ func IsBatchMessage(raw json.RawMessage) bool {
 	return false
 }
 
-func (m *Message) SetExtraField(name string, v any) error {
+func (m ExtraFields) SetExtraField(name string, v any) (err error) {
 	switch name {
 	case "id", "jsonrpc", "method", "params", "result", "error":
 		return fmt.Errorf("%w: %q", ErrIllegalExtraField, name)
+	}
+	if v == nil {
+		delete(m, name)
 	}
 	val, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	m.ExtraFields = append(m.ExtraFields, RequestField{
-		Name:  name,
-		Value: val,
-	})
+	m[name] = val
 	return nil
+}
+func (m ExtraFields) Clear() {
+	for k := range m {
+		delete(m, k)
+	}
+}
+
+func (m *Message) SetExtraField(name string, v any) error {
+	return m.ExtraFields.SetExtraField(name, v)
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
