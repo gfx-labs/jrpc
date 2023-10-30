@@ -129,7 +129,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return err
 	}
 	if result != nil {
-		err = json.Unmarshal(ans, result)
+		err = json.NewDecoder(ans).Decode(result)
 		if err != nil {
 			return err
 		}
@@ -176,7 +176,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 				return
 			}
 			if b[idx].Result != nil {
-				err = json.Unmarshal(ans, b[idx].Result)
+				err = json.NewDecoder(ans).Decode(b[idx].Result)
 				if err != nil {
 					b[idx].Error = err
 					return

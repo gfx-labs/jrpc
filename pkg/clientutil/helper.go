@@ -44,7 +44,7 @@ func FillBatch(ids map[int]int, msgs []*codec.Message, b []*codec.BatchElem) {
 		if b[idx].Result == nil {
 			continue
 		}
-		err := json.Unmarshal(ans.Result, b[idx].Result)
+		err := json.NewDecoder(ans.Result).Decode(b[idx].Result)
 		if err != nil {
 			b[idx].Error = err
 		}

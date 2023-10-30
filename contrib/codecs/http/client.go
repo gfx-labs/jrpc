@@ -98,8 +98,8 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	if msg.Error != nil {
 		return msg.Error
 	}
-	if result != nil && len(msg.Result) > 0 {
-		err = json.Unmarshal(msg.Result, result)
+	if result != nil && msg.Result != nil {
+		err = json.NewDecoder(msg.Result).Decode(result)
 		if err != nil {
 			return err
 		}
@@ -148,11 +148,6 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	defer resp.Body.Close()
 
 	msgs := []*codec.Message{}
-	for i := 0; i < len(ids); i++ {
-		msg := clientutil.GetMessage()
-		defer clientutil.PutMessage(msg)
-		msgs = append(msgs, msg)
-	}
 	err = json.NewDecoder(resp.Body).Decode(&msgs)
 	if err != nil {
 		return err

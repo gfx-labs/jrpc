@@ -1,7 +1,6 @@
 package clientutil
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,16 +17,16 @@ func TestFillBatch(t *testing.T) {
 	msgs := []*codec.Message{
 		{
 			ID:     ptr(codec.ID(`"5"`)),
-			Result: json.RawMessage(`["test", "abc", "123"]`),
+			Result: codec.NewStringReader(`["test", "abc", "123"]`),
 		},
 		{
 			ID:     ptr(codec.ID(`"6"`)),
-			Result: json.RawMessage(`12345`),
+			Result: codec.NewStringReader(`12345`),
 		},
 		{},
 		{
 			ID:     ptr(codec.ID(`"7"`)),
-			Result: json.RawMessage(`"abcdefgh"`),
+			Result: codec.NewStringReader(`"abcdefgh"`),
 		},
 	}
 	ids := map[int]int{

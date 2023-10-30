@@ -1,13 +1,13 @@
 package clientutil
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"io"
 	"sync"
 	"testing"
 
 	"gfx.cafe/open/jrpc/pkg/codec"
+	"github.com/stretchr/testify/require"
 )
 
 const count = 1000
@@ -15,7 +15,7 @@ const count = 1000
 func TestIdReply(t *testing.T) {
 	reply := NewIdReply()
 
-	testMessage := json.RawMessage("{\"test\": 123}")
+	testMessage := "{\"test\": 123}"
 
 	var wg sync.WaitGroup
 
@@ -31,16 +31,14 @@ func TestIdReply(t *testing.T) {
 				return
 			}
 
-			if !bytes.Equal(v, testMessage) {
-				t.Error("expected contents to be equal")
-				return
-			}
+			x, _ := io.ReadAll(v)
+			require.EqualValues(t, testMessage, string(x))
 		}()
 	}
 
 	for i := 0; i < count; i++ {
 		go func(id int) {
-			reply.Resolve(codec.NewNumberID(int64(id+1)), testMessage, nil)
+			reply.Resolve(codec.NewNumberID(int64(id+1)), codec.NewStringReader(testMessage), nil)
 		}(i)
 	}
 

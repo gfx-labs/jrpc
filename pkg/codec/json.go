@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 
 	"github.com/go-faster/jx"
 )
@@ -23,10 +25,15 @@ type Message struct {
 	ID     *ID             `json:"id,omitempty"`
 	Method string          `json:"method,omitempty"`
 	Params json.RawMessage `json:"params,omitempty"`
-	Result json.RawMessage `json:"result,omitempty"`
 	Error  error           `json:"error,omitempty"`
 
+	Result io.ReadCloser `json:"result,omitempty"`
+
 	ExtraFields ExtraFields `json:"-"`
+}
+
+func NewStringReader(x string) io.ReadCloser {
+	return io.NopCloser(strings.NewReader(x))
 }
 
 func MarshalMessage(m *Message, enc *jx.Encoder) error {
@@ -61,9 +68,9 @@ func MarshalMessage(m *Message, enc *jx.Encoder) error {
 				e.Raw(m.Params)
 			})
 		}
-		if len(m.Result) != 0 {
+		if m.Result != nil {
 			e.Field("result", func(e *jx.Encoder) {
-				e.Raw(m.Result)
+				io.Copy(e, m.Result)
 			})
 		}
 	})
@@ -110,29 +117,18 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 		case "method":
 			m.Method, err = d.Str()
 		case "params":
-			val, err := d.Raw()
+			val, err := d.RawAppend(nil)
 			if err != nil {
 				return err
 			}
-			buf := bytes.NewBuffer(m.Params)
-			buf.Reset()
-			_, err = buf.Write(val)
-			if err != nil {
-				return err
-			}
-			m.Params = buf.Bytes()
+			m.Params = json.RawMessage(val)
 		case "result":
-			val, err := d.Raw()
+			// allocate full result :)
+			val, err := d.RawAppend(nil)
 			if err != nil {
 				return err
 			}
-			buf := bytes.NewBuffer(m.Result)
-			buf.Reset()
-			_, err = buf.Write(val)
-			if err != nil {
-				return err
-			}
-			m.Result = buf.Bytes()
+			m.Result = io.NopCloser(bytes.NewBuffer(val))
 		case "error":
 			val, err := d.Raw()
 			if err != nil {
@@ -253,7 +249,6 @@ func ParseMessage(in json.RawMessage) ([]*Message, bool) {
 // Message.
 func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 	msgs := []*Message{{}}
-
 	switch dec.Next() {
 	case jx.Object:
 		_ = UnmarshalMessage(msgs[0], dec)

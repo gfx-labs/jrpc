@@ -2,7 +2,7 @@ package clientutil
 
 import (
 	"context"
-	"encoding/json"
+	"io"
 	"sync"
 	"sync/atomic"
 
@@ -17,7 +17,7 @@ type IdReply struct {
 }
 
 type msgOrError struct {
-	msg json.RawMessage
+	msg io.ReadCloser
 	err error
 }
 
@@ -69,7 +69,7 @@ func (i *IdReply) remove(id []byte) {
 	delete(i.chs, string(id))
 }
 
-func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
+func (i *IdReply) Resolve(id []byte, msg io.ReadCloser, err error) {
 	ch := i.makeOrTake(id)
 	if ch == nil {
 		return
@@ -87,7 +87,7 @@ func (i *IdReply) Resolve(id []byte, msg json.RawMessage, err error) {
 
 }
 
-func (i *IdReply) Ask(ctx context.Context, id []byte) (json.RawMessage, error) {
+func (i *IdReply) Ask(ctx context.Context, id []byte) (io.ReadCloser, error) {
 	select {
 	case resp := <-i.makeOrTake(id):
 		return resp.msg, resp.err
