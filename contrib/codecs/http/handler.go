@@ -34,5 +34,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		//	slog.Error("codec err", "err", err)
 	}
+	http.Error(w, "Internal Error", http.StatusInternalServerError)
 	<-c.Closed()
 }
