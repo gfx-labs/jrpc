@@ -128,10 +128,10 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		for i := range batch {
 			a := batch[i]
 			b := wantResult[i]
-			assert.EqualValuesf(t, a.Method, b.Method, "item %d", i)
-			assert.EqualValuesf(t, a.Result, b.Result, "item %d", i)
-			assert.EqualValuesf(t, a.Params, b.Params, "item %d", i)
-			assert.EqualValuesf(t, a.Error, b.Error, "item %d", i)
+			assert.EqualValuesf(t, b.Method, a.Method, "item %d", i)
+			assert.EqualValuesf(t, b.Result, a.Result, "item %d", i)
+			assert.EqualValuesf(t, b.Params, a.Params, "item %d", i)
+			assert.EqualValuesf(t, b.Error, a.Error, "item %d", i)
 		}
 	})
 

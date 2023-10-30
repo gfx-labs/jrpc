@@ -59,7 +59,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 					batch:  batch,
 					mu:     sema,
 				}
-				err = s.serveBatch(ctx, incoming, responder)
+				err = s.serve(ctx, incoming, responder)
 				if err != nil {
 					mu.Lock()
 					defer mu.Unlock()
@@ -78,6 +78,72 @@ func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) erro
 
 func (s *Server) Shutdown(ctx context.Context) {
 	s.cn()
+}
+
+func (s *Server) serve(ctx context.Context,
+	incoming []*codec.Message,
+	r *callResponder,
+) error {
+	if r.batch {
+		return s.serveBatch(ctx, incoming, r)
+	} else {
+		return s.serveSingle(ctx, incoming[0], r)
+	}
+}
+
+func (s *Server) serveSingle(ctx context.Context,
+	incoming *codec.Message,
+	r *callResponder,
+) error {
+	rw := &streamingRespWriter{
+		ctx: ctx,
+		cr:  r,
+	}
+	rw.msg, rw.err = produceOutputMessage(incoming)
+	req := codec.NewRequestFromMessage(
+		ctx,
+		rw.msg,
+	)
+	req.Peer = r.remote.PeerInfo()
+	if rw.msg.ID == nil {
+		// all notification, so immediately flush
+		err := r.mu.Acquire(ctx, 1)
+		if err != nil {
+			return err
+		}
+		defer r.mu.Release(1)
+		err = r.remote.Flush()
+		if err != nil {
+			return err
+		}
+	}
+	s.services.ServeRPC(rw, req)
+	if rw.sendCalled == false && rw.msg.ID != nil {
+		rw.Send(codec.Null, nil)
+	}
+	return nil
+}
+
+func produceOutputMessage(inputMessage *codec.Message) (out *codec.Message, err error) {
+	// a nil incoming message means return an invalid request.
+	if inputMessage == nil {
+		inputMessage = &codec.Message{ID: codec.NewNullIDPtr()}
+		err = codec.NewInvalidRequestError("invalid request")
+	}
+	out = inputMessage
+	out.ExtraFields = codec.ExtraFields{}
+	out.Error = nil
+	// zero length method is always invalid request
+	if len(out.Method) == 0 {
+		// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
+		// this makes sure we add 1 to totalRequests
+		if out.ID == nil {
+			out.ID = codec.NewNullIDPtr()
+		}
+		err = codec.NewInvalidRequestError("invalid request")
+	}
+
+	return
 }
 
 func (s *Server) serveBatch(ctx context.Context,
@@ -106,80 +172,60 @@ func (s *Server) serveBatch(ctx context.Context,
 		return nil
 	}
 
-	rs := []*callRespWriter{}
+	rs := []*batchingRespWriter{}
 
 	totalRequests := 0
 	// populate the envelope we are about to send. this is synchronous pre-prpcessing
 	for _, v := range incoming {
 		// create the response writer
-		rw := &callRespWriter{
+		rw := &batchingRespWriter{
 			ctx: ctx,
 			cr:  r,
 		}
 		rs = append(rs, rw)
-		// a nil incoming message means return an invalid request.
-		if v == nil {
-			v = &codec.Message{ID: codec.NewNullIDPtr()}
-			rw.err = codec.NewInvalidRequestError("invalid request")
-		}
-		rw.msg = v
-		rw.msg.ExtraFields = codec.ExtraFields{}
-		rw.msg.Error = nil
-		// zero length method is always invalid request
-		if len(v.Method) == 0 {
-			// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
-			// this makes sure we add 1 to totalRequests
-			if v.ID == nil {
-				v.ID = codec.NewNullIDPtr()
-			}
-			rw.err = codec.NewInvalidRequestError("invalid request")
-		}
+		rw.msg, rw.err = produceOutputMessage(v)
 		// requests and malformed requests both count as requests
-		if v.ID != nil {
+		if rw.msg.ID != nil {
 			totalRequests += 1
 		}
 	}
-	var doneMu *semaphore.Weighted
-	doneMu = semaphore.NewWeighted(int64(totalRequests))
-	err := doneMu.Acquire(ctx, int64(totalRequests))
-	if err != nil {
-		return err
-	}
 
-	// create a waitgroup for everything
-	wg := sync.WaitGroup{}
-	wg.Add(len(rs))
+	// create a waitgroup for when every handler returns
+	returnWg := sync.WaitGroup{}
+	returnWg.Add(len(rs))
 	// for each item in the envelope
 	peerInfo := r.remote.PeerInfo()
-	batchResults := []*callRespWriter{}
+	batchResults := []*batchingRespWriter{}
+
+	respWg := &sync.WaitGroup{}
+	respWg.Add(totalRequests)
+
 	for _, vRef := range rs {
 		v := vRef
-		if r.batch {
-			v.noStream = true
-			if v.msg.ID != nil {
-				v.doneMu = doneMu
-				batchResults = append(batchResults, v)
-			}
+		if v.msg.ID != nil {
+			v.wg = respWg
+			batchResults = append(batchResults, v)
 		}
 		// now process each request in its own goroutine
 		// TODO: stress test this.
 		go func() {
-			defer wg.Done()
+			defer returnWg.Done()
 			req := codec.NewRequestFromMessage(
 				ctx,
 				v.msg,
 			)
 			req.Peer = peerInfo
 			s.services.ServeRPC(v, req)
+			if v.sendCalled == false && v.err == nil {
+				v.Send(codec.Null, nil)
+			}
 		}()
 	}
-	if r.batch && totalRequests > 0 {
 
-		err = doneMu.Acquire(ctx, int64(totalRequests))
-		if err != nil {
-			return err
-		}
-		err = r.mu.Acquire(ctx, 1)
+	if totalRequests > 0 {
+		// TODO: channel?
+		respWg.Wait()
+		err := r.mu.Acquire(ctx, 1)
 		if err != nil {
 			return err
 		}
@@ -190,10 +236,8 @@ func (s *Server) serveBatch(ctx context.Context,
 			return err
 		}
 		for i, v := range batchResults {
-			var a any
-			a = v.payload
 			err = r.send(ctx, &callEnv{
-				v:           &a,
+				v:           v.payload,
 				err:         v.err,
 				id:          v.msg.ID,
 				extrafields: v.msg.ExtraFields,
@@ -216,17 +260,18 @@ func (s *Server) serveBatch(ctx context.Context,
 			return err
 		}
 	} else if totalRequests == 0 {
-		err = r.mu.Acquire(ctx, 1)
+		// all notification, so immediately flush
+		err := r.mu.Acquire(ctx, 1)
 		if err != nil {
 			return err
 		}
 		defer r.mu.Release(1)
-		err := r.remote.Flush()
+		err = r.remote.Flush()
 		if err != nil {
 			return err
 		}
 	}
-	wg.Wait()
+	returnWg.Wait()
 	return nil
 }
 
@@ -239,7 +284,7 @@ type callResponder struct {
 }
 
 type callEnv struct {
-	v           *any
+	v           any
 	err         error
 	id          *codec.ID
 	extrafields codec.ExtraFields
@@ -274,9 +319,13 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			// if there is no error, we try to marshal the result
 			e.Field("result", func(e *jx.Encoder) {
 				if env.v != nil {
-					switch cast := (*env.v).(type) {
+					switch cast := (env.v).(type) {
 					case json.RawMessage:
-						e.Raw(cast)
+						if len(cast) == 0 {
+							e.Null()
+						} else {
+							e.Raw(cast)
+						}
 					default:
 						err = json.NewEncoder(e).EncodeWithOption(cast, func(eo *json.EncodeOption) {
 							eo.DisableNewline = true

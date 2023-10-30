@@ -124,12 +124,12 @@ type ErrorParse struct{ message string }
 func (e *ErrorParse) ErrorCode() int { return -32700 }
 func (e *ErrorParse) Error() string  { return e.message }
 
+// received message isn't a valid request
+type ErrorInvalidRequest struct{ message string }
+
 func NewInvalidRequestError(message string) *ErrorInvalidRequest {
 	return &ErrorInvalidRequest{message: message}
 }
-
-// received message isn't a valid request
-type ErrorInvalidRequest struct{ message string }
 
 func (e *ErrorInvalidRequest) ErrorCode() int { return -32600 }
 func (e *ErrorInvalidRequest) Error() string  { return e.message }
@@ -140,15 +140,23 @@ type ErrorInvalidMessage struct{ message string }
 func (e *ErrorInvalidMessage) ErrorCode() int { return -32700 }
 func (e *ErrorInvalidMessage) Error() string  { return e.message }
 
-func NewInvalidParamsError(message string) *ErrorInvalidParams {
-	return &ErrorInvalidParams{message: message}
-}
-
 // unable to decode supplied params, or an invalid number of parameters
 type ErrorInvalidParams struct{ message string }
 
+func NewInvalidParamsError(message string) *ErrorInvalidParams {
+	return &ErrorInvalidParams{message: message}
+}
 func (e *ErrorInvalidParams) ErrorCode() int { return -32602 }
 func (e *ErrorInvalidParams) Error() string  { return e.message }
+
+// unable to decode supplied params, or an invalid number of parameters
+type ErrorInternalError struct{ message string }
+
+func NewInternalError(message string) *ErrorInternalError {
+	return &ErrorInternalError{message: message}
+}
+func (e *ErrorInternalError) ErrorCode() int { return -32603 }
+func (e *ErrorInternalError) Error() string  { return e.message }
 
 // HTTPError is returned by client operations when the HTTP status code of the
 // response is not a 2xx status.

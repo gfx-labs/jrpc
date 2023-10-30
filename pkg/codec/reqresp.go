@@ -2,7 +2,6 @@ package codec
 
 import (
 	"context"
-	"net/http"
 
 	json "github.com/goccy/go-json"
 )
@@ -10,11 +9,8 @@ import (
 // http.ResponseWriter interface, but for jrpc
 type ResponseWriter interface {
 	Send(v any, err error) error
-	Header() http.Header
-
-	SetExtraField(k string, v any) error
-
 	Notify(method string, v any) error
+	ExtraFields() ExtraFields
 }
 
 // BatchElem is an element in a batch request.
