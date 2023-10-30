@@ -23,7 +23,9 @@ type Client struct {
 
 	m       codec.Middlewares
 	handler codec.Handler
-	mu      sync.RWMutex
+	writeCh chan struct{}
+
+	mu sync.RWMutex
 
 	handlerPeer codec.PeerInfo
 }
@@ -38,6 +40,7 @@ func NewClient(rd io.Reader, wr io.Writer) *Client {
 			RemoteAddr: "",
 		},
 		handler: codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {}),
+		writeCh: make(chan struct{}, 1),
 	}
 	cl.ctx, cl.cn = context.WithCancel(context.Background())
 	go cl.listen()
@@ -209,17 +212,12 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) writeContext(ctx context.Context, xs []byte) error {
-	errch := make(chan error)
-	go func() {
-		_, err := c.wr.Write(xs)
-		select {
-		case errch <- err:
-		case <-ctx.Done():
-		case <-c.ctx.Done():
-		}
-	}()
 	select {
-	case err := <-errch:
+	case c.writeCh <- struct{}{}:
+		defer func() {
+			<-c.writeCh
+		}()
+		_, err := c.wr.Write(xs)
 		return err
 	case <-c.ctx.Done():
 		return c.ctx.Err()

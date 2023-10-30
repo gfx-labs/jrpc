@@ -5,10 +5,12 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/server"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 func HttpHandler(s *server.Server) http.Handler {
-	return &Server{Server: s}
+	return h2c.NewHandler(&Server{Server: s}, &http2.Server{})
 }
 
 type Server struct {
