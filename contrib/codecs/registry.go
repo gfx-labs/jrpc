@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -18,7 +18,7 @@ func RegisterHandler(fn handlerFunc, names ...string) {
 	}
 }
 
-type dialerFunc = func(ctx context.Context, url string) (codec.Conn, error)
+type dialerFunc = func(ctx context.Context, url string) (jsonrpc.Conn, error)
 
 var dialers map[string]dialerFunc = map[string]dialerFunc{}
 

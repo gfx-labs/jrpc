@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 type nodeTyp uint8
@@ -50,7 +50,7 @@ type node struct {
 
 type endpoint struct {
 	// endpoint handler
-	handler codec.Handler
+	handler jsonrpc.Handler
 
 	// pattern is the routing pattern for handler nodes
 	pattern string
@@ -59,7 +59,7 @@ type endpoint struct {
 	paramKeys []string
 }
 
-func (n *node) InsertRoute(pattern string, handler codec.Handler) *node {
+func (n *node) InsertRoute(pattern string, handler jsonrpc.Handler) *node {
 	var parent *node
 	search := pattern
 	for {
@@ -263,7 +263,7 @@ func (n *node) getEdge(ntyp nodeTyp, label, tail byte, prefix string) *node {
 	return nil
 }
 
-func (n *node) setEndpoint(handler codec.Handler, pattern string) {
+func (n *node) setEndpoint(handler jsonrpc.Handler, pattern string) {
 	paramKeys := patParamKeys(pattern)
 	n.endpoint = &endpoint{
 		handler:   handler,
@@ -272,7 +272,7 @@ func (n *node) setEndpoint(handler codec.Handler, pattern string) {
 	}
 }
 
-func (n *node) FindRoute(rctx *Context, path string) (*node, *endpoint, codec.Handler) {
+func (n *node) FindRoute(rctx *Context, path string) (*node, *endpoint, jsonrpc.Handler) {
 	// Reset the context routing pattern and params
 	rctx.routePattern = ""
 	rctx.routeParams.Keys = rctx.routeParams.Keys[:0]
@@ -689,21 +689,21 @@ func (ns nodes) findEdge(label byte) *node {
 // Route describes the details of a routing handler.
 type Route struct {
 	SubRoutes Routes
-	Handler   codec.Handler
+	Handler   jsonrpc.Handler
 	Pattern   string
 }
 
 // WalkFunc is the type of the function called for each method and route visited by Walk.
-type WalkFunc func(route string, handler codec.Handler, middlewares ...func(codec.Handler) codec.Handler) error
+type WalkFunc func(route string, handler jsonrpc.Handler, middlewares ...func(jsonrpc.Handler) jsonrpc.Handler) error
 
 // Walk walks any router tree that implements Routes interface.
 func Walk(r Routes, walkFn WalkFunc) error {
 	return walk(r, walkFn, "")
 }
 
-func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(codec.Handler) codec.Handler) error {
+func walk(r Routes, walkFn WalkFunc, parentRoute string, parentMw ...func(jsonrpc.Handler) jsonrpc.Handler) error {
 	for _, route := range r.Routes() {
-		mws := make([]func(codec.Handler) codec.Handler, len(parentMw))
+		mws := make([]func(jsonrpc.Handler) jsonrpc.Handler, len(parentMw))
 		copy(mws, parentMw)
 		mws = append(mws, r.Middlewares()...)
 

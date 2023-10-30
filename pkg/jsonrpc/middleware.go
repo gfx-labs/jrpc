@@ -1,4 +1,4 @@
-package codec
+package jsonrpc
 
 type Middleware = func(Handler) Handler
 

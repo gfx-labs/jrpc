@@ -12,7 +12,7 @@ import (
 
 	_ "net/http/pprof"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
@@ -26,7 +26,7 @@ type Codec struct {
 	decBuf  json.RawMessage
 	decLock sync.Mutex
 
-	i codec.PeerInfo
+	i jsonrpc.PeerInfo
 }
 
 func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req http.Header) *Codec {
@@ -88,7 +88,7 @@ func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, er
 	return serverutil.ParseBundle(c.decBuf), nil
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	ans, err := c.decodeSingleMessage(ctx)
 	if err != nil {
 		return nil, false, err
@@ -127,7 +127,7 @@ func (c *Codec) Flush() error {
 	return nil
 }
 
-func (c *Codec) PeerInfo() codec.PeerInfo {
+func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 	return c.i
 }
 
@@ -149,4 +149,4 @@ func (c *Codec) RemoteAddr() string {
 	return c.i.RemoteAddr
 }
 
-var _ codec.ReaderWriter = (*Codec)(nil)
+var _ jsonrpc.ReaderWriter = (*Codec)(nil)

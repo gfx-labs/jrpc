@@ -13,11 +13,11 @@ import (
 	"strings"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
-var _ codec.ReaderWriter = (*Codec)(nil)
+var _ jsonrpc.ReaderWriter = (*Codec)(nil)
 
 // Reusable codec. use Reset()
 type Codec struct {
@@ -32,7 +32,7 @@ type Codec struct {
 
 	mu sync.Mutex
 
-	i codec.PeerInfo
+	i jsonrpc.PeerInfo
 }
 
 type httpError struct {
@@ -65,7 +65,7 @@ func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 func (c *Codec) peerInfo() {
 	c.i.Transport = "http"
 	c.i.RemoteAddr = c.r.RemoteAddr
-	c.i.HTTP = codec.HttpInfo{
+	c.i.HTTP = jsonrpc.HttpInfo{
 		Version:   c.r.Proto,
 		UserAgent: c.r.UserAgent(),
 		Host:      c.r.Host,
@@ -84,7 +84,7 @@ func (c *Codec) peerInfo() {
 }
 
 // gets the peer info
-func (c *Codec) PeerInfo() codec.PeerInfo {
+func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 	return c.i
 }
 
@@ -103,8 +103,8 @@ func (r *Codec) doReadGet() (msg *serverutil.Bundle, err error) {
 		id = "1"
 	}
 	return &serverutil.Bundle{
-		Messages: []*codec.Message{{
-			ID:     codec.NewId(id),
+		Messages: []*jsonrpc.Message{{
+			ID:     jsonrpc.NewId(id),
 			Method: method_up,
 			Params: param,
 		}},
@@ -126,8 +126,8 @@ func (r *Codec) doReadRPC() (msg *serverutil.Bundle, err error) {
 		return nil, err
 	}
 	return &serverutil.Bundle{
-		Messages: []*codec.Message{{
-			ID:     codec.NewId(id),
+		Messages: []*jsonrpc.Message{{
+			ID:     jsonrpc.NewId(id),
 			Method: method_up,
 			Params: data,
 		}},
@@ -202,7 +202,7 @@ func (c *Codec) doRead() {
 	}()
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	select {
 	case ans := <-c.msgs:
 		return ans.Messages, ans.Batch, nil

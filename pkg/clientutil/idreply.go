@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 type IdReply struct {
@@ -27,8 +27,8 @@ func NewIdReply() *IdReply {
 	}
 }
 
-func (i *IdReply) NextId() *codec.ID {
-	return codec.NewNumberIDPtr(i.id.Add(1))
+func (i *IdReply) NextId() *jsonrpc.ID {
+	return jsonrpc.NewNumberIDPtr(i.id.Add(1))
 }
 
 func (i *IdReply) makeOrTake(id []byte) chan msgOrError {

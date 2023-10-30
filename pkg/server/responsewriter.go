@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 // 16mb... should be more than enough for any batch.
@@ -12,12 +12,12 @@ import (
 // TODO: make this configurable
 const maxBatchSizeBytes = 1024 * 1024 * 1024 * 16
 
-var _ codec.ResponseWriter = (*streamingRespWriter)(nil)
+var _ jsonrpc.ResponseWriter = (*streamingRespWriter)(nil)
 
 // streamingRespWriter is NOT thread safe
 type streamingRespWriter struct {
 	cr  *callResponder
-	msg *codec.Message
+	msg *jsonrpc.Message
 	ctx context.Context
 
 	err error
@@ -31,10 +31,10 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.msg.ID == nil {
-		return codec.ErrCantSendNotification
+		return jsonrpc.ErrCantSendNotification
 	}
 	if c.sendCalled {
-		return codec.ErrSendAlreadyCalled
+		return jsonrpc.ErrSendAlreadyCalled
 	}
 	c.sendCalled = true
 	ce := &callEnv{
@@ -67,7 +67,7 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	return nil
 }
 
-func (c *streamingRespWriter) ExtraFields() codec.ExtraFields {
+func (c *streamingRespWriter) ExtraFields() jsonrpc.ExtraFields {
 	return c.msg.ExtraFields
 }
 

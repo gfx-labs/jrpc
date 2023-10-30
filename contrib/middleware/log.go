@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	"log/slog"
 )
@@ -15,9 +15,9 @@ type ctxKeyLogger int
 // RequestIDKey is the key that holds the unique request ID in a request context.
 const LoggerKey ctxKeyLogger = 76
 
-func NewLogger(logger *slog.Logger) func(next codec.Handler) codec.Handler {
-	return func(next codec.Handler) codec.Handler {
-		fn := func(w codec.ResponseWriter, r *codec.Request) {
+func NewLogger(logger *slog.Logger) func(next jsonrpc.Handler) jsonrpc.Handler {
+	return func(next jsonrpc.Handler) jsonrpc.Handler {
+		fn := func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			start := time.Now()
 			lg := logger.With(
 				"remote", r.Remote(),
@@ -35,11 +35,11 @@ func NewLogger(logger *slog.Logger) func(next codec.Handler) codec.Handler {
 			)
 			logger.LogAttrs(r.Context(), slog.LevelDebug, "RPC Request")
 		}
-		return codec.HandlerFunc(fn)
+		return jsonrpc.HandlerFunc(fn)
 	}
 }
 
-func Logger(next codec.Handler) codec.Handler {
+func Logger(next jsonrpc.Handler) jsonrpc.Handler {
 	lh := slog.Default()
 	return NewLogger(lh)(next)
 }

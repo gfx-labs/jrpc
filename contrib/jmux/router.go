@@ -1,7 +1,7 @@
 package jmux
 
 import (
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 // NewRouter returns a new Mux object that implements the Router interface.
@@ -21,15 +21,15 @@ type StructReflector interface {
 // Router consisting of the core routing methods used by chi's Mux,
 // adapted to fit json-rpc.
 type Router interface {
-	codec.Handler
+	jsonrpc.Handler
 	Routes
 	StructReflector
 
 	// Use appends one or more middlewares onto the Router stack.
-	Use(middlewares ...func(codec.Handler) codec.Handler)
+	Use(middlewares ...func(jsonrpc.Handler) jsonrpc.Handler)
 
 	// With adds inline middlewares for an endpoint handler.
-	With(middlewares ...func(codec.Handler) codec.Handler) Router
+	With(middlewares ...func(jsonrpc.Handler) jsonrpc.Handler) Router
 
 	// Group adds a new inline-Router along the current routing
 	// path, with a fresh middleware stack for the inline-Router.
@@ -39,16 +39,16 @@ type Router interface {
 	Route(pattern string, fn func(r Router)) Router
 
 	// Mount attaches another Handler along ./pattern/*
-	Mount(pattern string, h codec.Handler)
+	Mount(pattern string, h jsonrpc.Handler)
 
 	// Handle and HandleFunc adds routes for `pattern` that matches
 	// all HTTP methods.
-	Handle(pattern string, h codec.Handler)
-	HandleFunc(pattern string, h codec.HandlerFunc)
+	Handle(pattern string, h jsonrpc.Handler)
+	HandleFunc(pattern string, h jsonrpc.HandlerFunc)
 
 	// NotFound defines a handler to respond whenever a route could
 	// not be found.
-	NotFound(h codec.HandlerFunc)
+	NotFound(h jsonrpc.HandlerFunc)
 }
 
 // Routes interface adds two methods for router traversal, which is also
@@ -68,4 +68,4 @@ type Routes interface {
 
 // Middlewares type is a slice of standard middleware handlers with methods
 // to compose middleware chains and Handler's.
-type Middlewares = codec.Middlewares
+type Middlewares = jsonrpc.Middlewares

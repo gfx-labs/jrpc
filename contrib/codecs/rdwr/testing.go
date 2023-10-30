@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -17,7 +17,7 @@ func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
 	go func() {
 		s.ServeCodec(context.Background(), clientCodec)
 	}()
-	return s, func() codec.Conn {
+	return s, func() jsonrpc.Conn {
 		return NewClient(rd_s, wr_c)
 	}, func() {}
 }

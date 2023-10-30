@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 func ptr[T any](v T) *T {
@@ -14,19 +14,19 @@ func ptr[T any](v T) *T {
 }
 
 func TestFillBatch(t *testing.T) {
-	msgs := []*codec.Message{
+	msgs := []*jsonrpc.Message{
 		{
-			ID:     ptr(codec.ID(`"5"`)),
-			Result: codec.NewStringReader(`["test", "abc", "123"]`),
+			ID:     ptr(jsonrpc.ID(`"5"`)),
+			Result: jsonrpc.NewStringReader(`["test", "abc", "123"]`),
 		},
 		{
-			ID:     ptr(codec.ID(`"6"`)),
-			Result: codec.NewStringReader(`12345`),
+			ID:     ptr(jsonrpc.ID(`"6"`)),
+			Result: jsonrpc.NewStringReader(`12345`),
 		},
 		{},
 		{
-			ID:     ptr(codec.ID(`"7"`)),
-			Result: codec.NewStringReader(`"abcdefgh"`),
+			ID:     ptr(jsonrpc.ID(`"7"`)),
+			Result: jsonrpc.NewStringReader(`"abcdefgh"`),
 		},
 	}
 	ids := map[int]int{
@@ -34,7 +34,7 @@ func TestFillBatch(t *testing.T) {
 		1: 6,
 		3: 7,
 	}
-	b := []*codec.BatchElem{
+	b := []*jsonrpc.BatchElem{
 		{
 			Result: new([]string),
 		},
@@ -49,7 +49,7 @@ func TestFillBatch(t *testing.T) {
 
 	FillBatch(ids, msgs, b)
 
-	wantResult := []*codec.BatchElem{
+	wantResult := []*jsonrpc.BatchElem{
 		{
 			Result: &[]string{
 				"test",

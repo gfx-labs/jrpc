@@ -8,15 +8,15 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-var _ codec.StreamingConn = (*WrapClient)(nil)
+var _ jsonrpc.StreamingConn = (*WrapClient)(nil)
 
 type WrapClient struct {
 	subs map[string]*clientSub
 
-	conn codec.StreamingConn
+	conn jsonrpc.StreamingConn
 	mu   sync.RWMutex
 }
 
@@ -24,15 +24,15 @@ func (w *WrapClient) Closed() <-chan struct{} {
 	return w.conn.Closed()
 }
 
-func NewWrapClient(conn codec.StreamingConn) *WrapClient {
+func NewWrapClient(conn jsonrpc.StreamingConn) *WrapClient {
 	return &WrapClient{
 		subs: map[string]*clientSub{},
 		conn: conn,
 	}
 }
 
-func (c *WrapClient) Middleware(h codec.Handler) codec.Handler {
-	return codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+func (c *WrapClient) Middleware(h jsonrpc.Handler) jsonrpc.Handler {
+	return jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		// use normal handler
 		if !strings.HasSuffix(r.Method, notificationMethodSuffix) {
 			h.ServeRPC(w, r)
@@ -127,7 +127,7 @@ func (c *WrapClient) Do(ctx context.Context, result any, method string, params a
 	return c.conn.Do(ctx, result, method, params)
 }
 
-func (c *WrapClient) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
+func (c *WrapClient) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
 	return c.conn.BatchCall(ctx, b...)
 }
 
@@ -135,7 +135,7 @@ func (c *WrapClient) Close() error {
 	return c.conn.Close()
 }
 
-func (c *WrapClient) Mount(m codec.Middleware) {
+func (c *WrapClient) Mount(m jsonrpc.Middleware) {
 	c.conn.Mount(m)
 }
 
@@ -147,7 +147,7 @@ func (c *WrapClient) Notify(ctx context.Context, method string, params any) erro
 
 type clientSub struct {
 	engine    *WrapClient
-	conn      codec.StreamingConn
+	conn      jsonrpc.StreamingConn
 	namespace string
 	id        string
 	channel   reflect.Value

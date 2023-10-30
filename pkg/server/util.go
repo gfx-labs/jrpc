@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 type peerInfoContextKey struct{}
@@ -12,10 +12,10 @@ type peerInfoContextKey struct{}
 // Use this with the context passed to RPC method handler functions.
 //
 // The zero value is returned if no connection info is present in ctx.
-func PeerInfoFromContext(ctx context.Context) codec.PeerInfo {
-	info, _ := ctx.Value(peerInfoContextKey{}).(codec.PeerInfo)
+func PeerInfoFromContext(ctx context.Context) jsonrpc.PeerInfo {
+	info, _ := ctx.Value(peerInfoContextKey{}).(jsonrpc.PeerInfo)
 	return info
 }
-func ContextWithPeerInfo(ctx context.Context, c codec.PeerInfo) context.Context {
+func ContextWithPeerInfo(ctx context.Context, c jsonrpc.PeerInfo) context.Context {
 	return context.WithValue(ctx, peerInfoContextKey{}, c)
 }

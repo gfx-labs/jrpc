@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
@@ -18,7 +18,7 @@ func TestBasicSuite(t *testing.T) {
 			s := jrpctest.NewServer()
 			spokeServer := (&Server{Server: s})
 			go spokeServer.ServeSpoke(ctx, broker)
-			return s, func() codec.Conn {
+			return s, func() jsonrpc.Conn {
 					conn := NewClient(broker)
 					return conn
 				}, func() {

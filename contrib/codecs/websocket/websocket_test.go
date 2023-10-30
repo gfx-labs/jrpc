@@ -8,8 +8,8 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/codec"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -110,7 +110,7 @@ func TestWebsocketPeerInfo(t *testing.T) {
 	}
 
 	// Request peer information.
-	var connInfo codec.PeerInfo
+	var connInfo jsonrpc.PeerInfo
 	if err := c.Do(nil, &connInfo, "test_peerInfo", []any{}); err != nil {
 		t.Fatal(err)
 	}

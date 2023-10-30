@@ -8,7 +8,7 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc"
@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	r.HandleFunc("eth_*", func(w codec.ResponseWriter, r *codec.Request) {
+	r.HandleFunc("eth_*", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		var res json.RawMessage
 		err = c.Do(r.Context(), &res, r.Method, json.RawMessage(r.Params))
 		w.Send(res, err)

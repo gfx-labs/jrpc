@@ -26,7 +26,7 @@ import (
 
 	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
@@ -156,7 +156,7 @@ func TestHTTPErrorResponse(t *testing.T) {
 		t.Fatal("error was expected")
 	}
 
-	httpErr, ok := err.(*codec.HTTPError)
+	httpErr, ok := err.(*jsonrpc.HTTPError)
 	if !ok {
 		t.Fatalf("unexpected error type %T", err)
 	}
@@ -189,7 +189,7 @@ func TestHTTPPeerInfo(t *testing.T) {
 	c.SetHeader("x-forwarded-for", "origin.example.com")
 
 	// Request peer information.
-	var info codec.PeerInfo
+	var info jsonrpc.PeerInfo
 	if err := c.Do(nil, &info, "test_peerInfo", nil); err != nil {
 		t.Fatal(err)
 	}

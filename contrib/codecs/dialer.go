@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/url"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 var ErrSchemeNotSupported = errors.New("url scheme not supported")
 
-func DialContext(ctx context.Context, u string) (codec.Conn, error) {
+func DialContext(ctx context.Context, u string) (jsonrpc.Conn, error) {
 	pu, err := url.Parse(u)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func DialContext(ctx context.Context, u string) (codec.Conn, error) {
 	return dialer(ctx, u)
 }
 
-func Dial(u string) (codec.Conn, error) {
+func Dial(u string) (jsonrpc.Conn, error) {
 	ctx := context.Background()
 	return DialContext(ctx, u)
 }

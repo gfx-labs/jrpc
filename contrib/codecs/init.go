@@ -10,7 +10,7 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -49,14 +49,14 @@ func init() {
 	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
 		return gohttp.ListenAndServe(bind.Host, HttpHandler(srv))
 	}, "http")
-	RegisterDialer(func(ctx context.Context, url string) (codec.Conn, error) {
+	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
 		return http.Dial(ctx, nil, url)
 	}, "https", "http")
-	RegisterDialer(func(ctx context.Context, url string) (codec.Conn, error) {
+	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
 		return websocket.DialWebsocket(ctx, url, "")
 	}, "wss", "ws")
 
-	RegisterDialer(func(ctx context.Context, url string) (codec.Conn, error) {
+	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", url)
 		if err != nil {
 			return nil, err

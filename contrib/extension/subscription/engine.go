@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 type Engine struct {
@@ -36,9 +36,9 @@ func (e *Engine) closeSub(subid SubID) (bool, error) {
 	return ok, nil
 }
 
-func (e *Engine) Middleware() func(codec.Handler) codec.Handler {
-	return func(h codec.Handler) codec.Handler {
-		return codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+func (e *Engine) Middleware() func(jsonrpc.Handler) jsonrpc.Handler {
+	return func(h jsonrpc.Handler) jsonrpc.Handler {
+		return jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			// its a subscription, so install a notification handler
 			switch {
 			case strings.HasSuffix(r.Method, serviceMethodSeparator+subscribeMethodSuffix):

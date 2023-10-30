@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 // New will create a new middleware handler from a jrpc.Handler.
-func New(h codec.Handler) func(next codec.Handler) codec.Handler {
-	return func(next codec.Handler) codec.Handler {
-		return codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+func New(h jsonrpc.Handler) func(next jsonrpc.Handler) jsonrpc.Handler {
+	return func(next jsonrpc.Handler) jsonrpc.Handler {
+		return jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			h.ServeRPC(w, r)
 		})
 	}

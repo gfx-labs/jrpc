@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +38,7 @@ func TestIdReply(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		go func(id int) {
-			reply.Resolve(codec.NewNumberID(int64(id+1)), codec.NewStringReader(testMessage), nil)
+			reply.Resolve(jsonrpc.NewNumberID(int64(id+1)), jsonrpc.NewStringReader(testMessage), nil)
 		}(i)
 	}
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -46,7 +46,7 @@ func (s *testService) EchoWithCtx(ctx context.Context, str string, i int, args *
 	return EchoResult{str, i, args}
 }
 
-func (s *testService) PeerInfo(ctx context.Context) codec.PeerInfo {
+func (s *testService) PeerInfo(ctx context.Context) jsonrpc.PeerInfo {
 	return server.PeerInfoFromContext(ctx)
 }
 
@@ -81,7 +81,7 @@ func (s *testService) ReturnError() error {
 }
 
 func (s *testService) CallMeBack(ctx context.Context, method string, args []any) (any, error) {
-	c, ok := codec.ConnFromContext(ctx)
+	c, ok := jsonrpc.ConnFromContext(ctx)
 	if !ok {
 		return nil, errors.New("no client")
 	}
@@ -91,7 +91,7 @@ func (s *testService) CallMeBack(ctx context.Context, method string, args []any)
 }
 
 func (s *testService) CallMeBackLater(ctx context.Context, method string, args []any) error {
-	c, ok := codec.ConnFromContext(ctx)
+	c, ok := jsonrpc.ConnFromContext(ctx)
 	if !ok {
 		return errors.New("no client")
 	}

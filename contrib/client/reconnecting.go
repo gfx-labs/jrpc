@@ -5,16 +5,16 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 var _ jrpc.StreamingConn = (*Reconnecting)(nil)
 
 type Reconnecting struct {
 	dialer     func(ctx context.Context) (jrpc.StreamingConn, error)
-	base       codec.StreamingConn
+	base       jsonrpc.StreamingConn
 	alive      bool
-	middleware []codec.Middleware
+	middleware []jsonrpc.Middleware
 
 	mu sync.Mutex
 }
@@ -73,7 +73,7 @@ func (r *Reconnecting) Do(ctx context.Context, result any, method string, params
 	return <-errChan
 }
 
-func (r *Reconnecting) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
+func (r *Reconnecting) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
 	errChan := make(chan error)
 	go func() {
 		conn, err := r.getClient(ctx)
@@ -86,7 +86,7 @@ func (r *Reconnecting) BatchCall(ctx context.Context, b ...*codec.BatchElem) err
 	return <-errChan
 }
 
-func (r *Reconnecting) Mount(m codec.Middleware) {
+func (r *Reconnecting) Mount(m jsonrpc.Middleware) {
 	r.middleware = append(r.middleware, m)
 }
 

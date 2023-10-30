@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc/contrib/handlers/argreflect"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 var _ Router = &Mux{}
@@ -28,13 +28,13 @@ const sepString = string(sepRune)
 type Mux struct {
 	// The computed mux handler made of the chained middleware stack and
 	// the tree router
-	handler codec.Handler
+	handler jsonrpc.Handler
 
 	// The radix trie router
 	tree *node
 
 	// Custom method not allowed handler
-	methodNotAllowedHandler codec.HandlerFunc
+	methodNotAllowedHandler jsonrpc.HandlerFunc
 
 	// A reference to the parent mux used by subrouters when mounting
 	// to a parent mux
@@ -44,10 +44,10 @@ type Mux struct {
 	pool *sync.Pool
 
 	// Custom route not found handler
-	notFoundHandler codec.HandlerFunc
+	notFoundHandler jsonrpc.HandlerFunc
 
 	// The middleware stack
-	middlewares []func(codec.Handler) codec.Handler
+	middlewares []func(jsonrpc.Handler) jsonrpc.Handler
 
 	// Controls the behaviour of middleware chain generation when a mux
 	// is registered as an inline group inside another mux.
@@ -93,7 +93,7 @@ func (m *Mux) RegisterFunc(name string, rcvr any) error {
 // ServeRPC is the single method of the Handler interface that makes
 // Mux interoperable with the standard library. It uses a sync.Pool to get and
 // reuse routing contexts for each request.
-func (mx *Mux) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
+func (mx *Mux) ServeRPC(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 	// Ensure the mux has some routes defined on the mux
 	if mx.handler == nil {
 		mx.NotFoundHandler().ServeRPC(w, r)
@@ -130,7 +130,7 @@ func (mx *Mux) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
 // route to a specific handler, which provides opportunity to respond early,
 // change the course of the request execution, or set request-scoped values for
 // the next Handler.
-func (mx *Mux) Use(middlewares ...func(codec.Handler) codec.Handler) {
+func (mx *Mux) Use(middlewares ...func(jsonrpc.Handler) jsonrpc.Handler) {
 	if mx.handler != nil {
 		panic("chi: all middlewares must be defined before routes on a mux")
 	}
@@ -139,19 +139,19 @@ func (mx *Mux) Use(middlewares ...func(codec.Handler) codec.Handler) {
 
 // Handle adds the route `pattern` that matches any jrpc method to
 // execute the `handler` Handler.
-func (mx *Mux) Handle(pattern string, handler codec.Handler) {
+func (mx *Mux) Handle(pattern string, handler jsonrpc.Handler) {
 	mx.handle(pattern, handler)
 }
 
 // HandleFunc adds the route `pattern` that matches any jrpc method to
 // execute the `handlerFn` HandlerFunc.
-func (mx *Mux) HandleFunc(pattern string, handlerFn codec.HandlerFunc) {
+func (mx *Mux) HandleFunc(pattern string, handlerFn jsonrpc.HandlerFunc) {
 	mx.handle(pattern, handlerFn)
 }
 
 // NotFound sets a custom HandlerFunc for routing paths that could
 // not be found. The default 404 handler is `NotFound`.
-func (mx *Mux) NotFound(handlerFn codec.HandlerFunc) {
+func (mx *Mux) NotFound(handlerFn jsonrpc.HandlerFunc) {
 	// Build NotFound handler chain
 	m := mx
 	hFn := handlerFn
@@ -171,7 +171,7 @@ func (mx *Mux) NotFound(handlerFn codec.HandlerFunc) {
 
 // MethodNotAllowed sets a custom HandlerFunc for routing paths where the
 // method is unresolved. The default handler returns a 405 with an empty body.
-func (mx *Mux) MethodNotAllowed(handlerFn codec.HandlerFunc) {
+func (mx *Mux) MethodNotAllowed(handlerFn jsonrpc.HandlerFunc) {
 	// Build MethodNotAllowed handler chain
 	m := mx
 	hFn := handlerFn
@@ -190,7 +190,7 @@ func (mx *Mux) MethodNotAllowed(handlerFn codec.HandlerFunc) {
 }
 
 // With adds inline middlewares for an endpoint handler.
-func (mx *Mux) With(middlewares ...func(codec.Handler) codec.Handler) Router {
+func (mx *Mux) With(middlewares ...func(jsonrpc.Handler) jsonrpc.Handler) Router {
 	// Similarly as in handle(), we must build the mux handler once additional
 	// middleware registration isn't allowed for this stack, like now.
 	if !mx.inline && mx.handler == nil {
@@ -243,7 +243,7 @@ func (mx *Mux) Route(pattern string, fn func(r Router)) Router {
 // Note that Mount() simply sets a wildcard along the `pattern` that will continue
 // routing at the `handler`, which in most cases is another chi.Router. As a result,
 // if you define two Mount() routes on the exact same pattern the mount will panic.
-func (mx *Mux) Mount(pattern string, handler codec.Handler) {
+func (mx *Mux) Mount(pattern string, handler jsonrpc.Handler) {
 	if handler == nil {
 		panic(fmt.Sprintf("chi: attempting to Mount() a nil handler on '%s'", pattern))
 	}
@@ -263,7 +263,7 @@ func (mx *Mux) Mount(pattern string, handler codec.Handler) {
 		subr.MethodNotAllowed(mx.methodNotAllowedHandler)
 	}
 
-	mountHandler := codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+	mountHandler := jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		rctx := RouteContext(r.Context())
 
 		// shift the url path past the previous subrouter
@@ -319,7 +319,7 @@ func (mx *Mux) Match(rctx *Context, path string) bool {
 
 // NotFoundHandler returns the default Mux 404 responder whenever a route
 // cannot be found.
-func (mx *Mux) NotFoundHandler() codec.HandlerFunc {
+func (mx *Mux) NotFoundHandler() jsonrpc.HandlerFunc {
 	if mx.notFoundHandler != nil {
 		return mx.notFoundHandler
 	}
@@ -328,7 +328,7 @@ func (mx *Mux) NotFoundHandler() codec.HandlerFunc {
 
 // MethodNotAllowedHandler returns the default Mux 405 responder whenever
 // a method cannot be resolved for a route.
-func (mx *Mux) MethodNotAllowedHandler() codec.HandlerFunc {
+func (mx *Mux) MethodNotAllowedHandler() jsonrpc.HandlerFunc {
 	if mx.methodNotAllowedHandler != nil {
 		return mx.methodNotAllowedHandler
 	}
@@ -337,7 +337,7 @@ func (mx *Mux) MethodNotAllowedHandler() codec.HandlerFunc {
 
 // handle registers a Handler in the routing tree for a particular jrpc method
 // and routing pattern.
-func (mx *Mux) handle(pattern string, handler codec.Handler) *node {
+func (mx *Mux) handle(pattern string, handler jsonrpc.Handler) *node {
 	if len(pattern) == 0 {
 		panic(fmt.Sprintf("rpc: routing pattern must not be empty in '%s'", pattern))
 	}
@@ -352,9 +352,9 @@ func (mx *Mux) handle(pattern string, handler codec.Handler) *node {
 	}
 
 	// Build endpoint handler with inline middlewares for the route
-	var h codec.Handler
+	var h jsonrpc.Handler
 	if mx.inline {
-		mx.handler = codec.HandlerFunc(mx.routeRPC)
+		mx.handler = jsonrpc.HandlerFunc(mx.routeRPC)
 		h = Chain(mx.middlewares...).Handler(handler)
 	} else {
 		h = handler
@@ -366,7 +366,7 @@ func (mx *Mux) handle(pattern string, handler codec.Handler) *node {
 
 // routeRPC routes a Request through the Mux routing tree to serve
 // the matching handler for a particular jrpc method.
-func (mx *Mux) routeRPC(w codec.ResponseWriter, r *codec.Request) {
+func (mx *Mux) routeRPC(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 	// Grab the route context object
 	rctx := r.Context().Value(RouteCtxKey).(*Context)
 
@@ -418,15 +418,15 @@ func (mx *Mux) updateSubRoutes(fn func(subMux *Mux)) {
 // point, no other middlewares can be registered on this Mux's stack. But you can still
 // compose additional middlewares via Group()'s or using a chained middleware handler.
 func (mx *Mux) updateRouteHandler() {
-	mx.handler = codec.ChainMiddlewares(mx.middlewares, codec.HandlerFunc(mx.routeRPC))
+	mx.handler = jsonrpc.ChainMiddlewares(mx.middlewares, jsonrpc.HandlerFunc(mx.routeRPC))
 }
 
 // methodNotAllowedHandler is a helper function to respond with a 405,
 // method not allowed.
-func methodNotAllowedHandler(w codec.ResponseWriter, r *codec.Request) {
+func methodNotAllowedHandler(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 	w.Send(nil, errors.New("forbidden"))
 }
 
-func NotFound(w codec.ResponseWriter, r *codec.Request) {
-	w.Send(nil, codec.NewMethodNotFoundError(r.Method))
+func NotFound(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+	w.Send(nil, jsonrpc.NewMethodNotFoundError(r.Method))
 }

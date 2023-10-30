@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	"gfx.cafe/util/go/bufpool"
 
@@ -26,7 +26,7 @@ var (
 	errDead                      = errors.New("connection lost")
 )
 
-var _ codec.Conn = (*Client)(nil)
+var _ jsonrpc.Conn = (*Client)(nil)
 
 // Client represents a connection to an RPC server.
 type Client struct {
@@ -37,16 +37,16 @@ type Client struct {
 
 	headers http.Header
 
-	m       codec.Middlewares
-	handler codec.Handler
+	m       jsonrpc.Middlewares
+	handler jsonrpc.Handler
 	mu      sync.RWMutex
 }
 
-func (c *Client) Mount(h codec.Middleware) {
+func (c *Client) Mount(h jsonrpc.Middleware) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.m = append(c.m, h)
-	c.handler = c.m.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+	c.handler = c.m.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		// do nothing on no handler
 	})
 }
@@ -71,7 +71,7 @@ func (c *Client) SetHeader(key string, value string) {
 }
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
-	req, err := codec.NewRequest(ctx, codec.NewId(c.id.Add(1)), method, params)
+	req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(c.id.Add(1)), method, params)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		b, _ := io.ReadAll(resp.Body)
-		return &codec.HTTPError{
+		return &jsonrpc.HTTPError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,
 			Body:       b,
@@ -108,7 +108,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 }
 
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
-	req, err := codec.NewRequest(ctx, nil, method, params)
+	req, err := jsonrpc.NewRequest(ctx, nil, method, params)
 	if err != nil {
 		return err
 	}
@@ -120,18 +120,18 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	return err
 }
 
-func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
-	reqs := make([]*codec.Request, len(b))
+func (c *Client) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
+	reqs := make([]*jsonrpc.Request, len(b))
 	ids := make(map[int]int, len(b))
 	for idx, v := range b {
-		var rid *codec.ID
+		var rid *jsonrpc.ID
 		if v.IsNotification {
 		} else {
 			id := int(c.id.Add(1))
 			ids[idx] = id
-			rid = codec.NewNumberIDPtr(int64(id))
+			rid = jsonrpc.NewNumberIDPtr(int64(id))
 		}
-		req, err := codec.NewRequest(ctx, rid, v.Method, v.Params)
+		req, err := jsonrpc.NewRequest(ctx, rid, v.Method, v.Params)
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	}
 	defer resp.Body.Close()
 
-	msgs := []*codec.Message{}
+	msgs := []*jsonrpc.Message{}
 	err = json.NewDecoder(resp.Body).Decode(&msgs)
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func (c *Client) Closed() <-chan struct{} {
 	return make(chan struct{})
 }
 
-func (c *Client) post(req *codec.Request) (*http.Response, error) {
+func (c *Client) post(req *jsonrpc.Request) (*http.Response, error) {
 	// TODO: use buffer for this
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)

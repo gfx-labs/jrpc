@@ -8,18 +8,18 @@ import (
 
 	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/contrib/extension/subscription"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-var _ codec.Conn = (*Pooling)(nil)
+var _ jsonrpc.Conn = (*Pooling)(nil)
 var _ subscription.Conn = (*Pooling)(nil)
 
 type Pooling struct {
 	dialer     func(ctx context.Context) (jrpc.Conn, error)
-	conns      chan codec.Conn
+	conns      chan jsonrpc.Conn
 	base       subscription.Conn
 	closed     atomic.Bool
-	middleware []codec.Middleware
+	middleware []jsonrpc.Middleware
 
 	mu sync.Mutex
 }
@@ -56,7 +56,7 @@ func (p *Pooling) Subscribe(ctx context.Context, namespace string, channel any, 
 func NewPooling(ctx context.Context, dialer func(ctx context.Context) (jrpc.Conn, error), max int) (*Pooling, error) {
 	r := &Pooling{
 		dialer: dialer,
-		conns:  make(chan codec.Conn, max),
+		conns:  make(chan jsonrpc.Conn, max),
 	}
 
 	return r, nil
@@ -79,7 +79,7 @@ func (r *Pooling) Do(ctx context.Context, result any, method string, params any)
 	return <-errChan
 }
 
-func (r *Pooling) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
+func (r *Pooling) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
 	if r.closed.Load() {
 		return net.ErrClosed
 	}
@@ -96,7 +96,7 @@ func (r *Pooling) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
 	return <-errChan
 }
 
-func (p *Pooling) Mount(m codec.Middleware) {
+func (p *Pooling) Mount(m jsonrpc.Middleware) {
 	p.middleware = append(p.middleware, m)
 }
 

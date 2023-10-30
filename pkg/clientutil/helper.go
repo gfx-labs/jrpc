@@ -6,28 +6,28 @@ import (
 
 	"gfx.cafe/util/go/generic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-var msgPool = generic.HookPool[*codec.Message]{
-	New: func() *codec.Message {
-		return &codec.Message{}
+var msgPool = generic.HookPool[*jsonrpc.Message]{
+	New: func() *jsonrpc.Message {
+		return &jsonrpc.Message{}
 	},
-	FnPut: func(msg *codec.Message) {
-		*msg = codec.Message{}
+	FnPut: func(msg *jsonrpc.Message) {
+		*msg = jsonrpc.Message{}
 	},
 }
 
-func GetMessage() *codec.Message {
+func GetMessage() *jsonrpc.Message {
 	return msgPool.Get()
 }
 
-func PutMessage(x *codec.Message) {
+func PutMessage(x *jsonrpc.Message) {
 	msgPool.Put(x)
 }
 
-func FillBatch(ids map[int]int, msgs []*codec.Message, b []*codec.BatchElem) {
-	answers := make(map[int]*codec.Message, len(msgs))
+func FillBatch(ids map[int]int, msgs []*jsonrpc.Message, b []*jsonrpc.BatchElem) {
+	answers := make(map[int]*jsonrpc.Message, len(msgs))
 	for _, v := range msgs {
 		answers[v.ID.Number()] = v
 	}

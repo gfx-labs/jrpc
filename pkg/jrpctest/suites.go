@@ -9,22 +9,22 @@ import (
 	"testing"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type ClientMaker func() codec.Conn
+type ClientMaker func() jsonrpc.Conn
 type ServerMaker func() (*server.Server, ClientMaker, func())
 
 type BasicTestSuiteArgs struct {
 	ServerMaker ServerMaker
 }
 
-type TestContext func(t *testing.T, server *server.Server, client codec.Conn)
-type BenchContext func(t *testing.B, server *server.Server, client codec.Conn)
+type TestContext func(t *testing.T, server *server.Server, client jsonrpc.Conn)
+type BenchContext func(t *testing.B, server *server.Server, client jsonrpc.Conn)
 
 func TestExecutor(sm ServerMaker) func(t *testing.T, c TestContext) {
 	return func(t *testing.T, c TestContext) {
@@ -58,7 +58,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	}
 
 	t.Parallel()
-	makeTest("Request", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("Request", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 		var resp EchoResult
 		err := client.Do(nil, &resp, "test_echo", []any{"hello", 10, &EchoArgs{"world"}})
 		require.NoError(t, err)
@@ -67,17 +67,17 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResponseType", func(t *testing.T, server *server.Server, client codec.Conn) {
-		err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"})
+	makeTest("ResponseType", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+		err := jsonrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"})
 		assert.NoErrorf(t, err, "passing nil as result should be ok")
 		var resultVar EchoResult
 		// Note: passing the var, not a ref
-		err = codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
+		err = jsonrpc.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
 		assert.Error(t, err, "passing var as nil gives error")
 	})
 
-	makeTest("BatchRequest", func(t *testing.T, server *server.Server, client codec.Conn) {
-		batch := []*codec.BatchElem{
+	makeTest("BatchRequest", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+		batch := []*jsonrpc.BatchElem{
 			{
 				Method: "test_echo",
 				Params: []any{"hello", 10, &EchoArgs{"world"}},
@@ -102,7 +102,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		if err := client.BatchCall(nil, batch...); err != nil {
 			t.Fatal(err)
 		}
-		wantResult := []*codec.BatchElem{
+		wantResult := []*jsonrpc.BatchElem{
 			{
 				Method: "test_echo",
 				Params: []any{"hello", 10, &EchoArgs{"world"}},
@@ -121,7 +121,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				Method: "no/such/method",
 				Params: []any{1, 2, 3},
 				Result: new(int),
-				Error:  &codec.JsonError{Code: -32601, Message: "the method no/such/method does not exist/is not available"},
+				Error:  &jsonrpc.JsonError{Code: -32601, Message: "the method no/such/method does not exist/is not available"},
 			},
 		}
 		require.EqualValues(t, len(batch), len(wantResult))
@@ -135,45 +135,45 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResposeType2", func(t *testing.T, server *server.Server, client codec.Conn) {
-		if err := codec.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
+	makeTest("ResposeType2", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+		if err := jsonrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 		}
 		var resultVar EchoResult
 		// Note: passing the var, not a ref
-		err := codec.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
+		err := jsonrpc.CallInto(nil, client, resultVar, "test_echo", "hello", 10, &EchoArgs{"world"})
 		if err == nil {
 			t.Error("Passing a var as result should be an error")
 		}
 	})
 
-	makeTest("ErrorReturnType", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("ErrorReturnType", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 		var resp any
-		err := codec.CallInto(nil, client, &resp, "test_returnError")
+		err := jsonrpc.CallInto(nil, client, &resp, "test_returnError")
 		require.Error(t, err)
 
 		// Check code.
-		if e, ok := err.(codec.Error); !ok {
+		if e, ok := err.(jsonrpc.Error); !ok {
 			t.Fatalf("client did not return rpc.Error, got %#v", e)
 		} else if e.ErrorCode() != (testError{}.ErrorCode()) {
 			t.Fatalf("wrong error code %d, want %d", e.ErrorCode(), testError{}.ErrorCode())
 		}
 		// Check data.
-		if e, ok := err.(codec.DataError); !ok {
+		if e, ok := err.(jsonrpc.DataError); !ok {
 			t.Fatalf("client did not return rpc.DataError, got %#v", e)
 		} else if e.ErrorData() != (testError{}.ErrorData()) {
 			t.Fatalf("wrong error data %#v, want %#v", e.ErrorData(), testError{}.ErrorData())
 		}
 	})
-	makeTest("Notify", func(t *testing.T, server *server.Server, client codec.Conn) {
-		if c, ok := client.(codec.StreamingConn); ok {
+	makeTest("Notify", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+		if c, ok := client.(jsonrpc.StreamingConn); ok {
 			if err := c.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
 				t.Fatal(err)
 			}
 		}
 	})
 
-	makeTest("context cancel", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("context cancel", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 		maxContextCancelTimeout := 300 * time.Millisecond
 		// The actual test starts here.
 		var (
@@ -203,7 +203,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 
 				// Now perform a call with the context.
 				// The key thing here is that no call will ever complete successfully.
-				err := codec.CallInto(ctx, client, nil, "test_block")
+				err := jsonrpc.CallInto(ctx, client, nil, "test_block")
 				switch {
 				case err == nil:
 					_, hasDeadline := ctx.Deadline()
@@ -221,7 +221,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		wg.Wait()
 	})
 
-	makeTest("big", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("big", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 		var (
 			wg       sync.WaitGroup
 			nreqs    = 2
@@ -234,7 +234,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 				defer wg.Done()
 
 				for j := 0; j < nreqs; j++ {
-					if err := codec.CallInto(context.Background(), client, nil, "large_largeResp"); err != nil {
+					if err := jsonrpc.CallInto(context.Background(), client, nil, "large_largeResp"); err != nil {
 						t.Error(err)
 						return
 					}
@@ -245,6 +245,6 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		wg.Wait()
 	})
 
-	makeTest("", func(t *testing.T, server *server.Server, client codec.Conn) {
+	makeTest("", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 	})
 }

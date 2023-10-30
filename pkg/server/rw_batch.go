@@ -5,14 +5,14 @@ import (
 	"context"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"github.com/goccy/go-json"
 )
 
 // batchingRespWriter is NOT thread safe
 type batchingRespWriter struct {
 	cr  *callResponder
-	msg *codec.Message
+	msg *jsonrpc.Message
 	ctx context.Context
 
 	wg      *sync.WaitGroup
@@ -28,10 +28,10 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.msg.ID == nil {
-		return codec.ErrCantSendNotification
+		return jsonrpc.ErrCantSendNotification
 	}
 	if c.sendCalled {
-		return codec.ErrSendAlreadyCalled
+		return jsonrpc.ErrSendAlreadyCalled
 	}
 	c.sendCalled = true
 	if c.wg != nil {
@@ -51,7 +51,7 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 		err = json.NewEncoder(w).Encode(v)
 		if err != nil {
 			// the user just gets a generic error saying that the json is bad
-			c.err = codec.NewInternalError("server sent bad json")
+			c.err = jsonrpc.NewInternalError("server sent bad json")
 			// json marshaling errors are reported to the Send call, not the user
 			return err
 		}
@@ -61,7 +61,7 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 	return nil
 }
 
-func (c *batchingRespWriter) ExtraFields() codec.ExtraFields {
+func (c *batchingRespWriter) ExtraFields() jsonrpc.ExtraFields {
 	return c.msg.ExtraFields
 }
 

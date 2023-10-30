@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"github.com/rs/xid"
 )
 
@@ -20,24 +20,24 @@ type Client struct {
 	ctx context.Context
 	cn  context.CancelFunc
 
-	m       codec.Middlewares
-	handler codec.Handler
+	m       jsonrpc.Middlewares
+	handler jsonrpc.Handler
 	mu      sync.RWMutex
 
-	handlerPeer codec.PeerInfo
+	handlerPeer jsonrpc.PeerInfo
 }
 
 func NewClient(spoke ClientSpoke) *Client {
 	cl := &Client{
 		c: spoke,
 		p: clientutil.NewIdReply(),
-		handlerPeer: codec.PeerInfo{
+		handlerPeer: jsonrpc.PeerInfo{
 			Transport:  "broker",
 			RemoteAddr: "",
 		},
 		// this doesn't need to be secure bc... you have access to the redis instance lol
 		clientId: xid.New().String(),
-		handler:  codec.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {}),
+		handler:  jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {}),
 	}
 	cl.ctx, cl.cn = context.WithCancel(context.Background())
 	go cl.listen()
@@ -48,15 +48,15 @@ func (c *Client) Closed() <-chan struct{} {
 	return c.ctx.Done()
 }
 
-func (c *Client) SetHandlerPeer(pi codec.PeerInfo) {
+func (c *Client) SetHandlerPeer(pi jsonrpc.PeerInfo) {
 	c.handlerPeer = pi
 }
 
-func (c *Client) Mount(h codec.Middleware) {
+func (c *Client) Mount(h jsonrpc.Middleware) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.m = append(c.m, h)
-	c.handler = c.m.HandlerFunc(func(w codec.ResponseWriter, r *codec.Request) {
+	c.handler = c.m.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		// do nothing on no handler
 	})
 }
@@ -75,7 +75,7 @@ func (c *Client) listen() error {
 		case <-c.ctx.Done():
 			return c.ctx.Err()
 		}
-		msgs, _ := codec.ParseMessage(incomingMsg)
+		msgs, _ := jsonrpc.ParseMessage(incomingMsg)
 		for i := range msgs {
 			v := msgs[i]
 			if v == nil {
@@ -84,14 +84,14 @@ func (c *Client) listen() error {
 			id := v.ID
 			//  messages without ids are notifications
 			if id == nil {
-				var handler codec.Handler
+				var handler jsonrpc.Handler
 				c.mu.RLock()
 				handler = c.handler
 				c.mu.RUnlock()
 				// writer should only be allowed to send notifications
 				// reader should contain the message above
 				// the context is the client context
-				req := codec.NewRawRequest(c.ctx,
+				req := jsonrpc.NewRawRequest(c.ctx,
 					nil,
 					v.Method,
 					v.Params,
@@ -112,7 +112,7 @@ func (c *Client) listen() error {
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	id := c.p.NextId()
-	req, err := codec.NewRequest(ctx, codec.NewId(id), method, params)
+	req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(id), method, params)
 	if err != nil {
 		return err
 	}
@@ -137,17 +137,17 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	return nil
 }
 
-func (c *Client) BatchCall(ctx context.Context, b ...*codec.BatchElem) error {
+func (c *Client) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
-	reqs := make([]*codec.Request, 0, len(b))
-	ids := make([]*codec.ID, 0, len(b))
+	reqs := make([]*jsonrpc.Request, 0, len(b))
+	ids := make([]*jsonrpc.ID, 0, len(b))
 	for _, v := range b {
 		id := c.p.NextId()
-		req, err := codec.NewRequest(ctx, codec.NewId(id), v.Method, v.Params)
+		req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(id), v.Method, v.Params)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	req, err := codec.NewRequest(ctx, nil, method, params)
+	req, err := jsonrpc.NewRequest(ctx, nil, method, params)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"unicode"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 var (
@@ -15,16 +15,16 @@ var (
 	errorType   = reflect.TypeOf((*error)(nil)).Elem()
 )
 
-func SuitableCallbacks(receiver reflect.Value) map[string]codec.Handler {
+func SuitableCallbacks(receiver reflect.Value) map[string]jsonrpc.Handler {
 	return suitableCallbacks(receiver)
 }
 
 // suitableCallbacks iterates over the methods of the given type. It determines if a method
 // satisfies the criteria for a RPC callback or a subscription callback and adds it to the
 // collection of callbacks. See server documentation for a summary of these criteria.
-func suitableCallbacks(receiver reflect.Value) map[string]codec.Handler {
+func suitableCallbacks(receiver reflect.Value) map[string]jsonrpc.Handler {
 	typ := receiver.Type()
-	callbacks := make(map[string]codec.Handler)
+	callbacks := make(map[string]jsonrpc.Handler)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		if method.PkgPath != "" {
@@ -50,11 +50,11 @@ type callback struct {
 }
 
 // callback handler implements handler for the original receiver style that geth used
-func (e *callback) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
+func (e *callback) ServeRPC(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 	argTypes := append([]reflect.Type{}, e.argTypes...)
 	args, err := parsePositionalArguments(r.Params, argTypes)
 	if err != nil {
-		w.Send(nil, codec.NewInvalidParamsError(err.Error()))
+		w.Send(nil, jsonrpc.NewInvalidParamsError(err.Error()))
 		return
 	}
 	// Create the argument slice.
@@ -87,13 +87,13 @@ func (e *callback) ServeRPC(w codec.ResponseWriter, r *codec.Request) {
 		return
 	}
 	if len(results) == 0 {
-		w.Send(codec.Null, nil)
+		w.Send(jsonrpc.Null, nil)
 		return
 	}
 	w.Send(results[0].Interface(), nil)
 }
 
-func NewCallback(receiver, fn reflect.Value) codec.Handler {
+func NewCallback(receiver, fn reflect.Value) jsonrpc.Handler {
 	return newCallback(receiver, fn)
 }
 

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/util/go/frand"
 
 	json "github.com/goccy/go-json"
@@ -83,7 +83,7 @@ func NotifierFromContext(ctx context.Context) (*Notifier, bool) {
 // Notifier is tied to a RPC connection that supports subscriptions.
 // Server callbacks use the notifier to send notifications.
 type Notifier struct {
-	h         codec.ResponseWriter
+	h         jsonrpc.ResponseWriter
 	namespace string
 
 	mu sync.Mutex

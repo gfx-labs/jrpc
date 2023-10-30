@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"golang.org/x/sync/semaphore"
 
 	"gfx.cafe/util/go/bufpool"
@@ -18,14 +18,14 @@ import (
 // it is in charge of calling the handler on the message object, the json encoding of responses, and dealing with batch semantics.
 // a server can be used to listenandserve multiple codecs at a time
 type Server struct {
-	services codec.Handler
+	services jsonrpc.Handler
 
 	lctx context.Context
 	cn   context.CancelFunc
 }
 
 // NewServer creates a new server instance with no registered handlers.
-func NewServer(r codec.Handler) *Server {
+func NewServer(r jsonrpc.Handler) *Server {
 	server := &Server{services: r}
 	server.lctx, server.cn = context.WithCancel(context.Background())
 	return server
@@ -33,7 +33,7 @@ func NewServer(r codec.Handler) *Server {
 
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed
-func (s *Server) ServeCodec(ctx context.Context, remote codec.ReaderWriter) error {
+func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) error {
 	defer remote.Close()
 
 	sema := semaphore.NewWeighted(1)
@@ -81,7 +81,7 @@ func (s *Server) Shutdown(ctx context.Context) {
 }
 
 func (s *Server) serve(ctx context.Context,
-	incoming []*codec.Message,
+	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {
 	if r.batch {
@@ -92,7 +92,7 @@ func (s *Server) serve(ctx context.Context,
 }
 
 func (s *Server) serveSingle(ctx context.Context,
-	incoming *codec.Message,
+	incoming *jsonrpc.Message,
 	r *callResponder,
 ) error {
 	rw := &streamingRespWriter{
@@ -100,7 +100,7 @@ func (s *Server) serveSingle(ctx context.Context,
 		cr:  r,
 	}
 	rw.msg, rw.err = produceOutputMessage(incoming)
-	req := codec.NewRequestFromMessage(
+	req := jsonrpc.NewRequestFromMessage(
 		ctx,
 		rw.msg,
 	)
@@ -119,35 +119,35 @@ func (s *Server) serveSingle(ctx context.Context,
 	}
 	s.services.ServeRPC(rw, req)
 	if rw.sendCalled == false && rw.msg.ID != nil {
-		rw.Send(codec.Null, nil)
+		rw.Send(jsonrpc.Null, nil)
 	}
 	return nil
 }
 
-func produceOutputMessage(inputMessage *codec.Message) (out *codec.Message, err error) {
+func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, err error) {
 	// a nil incoming message means return an invalid request.
 	if inputMessage == nil {
-		inputMessage = &codec.Message{ID: codec.NewNullIDPtr()}
-		err = codec.NewInvalidRequestError("invalid request")
+		inputMessage = &jsonrpc.Message{ID: jsonrpc.NewNullIDPtr()}
+		err = jsonrpc.NewInvalidRequestError("invalid request")
 	}
 	out = inputMessage
-	out.ExtraFields = codec.ExtraFields{}
+	out.ExtraFields = jsonrpc.ExtraFields{}
 	out.Error = nil
 	// zero length method is always invalid request
 	if len(out.Method) == 0 {
 		// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
 		// this makes sure we add 1 to totalRequests
 		if out.ID == nil {
-			out.ID = codec.NewNullIDPtr()
+			out.ID = jsonrpc.NewNullIDPtr()
 		}
-		err = codec.NewInvalidRequestError("invalid request")
+		err = jsonrpc.NewInvalidRequestError("invalid request")
 	}
 
 	return
 }
 
 func (s *Server) serveBatch(ctx context.Context,
-	incoming []*codec.Message,
+	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {
 	// check for empty batch
@@ -159,8 +159,8 @@ func (s *Server) serveBatch(ctx context.Context,
 		}
 		defer r.mu.Release(1)
 		err = r.send(ctx, &callEnv{
-			id:  codec.NewNullIDPtr(),
-			err: codec.NewInvalidRequestError("empty batch"),
+			id:  jsonrpc.NewNullIDPtr(),
+			err: jsonrpc.NewInvalidRequestError("empty batch"),
 		})
 		if err != nil {
 			return err
@@ -210,14 +210,14 @@ func (s *Server) serveBatch(ctx context.Context,
 		// TODO: stress test this.
 		go func() {
 			defer returnWg.Done()
-			req := codec.NewRequestFromMessage(
+			req := jsonrpc.NewRequestFromMessage(
 				ctx,
 				v.msg,
 			)
 			req.Peer = peerInfo
 			s.services.ServeRPC(v, req)
 			if v.sendCalled == false && v.err == nil {
-				v.Send(codec.Null, nil)
+				v.Send(jsonrpc.Null, nil)
 			}
 		}()
 	}
@@ -276,7 +276,7 @@ func (s *Server) serveBatch(ctx context.Context,
 }
 
 type callResponder struct {
-	remote codec.ReaderWriter
+	remote jsonrpc.ReaderWriter
 	mu     *semaphore.Weighted
 
 	batch        bool
@@ -286,8 +286,8 @@ type callResponder struct {
 type callEnv struct {
 	v           any
 	err         error
-	id          *codec.ID
-	extrafields codec.ExtraFields
+	id          *jsonrpc.ID
+	extrafields jsonrpc.ExtraFields
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
@@ -313,7 +313,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 		}
 		if env.err != nil {
 			e.Field("error", func(e *jx.Encoder) {
-				codec.EncodeError(e, env.err)
+				jsonrpc.EncodeError(e, env.err)
 			})
 		} else {
 			// if there is no error, we try to marshal the result
@@ -354,11 +354,11 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 type notifyEnv struct {
 	method string
 	dat    any
-	extra  codec.ExtraFields
+	extra  jsonrpc.ExtraFields
 }
 
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) {
-	msg := &codec.Message{}
+	msg := &jsonrpc.Message{}
 	//  allocate a temp buffer for this packet
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
@@ -375,7 +375,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) 
 	defer jx.PutEncoder(enc)
 	enc.Grow(4096)
 	enc.ResetWriter(c.remote)
-	err = codec.MarshalMessage(msg, enc)
+	err = jsonrpc.MarshalMessage(msg, enc)
 	if err != nil {
 		return err
 	}

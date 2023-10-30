@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"github.com/go-faster/jx"
 	"github.com/goccy/go-json"
 )
@@ -25,12 +25,12 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 	case string(rawArgs) == "null":
 		return nil, nil
 	default:
-		return nil, codec.NewInvalidParamsError("non-array args")
+		return nil, jsonrpc.NewInvalidParamsError("non-array args")
 	}
 	// Set any missing args to nil.
 	for i := len(args); i < len(types); i++ {
 		if types[i].Kind() != reflect.Ptr {
-			return nil, codec.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
+			return nil, jsonrpc.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
 		}
 		args = append(args, reflect.Zero(types[i]))
 	}
@@ -44,27 +44,27 @@ func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Valu
 	args := make([]reflect.Value, 0, len(types))
 	iter, err := dec.ArrIter()
 	if err != nil {
-		return args, codec.NewInvalidParamsError("expected array")
+		return args, jsonrpc.NewInvalidParamsError("expected array")
 	}
 	i := 0
 	for iter.Next() {
 		if err := iter.Err(); err != nil {
-			return args, codec.NewInvalidParamsError(fmt.Sprintf("iterator err %d: %v", i, err))
+			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("iterator err %d: %v", i, err))
 		}
 		if i >= len(types) {
-			return args, codec.NewInvalidParamsError(fmt.Sprintf("too many arguments, want at most %d", len(types)))
+			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("too many arguments, want at most %d", len(types)))
 		}
 		argval := reflect.New(types[i])
 		raw, err := dec.Raw()
 		if err != nil {
-			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid raw argument %d: %v", i, err))
+			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("invalid raw argument %d: %v", i, err))
 		}
 		err = json.Unmarshal(raw, argval.Interface())
 		if err != nil {
-			return args, codec.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
+			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
 		}
 		if argval.IsNil() && types[i].Kind() != reflect.Ptr {
-			return nil, codec.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
+			return nil, jsonrpc.NewInvalidParamsError(fmt.Sprintf("missing value for required argument %d", i))
 		}
 		args = append(args, argval.Elem())
 		i++

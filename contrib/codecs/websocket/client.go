@@ -2,7 +2,7 @@ package websocket
 
 import (
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	"context"
 
@@ -21,7 +21,7 @@ func newClient(conn *websocket.Conn) (*Client, error) {
 		Client: rdwr.NewClient(netConn, netConn),
 		conn:   conn,
 	}
-	c.SetHandlerPeer(codec.PeerInfo{
+	c.SetHandlerPeer(jsonrpc.PeerInfo{
 		Transport:  "ws",
 		RemoteAddr: "",
 	})

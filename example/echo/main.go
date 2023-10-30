@@ -6,7 +6,7 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/codecs"
 	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	r := jmux.NewRouter()
 	srv := server.NewServer(r)
 
-	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
+	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		w.Send(r.Params, nil)
 	})
 

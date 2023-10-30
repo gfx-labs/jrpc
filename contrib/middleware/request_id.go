@@ -8,7 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -66,15 +66,15 @@ func init() {
 // where "random" is a base62 random string that uniquely identifies this go
 // process, and where the last number is an atomically incremented request
 // counter.
-func RequestID(next codec.Handler) codec.Handler {
-	fn := func(w codec.ResponseWriter, r *codec.Request) {
+func RequestID(next jsonrpc.Handler) jsonrpc.Handler {
+	fn := func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		ctx := r.Context()
 		myid := atomic.AddUint64(&reqid, 1)
 		requestID := fmt.Sprintf("%s-%06d", prefix, myid)
 		ctx = context.WithValue(ctx, RequestIDKey, requestID)
 		next.ServeRPC(w, r.WithContext(ctx))
 	}
-	return codec.HandlerFunc(fn)
+	return jsonrpc.HandlerFunc(fn)
 }
 
 // GetReqID returns a request ID from the given context if one is present.

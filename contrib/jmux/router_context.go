@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 // MethodParam returns the url parameter from a Request object.
-func MethodParam(r *codec.Request, key string) string {
+func MethodParam(r *jsonrpc.Request, key string) string {
 	if rctx := RouteContext(r.Context()); rctx != nil {
 		return rctx.MethodParam(key)
 	}

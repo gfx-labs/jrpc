@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 	"github.com/gogo/protobuf/io"
 )
 
-var _ codec.ReaderWriter = (*Codec)(nil)
+var _ jsonrpc.ReaderWriter = (*Codec)(nil)
 
 type Codec struct {
 	ctx context.Context
@@ -23,7 +23,7 @@ type Codec struct {
 	closed  atomic.Bool
 	closeCh chan struct{}
 
-	i codec.PeerInfo
+	i jsonrpc.PeerInfo
 }
 
 type httpError struct {
@@ -44,11 +44,11 @@ func NewCodec(req json.RawMessage, replier Replier) *Codec {
 }
 
 // gets the peer info
-func (c *Codec) PeerInfo() codec.PeerInfo {
+func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 	return c.i
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	select {
 	case ans := <-c.ansCh:
 		return ans.Messages, ans.Batch, nil

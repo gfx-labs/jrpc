@@ -8,7 +8,7 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
@@ -37,11 +37,11 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 }
 
 // gets the peer info
-func (c *Codec) PeerInfo() codec.PeerInfo {
-	return codec.PeerInfo{
+func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
+	return jsonrpc.PeerInfo{
 		Transport:  "ipc",
 		RemoteAddr: "",
-		HTTP:       codec.HttpInfo{},
+		HTTP:       jsonrpc.HttpInfo{},
 	}
 }
 
@@ -57,7 +57,7 @@ func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, er
 	return serverutil.ParseBundle(c.decBuf), nil
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*codec.Message, bool, error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	ans, err := c.decodeSingleMessage(ctx)
 	if err != nil {
 		return nil, false, err

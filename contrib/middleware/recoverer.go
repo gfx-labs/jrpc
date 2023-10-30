@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"io"
 	"os"
 	"runtime/debug"
@@ -19,8 +19,8 @@ import (
 // possible. Recoverer prints a request ID if one is provided.
 //
 // Alternatively, look at jrpcs://github.com/go-chi/jrpclog middleware pkgs.
-func Recoverer(next codec.Handler) codec.Handler {
-	fn := func(w codec.ResponseWriter, r *codec.Request) {
+func Recoverer(next jsonrpc.Handler) jsonrpc.Handler {
+	fn := func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				PrintPrettyStack(rvr)
@@ -31,7 +31,7 @@ func Recoverer(next codec.Handler) codec.Handler {
 		next.ServeRPC(w, r)
 	}
 
-	return codec.HandlerFunc(fn)
+	return jsonrpc.HandlerFunc(fn)
 }
 
 // for ability to test the PrintPrettyStack function

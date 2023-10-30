@@ -10,7 +10,7 @@ import (
 	"gfx.cafe/open/jrpc/contrib/extension/subscription"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/codec"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc"
@@ -23,14 +23,14 @@ func main() {
 	r.Use(middleware.Logger)
 	srv := server.NewServer(r)
 
-	r.HandleFunc("echo", func(w codec.ResponseWriter, r *codec.Request) {
+	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		w.Send(r.Params, nil)
 	})
 
 	r.Group(func(r jmux.Router) {
 		r.Use(engine.Middleware())
 
-		r.HandleFunc("testservice/subscribe", func(w codec.ResponseWriter, r *codec.Request) {
+		r.HandleFunc("testservice/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			notifier, ok := subscription.NotifierFromContext(r.Context())
 			if !ok {
 				w.Send(nil, subscription.ErrNotificationsUnsupported)
