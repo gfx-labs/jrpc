@@ -39,11 +39,9 @@ func runBenchmarkSuite(b *testing.B, sm jrpctest.ServerMaker) {
 	}
 	makeBench("SingleClient", func(b *testing.B, server *server.Server, client codec.Conn) {
 		for i := 0; i < b.N; i++ {
-			for j := 0; j < 100; j++ {
-				err := client.Do(ctx, nil, "test_ping", nil)
-				if err != nil {
-					panic(err)
-				}
+			err := client.Do(ctx, nil, "test_ping", nil)
+			if err != nil {
+				panic(err)
 			}
 		}
 	})
