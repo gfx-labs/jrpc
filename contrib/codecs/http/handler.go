@@ -1,12 +1,15 @@
 package http
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/server"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+
+	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func HttpHandler(s *server.Server) http.Handler {
@@ -31,9 +34,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := NewCodec(w, r)
 	w.Header().Set("content-type", contentType)
 	err := s.Server.ServeCodec(r.Context(), c)
-	if err != nil {
-		//	slog.Error("codec err", "err", err)
+	if err != nil && !errors.Is(err, context.Canceled) {
+		//  slog.Error("codec err", "err", err)
+		http.Error(w, "Internal Error", http.StatusInternalServerError)
 	}
-	http.Error(w, "Internal Error", http.StatusInternalServerError)
 	<-c.Closed()
 }
