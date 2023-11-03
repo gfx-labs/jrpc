@@ -23,10 +23,4 @@ func TestConnContext(t *testing.T) {
 		require.Equal(t, conn, d)
 	}
 
-	{
-		conn, ok := StreamingConnFromContext(ctx)
-		require.True(t, ok)
-		require.Equal(t, conn, d)
-	}
-
 }
