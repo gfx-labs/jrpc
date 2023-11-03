@@ -48,7 +48,7 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	}
 	// only set value if value is not nil
 	if v != nil {
-		ce.v = &v
+		ce.v = v
 	}
 	err = c.cr.mu.Acquire(c.ctx, 1)
 	if err != nil {

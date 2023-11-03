@@ -5,8 +5,9 @@ import (
 	"errors"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"golang.org/x/sync/semaphore"
+
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	"gfx.cafe/util/go/bufpool"
 
