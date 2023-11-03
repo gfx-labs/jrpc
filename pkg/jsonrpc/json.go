@@ -36,7 +36,7 @@ func NewStringReader(x string) io.ReadCloser {
 	return io.NopCloser(strings.NewReader(x))
 }
 
-func MarshalMessage(m *Message, enc *jx.Encoder) error {
+func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 	// use encoder
 	fail := enc.Obj(func(e *jx.Encoder) {
 		e.Field("jsonrpc", func(e *jx.Encoder) {
@@ -68,12 +68,19 @@ func MarshalMessage(m *Message, enc *jx.Encoder) error {
 				e.Raw(m.Params)
 			})
 		}
-		if m.Result != nil {
+		if m.Result != nil && err == nil {
 			e.Field("result", func(e *jx.Encoder) {
-				io.Copy(e, m.Result)
+				var n int64
+				n, err = io.Copy(e, m.Result)
+				if n == 0 {
+					e.Null()
+				}
 			})
 		}
 	})
+	if err != nil {
+		return err
+	}
 	if fail {
 		return fmt.Errorf("jx encoding error")
 	}

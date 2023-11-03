@@ -16,8 +16,3 @@ func ConnFromContext(ctx context.Context) (Conn, bool) {
 	client, ok := ctx.Value(clientContextKey{}).(Conn)
 	return client, ok
 }
-
-func StreamingConnFromContext(ctx context.Context) (StreamingConn, bool) {
-	client, ok := ctx.Value(clientContextKey{}).(StreamingConn)
-	return client, ok
-}
