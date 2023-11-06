@@ -87,6 +87,7 @@ func (c *WrapClient) Subscribe(ctx context.Context, namespace string, channel an
 		// BUG: a worse is better solution... it means that when this fills, you might receive subscriptions in an undefined error
 		onmsg:   make(chan json.RawMessage, 32),
 		subdone: make(chan struct{}),
+		readErr: make(chan error),
 	}
 
 	// will get the type of the event
