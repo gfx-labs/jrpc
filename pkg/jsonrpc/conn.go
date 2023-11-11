@@ -29,5 +29,5 @@ type Notifier interface {
 }
 
 type Mounter interface {
-	Mount(Handler)
+	Mount(Middleware)
 }

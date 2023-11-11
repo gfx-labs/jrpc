@@ -166,7 +166,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 	makeTest("Notify", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
-		if c, ok := client.(jsonrpc.StreamingConn); ok {
+		if c, ok := client.(jsonrpc.Conn); ok {
 			if err := c.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
 				t.Fatal(err)
 			}

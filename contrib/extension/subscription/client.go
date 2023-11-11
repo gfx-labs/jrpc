@@ -11,12 +11,12 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-var _ jsonrpc.StreamingConn = (*WrapClient)(nil)
+var _ jsonrpc.Conn = (*WrapClient)(nil)
 
 type WrapClient struct {
 	subs map[string]*clientSub
 
-	conn jsonrpc.StreamingConn
+	conn jsonrpc.Conn
 	mu   sync.RWMutex
 }
 
@@ -24,7 +24,7 @@ func (w *WrapClient) Closed() <-chan struct{} {
 	return w.conn.Closed()
 }
 
-func NewWrapClient(conn jsonrpc.StreamingConn) *WrapClient {
+func NewWrapClient(conn jsonrpc.Conn) *WrapClient {
 	return &WrapClient{
 		subs: map[string]*clientSub{},
 		conn: conn,
@@ -148,7 +148,7 @@ func (c *WrapClient) Notify(ctx context.Context, method string, params any) erro
 
 type clientSub struct {
 	engine    *WrapClient
-	conn      jsonrpc.StreamingConn
+	conn      jsonrpc.Conn
 	namespace string
 	id        string
 	channel   reflect.Value

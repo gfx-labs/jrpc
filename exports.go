@@ -15,11 +15,6 @@ type Conn interface {
 	jsonrpc.Conn
 }
 
-// StreamingConn is a conn that supports streaming methods
-type StreamingConn interface {
-	jsonrpc.StreamingConn
-}
-
 // Handler is the equivalent of http.Handler, but for jsonrpc.
 type Handler = jsonrpc.Handler
 
