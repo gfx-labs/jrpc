@@ -327,17 +327,21 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 						} else {
 							e.Raw(cast)
 						}
+					case func(e *jx.Encoder) error:
+						err = cast(e)
 					default:
 						err = json.NewEncoder(e).EncodeWithOption(cast, func(eo *json.EncodeOption) {
 							eo.DisableNewline = true
 						})
-						if err != nil {
-							return
-						}
 					}
 				} else {
 					e.Null()
 				}
+			})
+		}
+		if env.err == nil && err != nil {
+			e.Field("error", func(e *jx.Encoder) {
+				jsonrpc.EncodeError(e, err)
 			})
 		}
 	})
