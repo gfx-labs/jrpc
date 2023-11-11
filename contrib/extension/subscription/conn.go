@@ -9,14 +9,14 @@ import (
 type Conn interface {
 	Subscribe(ctx context.Context, namespace string, channel any, args any) (ClientSubscription, error)
 
-	jsonrpc.StreamingConn
+	jsonrpc.Conn
 }
 
 func UpgradeConn(c jsonrpc.Conn, err error) (Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	if val, ok := c.(jsonrpc.StreamingConn); ok {
+	if val, ok := c.(jsonrpc.Conn); ok {
 		engine := NewWrapClient(val)
 		val.Mount(engine.Middleware)
 		return engine, nil

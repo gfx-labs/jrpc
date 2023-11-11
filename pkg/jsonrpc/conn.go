@@ -7,17 +7,13 @@ import (
 
 type Conn interface {
 	Doer
+	Notifier
 	BatchCaller
 
 	Mounter
 
 	io.Closer
 	Closed() <-chan struct{}
-}
-
-type StreamingConn interface {
-	Conn
-	Notifier
 }
 
 type Doer interface {
@@ -33,5 +29,5 @@ type Notifier interface {
 }
 
 type Mounter interface {
-	Mount(Middleware)
+	Mount(Handler)
 }

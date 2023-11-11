@@ -4,6 +4,6 @@
 *.tmp
 *.log
 *.test
-
 coverage.txt
 report.xml
+*.test.txt
