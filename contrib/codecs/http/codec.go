@@ -91,7 +91,7 @@ func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 func (r *Codec) doReadGet() (msg *serverutil.Bundle, err error) {
 	method_up := r.r.URL.Query().Get("method")
 	if method_up == "" {
-		method_up = r.r.URL.Path
+		method_up = strings.TrimPrefix(r.r.URL.Path, "/")
 	}
 	params, _ := url.QueryUnescape(r.r.URL.Query().Get("params"))
 	param := []byte(params)

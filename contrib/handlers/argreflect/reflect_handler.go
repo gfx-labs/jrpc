@@ -2,12 +2,11 @@ package argreflect
 
 import (
 	"context"
-	"fmt"
 	"reflect"
-	"runtime"
 	"unicode"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -40,6 +39,42 @@ func suitableCallbacks(receiver reflect.Value) map[string]jsonrpc.Handler {
 	return callbacks
 }
 
+func NewCallback(receiver, fn reflect.Value) jsonrpc.Handler {
+	return newCallback(receiver, fn)
+}
+
+// newCallback turns fn (a function) into a handler. It returns nil if the function
+// is unsuitable as an RPC callback.
+func newCallback(receiver, fn reflect.Value) jsonrpc.Handler {
+	fntype := fn.Type()
+	c := &callback{fn: fn, rcvr: receiver, errPos: -1}
+	// Determine parameter types. They must all be exported or builtin types.
+	if x := c.makeArgTypes(); x != nil {
+		return x
+	}
+
+	// Verify return types. The function must return at most one error
+	// and/or one other non-error value.
+	outs := make([]reflect.Type, fntype.NumOut())
+	for i := 0; i < fntype.NumOut(); i++ {
+		outs[i] = fntype.Out(i)
+	}
+	if len(outs) > 2 {
+		return nil
+	}
+	// If an error is returned, it must be the last returned value.
+	switch {
+	case len(outs) == 1 && isErrorType(outs[0]):
+		c.errPos = 0
+	case len(outs) == 2:
+		if isErrorType(outs[0]) || !isErrorType(outs[1]) {
+			return nil
+		}
+		c.errPos = 1
+	}
+	return c
+}
+
 // callback is a method callback which was registered in the server
 type callback struct {
 	fn       reflect.Value  // the function
@@ -66,18 +101,6 @@ func (e *callback) ServeRPC(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		fullargs = append(fullargs, reflect.ValueOf(r.Context()))
 	}
 	fullargs = append(fullargs, args...)
-	// Catch panic while running the callback.
-	defer func() {
-		if err := recover(); err != nil {
-			const size = 64 << 10
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			// fmt.Sprintf(`crashed: method=%s err=%v crashed=%s\n`, r.Method, err, string(buf))
-			//		errRes := errors.New("method handler crashed: " + fmt.Sprint(err))
-			w.Send(nil, fmt.Errorf("%s", err))
-			return
-		}
-	}()
 	// Run the callback.
 	results := e.fn.Call(fullargs)
 	if e.errPos >= 0 && !results[e.errPos].IsNil() {
@@ -93,42 +116,11 @@ func (e *callback) ServeRPC(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 	w.Send(results[0].Interface(), nil)
 }
 
-func NewCallback(receiver, fn reflect.Value) jsonrpc.Handler {
-	return newCallback(receiver, fn)
-}
-
-// newCallback turns fn (a function) into a callback object. It returns nil if the function
-// is unsuitable as an RPC callback.
-func newCallback(receiver, fn reflect.Value) *callback {
-	fntype := fn.Type()
-	c := &callback{fn: fn, rcvr: receiver, errPos: -1}
-	// Determine parameter types. They must all be exported or builtin types.
-	c.makeArgTypes()
-
-	// Verify return types. The function must return at most one error
-	// and/or one other non-error value.
-	outs := make([]reflect.Type, fntype.NumOut())
-	for i := 0; i < fntype.NumOut(); i++ {
-		outs[i] = fntype.Out(i)
-	}
-	if len(outs) > 2 {
-		return nil
-	}
-	// If an error is returned, it must be the last returned value.
-	switch {
-	case len(outs) == 1 && isErrorType(outs[0]):
-		c.errPos = 0
-	case len(outs) == 2:
-		if isErrorType(outs[0]) || !isErrorType(outs[1]) {
-			return nil
-		}
-		c.errPos = 1
-	}
-	return c
-}
+var jrpcResponseWriterType = reflect.TypeOf((*jsonrpc.ResponseWriter)(nil)).Elem()
+var jrpcRequestType = reflect.TypeOf(&jsonrpc.Request{})
 
 // makeArgTypes composes the argTypes list.
-func (c *callback) makeArgTypes() {
+func (c *callback) makeArgTypes() jsonrpc.Handler {
 	fntype := c.fn.Type()
 	// Skip receiver and context.Context parameter (if present).
 	firstArg := 0
@@ -139,11 +131,31 @@ func (c *callback) makeArgTypes() {
 		c.hasCtx = true
 		firstArg++
 	}
+
 	// Add all remaining parameters.
 	c.argTypes = make([]reflect.Type, fntype.NumIn()-firstArg)
 	for i := firstArg; i < fntype.NumIn(); i++ {
 		c.argTypes[i-firstArg] = fntype.In(i)
 	}
+	if len(c.argTypes) == 2 {
+		// special case to see if it is a valid jsonrpc.Handler
+		if c.argTypes[1].AssignableTo(jrpcRequestType) && c.argTypes[0].Implements(jrpcResponseWriterType) {
+			if !c.rcvr.IsValid() {
+				cb, ok := c.fn.Interface().(func(jsonrpc.ResponseWriter, *jsonrpc.Request))
+				if !ok {
+					spew.Println("bad callback:", c)
+					panic("invalid callback registered")
+				}
+				return jsonrpc.HandlerFunc(cb)
+			} else {
+				return jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+					c.fn.Call([]reflect.Value{c.rcvr, reflect.ValueOf(w), reflect.ValueOf(r)})
+				})
+			}
+		}
+
+	}
+	return nil
 }
 
 // Does t satisfy the error interface?
