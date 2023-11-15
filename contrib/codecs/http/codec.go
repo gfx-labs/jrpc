@@ -115,7 +115,7 @@ func (r *Codec) doReadGet() (msg *serverutil.Bundle, err error) {
 func (r *Codec) doReadRPC() (msg *serverutil.Bundle, err error) {
 	method_up := r.r.URL.Query().Get("method")
 	if method_up == "" {
-		method_up = r.r.URL.Path
+		method_up = strings.TrimPrefix(r.r.URL.Path, "/")
 	}
 	id := r.r.URL.Query().Get("id")
 	if id == "" {
