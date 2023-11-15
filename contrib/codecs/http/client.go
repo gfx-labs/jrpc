@@ -3,15 +3,18 @@ package http
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"golang.org/x/net/http2"
 
 	"gfx.cafe/util/go/bufpool"
 
@@ -25,6 +28,18 @@ var (
 	errClientReconnected         = errors.New("client reconnected")
 	errDead                      = errors.New("connection lost")
 )
+
+var DefaultH2CClient = &http.Client{
+	Transport: &http2.Transport{
+		// So http2.Transport doesn't complain the URL scheme isn't 'https'
+		AllowHTTP: true,
+		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
+		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, network, addr)
+		},
+	},
+}
 
 var _ jsonrpc.Conn = (*Client)(nil)
 
@@ -54,7 +69,9 @@ func (c *Client) Mount(h jsonrpc.Middleware) {
 func DialHTTP(target string) (*Client, error) {
 	return Dial(nil, http.DefaultClient, target)
 }
-
+func DialH2C(target string) (*Client, error) {
+	return Dial(nil, DefaultH2CClient, target)
+}
 func Dial(ctx context.Context, client *http.Client, target string) (*Client, error) {
 	if client == nil {
 		client = http.DefaultClient

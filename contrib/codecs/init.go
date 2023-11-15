@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"strings"
 
 	gohttp "net/http"
 
@@ -45,10 +46,9 @@ func init() {
 			go rdwr.NewCodec(conn, conn)
 		}
 	}, "tcp")
-
-	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
-		return gohttp.ListenAndServe(bind.Host, HttpHandler(srv))
-	}, "http")
+	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
+		return http.Dial(ctx, http.DefaultH2CClient, strings.Replace(url, "h2c", "http", 1))
+	}, "h2c")
 	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
 		return http.Dial(ctx, nil, url)
 	}, "https", "http")

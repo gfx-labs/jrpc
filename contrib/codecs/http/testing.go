@@ -10,7 +10,7 @@ import (
 
 func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
 	s := jrpctest.NewServer()
-	hsrv := httptest.NewServer(&Server{Server: s})
+	hsrv := httptest.NewServer(HttpHandler(s))
 	return s, func() jsonrpc.Conn {
 		conn, err := DialHTTP(hsrv.URL)
 		if err != nil {
