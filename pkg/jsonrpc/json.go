@@ -17,8 +17,6 @@ func NewNull() json.RawMessage {
 	return json.RawMessage("null")
 }
 
-type ExtraFields map[string]json.RawMessage
-
 // A value of this type can a JSON-RPC request, notification, successful response or
 // error response. Which one it is depends on the fields.
 type Message struct {
@@ -28,8 +26,6 @@ type Message struct {
 	Error  error           `json:"error,omitempty"`
 
 	Result io.ReadCloser `json:"result,omitempty"`
-
-	ExtraFields ExtraFields `json:"-"`
 }
 
 func NewStringReader(x string) io.ReadCloser {
@@ -50,11 +46,6 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 		if m.Method != "" {
 			e.Field("method", func(e *jx.Encoder) {
 				e.Str(m.Method)
-			})
-		}
-		for k, v := range m.ExtraFields {
-			e.Field(k, func(e *jx.Encoder) {
-				e.Raw(v)
 			})
 		}
 		if m.Error != nil {
@@ -91,17 +82,6 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 	err := dec.Obj(func(d *jx.Decoder, key string) (err error) {
 		switch key {
-		default:
-			val, err := d.Raw()
-			if err != nil {
-				return err
-			}
-			buf := bytes.NewBuffer(make(json.RawMessage, len(val)))
-			buf.Write(val)
-			if m.ExtraFields == nil {
-				m.ExtraFields = ExtraFields{}
-			}
-			m.ExtraFields[key] = buf.Bytes()
 		case "jsonrpc":
 			value, err := d.Str()
 			if err != nil {
@@ -214,31 +194,6 @@ func IsBatchMessage(raw json.RawMessage) bool {
 		return c == '['
 	}
 	return false
-}
-
-func (m ExtraFields) SetExtraField(name string, v any) (err error) {
-	switch name {
-	case "id", "jsonrpc", "method", "params", "result", "error":
-		return fmt.Errorf("%w: %q", ErrIllegalExtraField, name)
-	}
-	if v == nil {
-		delete(m, name)
-	}
-	val, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	m[name] = val
-	return nil
-}
-func (m ExtraFields) Clear() {
-	for k := range m {
-		delete(m, k)
-	}
-}
-
-func (m *Message) SetExtraField(name string, v any) error {
-	return m.ExtraFields.SetExtraField(name, v)
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error

@@ -132,7 +132,6 @@ func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, 
 		err = jsonrpc.NewInvalidRequestError("invalid request")
 	}
 	out = inputMessage
-	out.ExtraFields = jsonrpc.ExtraFields{}
 	out.Error = nil
 	// zero length method is always invalid request
 	if len(out.Method) == 0 {
@@ -238,10 +237,9 @@ func (s *Server) serveBatch(ctx context.Context,
 		}
 		for i, v := range batchResults {
 			err = r.send(ctx, &callEnv{
-				v:           v.payload,
-				err:         v.err,
-				id:          v.msg.ID,
-				extrafields: v.msg.ExtraFields,
+				v:   v.payload,
+				err: v.err,
+				id:  v.msg.ID,
 			})
 			if err != nil {
 				return err
@@ -285,10 +283,9 @@ type callResponder struct {
 }
 
 type callEnv struct {
-	v           any
-	err         error
-	id          *jsonrpc.ID
-	extrafields jsonrpc.ExtraFields
+	v   any
+	err error
+	id  *jsonrpc.ID
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
@@ -304,13 +301,6 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			e.Field("id", func(e *jx.Encoder) {
 				e.Raw(env.id.RawMessage())
 			})
-		}
-		if env.extrafields != nil {
-			for k, v := range env.extrafields {
-				e.Field(k, func(e *jx.Encoder) {
-					e.Raw(v)
-				})
-			}
 		}
 		if env.err != nil {
 			e.Field("error", func(e *jx.Encoder) {
@@ -359,7 +349,6 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 type notifyEnv struct {
 	method string
 	dat    any
-	extra  jsonrpc.ExtraFields
 }
 
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) {
@@ -373,7 +362,6 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) 
 	} else {
 		msg.Params = buf.Bytes()
 	}
-	msg.ExtraFields = env.extra
 	// add the method
 	msg.Method = env.method
 	enc := jx.GetEncoder()

@@ -61,10 +61,6 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 	return nil
 }
 
-func (c *batchingRespWriter) ExtraFields() jsonrpc.ExtraFields {
-	return c.msg.ExtraFields
-}
-
 func (c *batchingRespWriter) Notify(method string, v any) error {
 	err := c.cr.mu.Acquire(c.ctx, 1)
 	if err != nil {
@@ -74,7 +70,6 @@ func (c *batchingRespWriter) Notify(method string, v any) error {
 	err = c.cr.notify(c.ctx, &notifyEnv{
 		method: method,
 		dat:    v,
-		extra:  c.msg.ExtraFields,
 	})
 	if err != nil {
 		return err

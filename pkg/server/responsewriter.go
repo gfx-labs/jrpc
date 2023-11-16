@@ -38,9 +38,8 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	}
 	c.sendCalled = true
 	ce := &callEnv{
-		err:         c.err,
-		id:          c.msg.ID,
-		extrafields: c.msg.ExtraFields,
+		err: c.err,
+		id:  c.msg.ID,
 	}
 	// only override error if not already set
 	if ce.err == nil {
@@ -67,10 +66,6 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	return nil
 }
 
-func (c *streamingRespWriter) ExtraFields() jsonrpc.ExtraFields {
-	return c.msg.ExtraFields
-}
-
 func (c *streamingRespWriter) Notify(method string, v any) error {
 	err := c.cr.mu.Acquire(c.ctx, 1)
 	if err != nil {
@@ -80,7 +75,6 @@ func (c *streamingRespWriter) Notify(method string, v any) error {
 	err = c.cr.notify(c.ctx, &notifyEnv{
 		method: method,
 		dat:    v,
-		extra:  c.msg.ExtraFields,
 	})
 	if err != nil {
 		return err

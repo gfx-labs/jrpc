@@ -10,7 +10,6 @@ import (
 type ResponseWriter interface {
 	Send(v any, err error) error
 	Notify(method string, v any) error
-	ExtraFields() ExtraFields
 }
 
 // BatchElem is an element in a batch request.
@@ -119,7 +118,6 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.Method = r.Method
 	r2.Params = r.Params
 	r2.Error = r.Error
-	r2.ExtraFields = r.ExtraFields
 	r2.Peer = r.Peer
 	return r2
 }
