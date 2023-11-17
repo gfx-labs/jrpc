@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"sync"
 
@@ -61,14 +62,16 @@ func (e *Engine) Middleware() func(jsonrpc.Handler) jsonrpc.Handler {
 				h.ServeRPC(w, r)
 			case strings.HasSuffix(r.Method, serviceMethodSeparator+unsubscribeMethodSuffix):
 				// read the subscription id to close
-				var subid SubID
-				err := r.ParamArray(subid)
+				resp := []SubID{}
+				err := json.Unmarshal(r.Params, &resp)
 				if err != nil {
 					w.Send(false, err)
 					return
 				}
-				// close that sub
-				w.Send(e.closeSub(subid))
+				// close subs
+				if len(resp) > 0 {
+					w.Send(e.closeSub(resp[0]))
+				}
 			default:
 				h.ServeRPC(w, r)
 			}

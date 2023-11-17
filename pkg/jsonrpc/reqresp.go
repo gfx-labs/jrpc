@@ -71,25 +71,6 @@ func NewRequest(ctx context.Context, id *ID, method string, params any) (r *Requ
 	return NewRawRequest(ctx, id, method, raw), nil
 }
 
-func (r *Request) ParamArray(a ...any) error {
-	var params []json.RawMessage
-	err := json.Unmarshal(r.Params, &params)
-	if err != nil {
-		return err
-	}
-	for idx, v := range params {
-		if len(v) > idx {
-			err := json.Unmarshal(v, &a[idx])
-			if err != nil {
-				return err
-			}
-		} else {
-			break
-		}
-	}
-	return nil
-}
-
 func (r *Request) Context() context.Context {
 	return r.ctx
 }
