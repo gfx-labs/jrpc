@@ -336,9 +336,6 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 		}
 	})
 	// a json encoding error here is possibly fatal....
-	if err != nil {
-		return err
-	}
 	err = enc.Close()
 	if err != nil {
 		return err
