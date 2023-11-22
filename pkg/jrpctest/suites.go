@@ -76,65 +76,6 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		assert.Error(t, err, "passing var as nil gives error")
 	})
 
-	makeTest("BatchRequest", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
-		batch := []*jsonrpc.BatchElem{
-			{
-				Method: "test_echo",
-				Params: []any{"hello", 10, &EchoArgs{"world"}},
-				Result: new(EchoResult),
-			},
-			{
-				Method: "test_echo",
-				Params: []any{"hello2", 11, &EchoArgs{"world"}},
-				Result: new(EchoResult),
-			},
-			{
-				Method:         "test_echo",
-				Params:         []any{"hello3", 12, &EchoArgs{"world"}},
-				IsNotification: true,
-			},
-			{
-				Method: "no/such/method",
-				Params: []any{1, 2, 3},
-				Result: new(int),
-			},
-		}
-		if err := client.BatchCall(nil, batch...); err != nil {
-			t.Fatal(err)
-		}
-		wantResult := []*jsonrpc.BatchElem{
-			{
-				Method: "test_echo",
-				Params: []any{"hello", 10, &EchoArgs{"world"}},
-				Result: &EchoResult{"hello", 10, &EchoArgs{"world"}},
-			},
-			{
-				Method: "test_echo",
-				Params: []any{"hello2", 11, &EchoArgs{"world"}},
-				Result: &EchoResult{"hello2", 11, &EchoArgs{"world"}},
-			},
-			{
-				Method: "test_echo",
-				Params: []any{"hello3", 12, &EchoArgs{"world"}},
-			},
-			{
-				Method: "no/such/method",
-				Params: []any{1, 2, 3},
-				Result: new(int),
-				Error:  &jsonrpc.JsonError{Code: -32601, Message: "the method no/such/method does not exist/is not available"},
-			},
-		}
-		require.EqualValues(t, len(batch), len(wantResult))
-		for i := range batch {
-			a := batch[i]
-			b := wantResult[i]
-			assert.EqualValuesf(t, b.Method, a.Method, "item %d", i)
-			assert.EqualValuesf(t, b.Result, a.Result, "item %d", i)
-			assert.EqualValuesf(t, b.Params, a.Params, "item %d", i)
-			assert.EqualValuesf(t, b.Error, a.Error, "item %d", i)
-		}
-	})
-
 	makeTest("ResposeType2", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
 		if err := jsonrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)

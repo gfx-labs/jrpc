@@ -79,23 +79,6 @@ func (r *Pooling) Do(ctx context.Context, result any, method string, params any)
 	return <-errChan
 }
 
-func (r *Pooling) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
-	if r.closed.Load() {
-		return net.ErrClosed
-	}
-	errChan := make(chan error)
-	go func() {
-		conn, err := r.getClient(ctx)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		defer r.putClient(conn)
-		errChan <- conn.BatchCall(ctx, b...)
-	}()
-	return <-errChan
-}
-
 func (p *Pooling) Mount(m jsonrpc.Middleware) {
 	p.middleware = append(p.middleware, m)
 }

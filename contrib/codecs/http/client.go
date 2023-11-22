@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -135,42 +134,6 @@ func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	}
 	resp.Body.Close()
 	return err
-}
-
-func (c *Client) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
-	reqs := make([]*jsonrpc.Request, len(b))
-	ids := make(map[int]int, len(b))
-	for idx, v := range b {
-		var rid *jsonrpc.ID
-		if v.IsNotification {
-		} else {
-			id := int(c.id.Add(1))
-			ids[idx] = id
-			rid = jsonrpc.NewNumberIDPtr(int64(id))
-		}
-		req, err := jsonrpc.NewRequest(ctx, rid, v.Method, v.Params)
-		if err != nil {
-			return err
-		}
-		reqs = append(reqs, req)
-	}
-	dat, err := json.Marshal(reqs)
-	if err != nil {
-		return err
-	}
-	resp, err := c.postBuf(ctx, bytes.NewBuffer(dat))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	msgs := []*jsonrpc.Message{}
-	err = json.NewDecoder(resp.Body).Decode(&msgs)
-	if err != nil {
-		return err
-	}
-	clientutil.FillBatch(ids, msgs, b)
-	return nil
 }
 
 func (c *Client) Close() error {

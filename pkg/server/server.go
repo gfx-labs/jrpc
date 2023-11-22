@@ -101,9 +101,11 @@ func (s *Server) serveSingle(ctx context.Context,
 		cr:  r,
 	}
 	rw.msg, rw.err = produceOutputMessage(incoming)
-	req := jsonrpc.NewRequestFromMessage(
+	req := jsonrpc.NewRawRequest(
 		ctx,
-		rw.msg,
+		rw.msg.ID,
+		rw.msg.Method,
+		rw.msg.Params,
 	)
 	req.Peer = r.remote.PeerInfo()
 	if rw.msg.ID == nil {
@@ -210,9 +212,11 @@ func (s *Server) serveBatch(ctx context.Context,
 		// TODO: stress test this.
 		go func() {
 			defer returnWg.Done()
-			req := jsonrpc.NewRequestFromMessage(
+			req := jsonrpc.NewRawRequest(
 				ctx,
-				v.msg,
+				v.msg.ID,
+				v.msg.Method,
+				v.msg.Params,
 			)
 			req.Peer = peerInfo
 			s.services.ServeRPC(v, req)

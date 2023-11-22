@@ -30,8 +30,6 @@ type (
 	Server = server.Server
 	// Middleware is a middleware
 	Middleware = func(Handler) Handler
-	// BatchElem is an element of a batch request
-	BatchElem = jsonrpc.BatchElem
 )
 
 var (

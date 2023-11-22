@@ -18,10 +18,6 @@ func (d *DummyClient) Do(ctx context.Context, result any, method string, params 
 	panic("not implemented") // TODO: Implement
 }
 
-func (d *DummyClient) BatchCall(ctx context.Context, b ...*BatchElem) error {
-	panic("not implemented") // TODO: Implement
-}
-
 func (d *DummyClient) Close() error {
 	panic("not implemented") // TODO: Implement
 }

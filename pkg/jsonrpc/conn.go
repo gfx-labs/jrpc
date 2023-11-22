@@ -8,7 +8,6 @@ import (
 type Conn interface {
 	Doer
 	Notifier
-	BatchCaller
 
 	Mounter
 
@@ -18,10 +17,6 @@ type Conn interface {
 
 type Doer interface {
 	Do(ctx context.Context, result any, method string, params any) error
-}
-
-type BatchCaller interface {
-	BatchCall(ctx context.Context, b ...*BatchElem) error
 }
 
 type Notifier interface {

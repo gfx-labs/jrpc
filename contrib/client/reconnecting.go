@@ -73,19 +73,6 @@ func (r *Reconnecting) Do(ctx context.Context, result any, method string, params
 	return <-errChan
 }
 
-func (r *Reconnecting) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
-	errChan := make(chan error)
-	go func() {
-		conn, err := r.getClient(ctx)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		errChan <- conn.BatchCall(ctx, b...)
-	}()
-	return <-errChan
-}
-
 func (r *Reconnecting) Mount(m jsonrpc.Middleware) {
 	r.middleware = append(r.middleware, m)
 }

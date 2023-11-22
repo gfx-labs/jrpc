@@ -20,9 +20,9 @@ func NewLogger(logger *slog.Logger) func(next jsonrpc.Handler) jsonrpc.Handler {
 		fn := func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			start := time.Now()
 			lg := logger.With(
-				"remote", r.Remote(),
+				"remote", r.Peer.RemoteAddr,
 				"method", r.Method,
-				"params", string(r.Msg().Params),
+				"params", string(r.Params),
 			)
 			if id := GetReqID(r.Context()); id != "" {
 				lg = logger.With(

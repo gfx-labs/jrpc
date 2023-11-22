@@ -128,10 +128,6 @@ func (c *WrapClient) Do(ctx context.Context, result any, method string, params a
 	return c.conn.Do(ctx, result, method, params)
 }
 
-func (c *WrapClient) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
-	return c.conn.BatchCall(ctx, b...)
-}
-
 func (c *WrapClient) Close() error {
 	return c.conn.Close()
 }

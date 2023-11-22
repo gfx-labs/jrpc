@@ -12,43 +12,13 @@ type ResponseWriter interface {
 	Notify(method string, v any) error
 }
 
-// BatchElem is an element in a batch request.
-type BatchElem struct {
-	Method string
-	Params any
-
-	IsNotification bool
-
-	// The result is unmarshaled into this field. Result must be set to a
-	// non-nil pointer value of the desired type, otherwise the response will be
-	// discarded.
-	Result any
-	// Error is set if the server returns an error for this request, or if
-	// unmarshaling into Result fails. It is not set for I/O errors.
-	Error error
-}
-
 type Request struct {
-	ctx  context.Context
-	Peer PeerInfo `json:"-"`
+	ID     *ID             `json:"id,omitempty"`
+	Method string          `json:"method,omitempty"`
+	Params json.RawMessage `json:"params,omitempty"`
+	Peer   PeerInfo        `json:"-"`
 
-	Message
-}
-
-func (r *Request) UnmarshalJSON(xs []byte) error {
-	return r.Message.UnmarshalJSON(xs)
-}
-
-func (r Request) MarshalJSON() ([]byte, error) {
-	return r.Message.MarshalJSON()
-}
-
-func NewRequestFromMessage(ctx context.Context, message *Message) (r *Request) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	r = &Request{ctx: ctx, Message: *message}
-	return r
+	ctx context.Context
 }
 
 func NewRawRequest(ctx context.Context, id *ID, method string, params json.RawMessage) (r *Request) {
@@ -75,18 +45,6 @@ func (r *Request) Context() context.Context {
 	return r.ctx
 }
 
-func (r *Request) Msg() Message {
-	return Message{
-		ID:     r.ID,
-		Method: r.Method,
-		Params: r.Params,
-	}
-}
-
-func (r *Request) Remote() string {
-	return r.Peer.RemoteAddr
-}
-
 func (r *Request) WithContext(ctx context.Context) *Request {
 	if ctx == nil {
 		panic("nil context")
@@ -98,7 +56,6 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.ID = r.ID
 	r2.Method = r.Method
 	r2.Params = r.Params
-	r2.Error = r.Error
 	r2.Peer = r.Peer
 	return r2
 }

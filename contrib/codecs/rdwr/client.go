@@ -137,57 +137,6 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	return nil
 }
 
-func (c *Client) BatchCall(ctx context.Context, b ...*jsonrpc.BatchElem) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
-	enc := json.NewEncoder(buf)
-	reqs := make([]*jsonrpc.Request, 0, len(b))
-	ids := make([]*jsonrpc.ID, 0, len(b))
-	for _, v := range b {
-		id := c.p.NextId()
-		req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(id), v.Method, v.Params)
-		if err != nil {
-			return err
-		}
-		ids = append(ids, id)
-		reqs = append(reqs, req)
-	}
-	err := enc.Encode(reqs)
-	if err != nil {
-		return err
-	}
-	err = c.writeContext(ctx, buf.Bytes())
-	if err != nil {
-		return err
-	}
-	// TODO: wait for response
-	wg := sync.WaitGroup{}
-	wg.Add(len(ids))
-	for i := range ids {
-		idx := i
-		go func() {
-			defer wg.Done()
-			ans, err := c.p.Ask(reqs[idx].Context(), *ids[idx])
-			if err != nil {
-				b[idx].Error = err
-				return
-			}
-			if b[idx].Result != nil {
-				err = json.NewDecoder(ans).Decode(b[idx].Result)
-				if err != nil {
-					b[idx].Error = err
-					return
-				}
-			}
-		}()
-	}
-	wg.Wait()
-
-	return err
-}
 func (c *Client) Notify(ctx context.Context, method string, params any) error {
 	if ctx == nil {
 		ctx = context.Background()
