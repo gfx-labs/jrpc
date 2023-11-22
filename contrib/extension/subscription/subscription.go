@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -12,7 +13,6 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/util/go/frand"
 )
 
 var serviceMethodSeparator = "/"
@@ -52,7 +52,7 @@ func NewID() SubID {
 func randomIDGenerator() func() SubID {
 	return func() SubID {
 		id := make([]byte, 32)
-		frand.Read(id)
+		rand.Read(id)
 		id = binary.LittleEndian.AppendUint64(id, uint64(globalInc.Add(1)))
 		return encodeSubID(id)
 	}

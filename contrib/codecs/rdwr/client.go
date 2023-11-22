@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/clientutil"
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/util/go/bufpool"
 )
 
 type Client struct {
@@ -110,17 +110,11 @@ func (c *Client) listen() error {
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	id := c.p.NextId()
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
 	req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(id), method, params)
 	if err != nil {
 		return err
 	}
-	err = json.NewEncoder(buf).Encode(req)
-	if err != nil {
-		return err
-	}
-	err = c.writeContext(req.Context(), buf.Bytes())
+	err = jjson.MarshalAndEncode(c.wr, req)
 	if err != nil {
 		return err
 	}

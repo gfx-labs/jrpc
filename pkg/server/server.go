@@ -12,8 +12,6 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
-	"gfx.cafe/util/go/bufpool"
-
 	"github.com/go-faster/jx"
 )
 
@@ -358,8 +356,8 @@ type notifyEnv struct {
 func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) {
 	msg := &jsonrpc.Message{}
 	//  allocate a temp buffer for this packet
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
+	buf := jjson.GetBuf()
+	defer jjson.PutBuf(buf)
 	err = jjson.Encode(buf, env.dat)
 	if err != nil {
 		msg.Error = err

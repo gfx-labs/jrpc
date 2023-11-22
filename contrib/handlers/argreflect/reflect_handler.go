@@ -6,7 +6,6 @@ import (
 	"unicode"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -143,7 +142,6 @@ func (c *callback) makeArgTypes() jsonrpc.Handler {
 			if !c.rcvr.IsValid() {
 				cb, ok := c.fn.Interface().(func(jsonrpc.ResponseWriter, *jsonrpc.Request))
 				if !ok {
-					spew.Println("bad callback:", c)
 					panic("invalid callback registered")
 				}
 				return jsonrpc.HandlerFunc(cb)

@@ -12,12 +12,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"golang.org/x/net/http2"
-
-	"gfx.cafe/util/go/bufpool"
-
-	"gfx.cafe/open/jrpc/pkg/clientutil"
 )
 
 var (
@@ -104,8 +101,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 			Body:       b,
 		}
 	}
-	msg := clientutil.GetMessage()
-	defer clientutil.PutMessage(msg)
+	msg := &jsonrpc.Message{}
 
 	err = json.NewDecoder(resp.Body).Decode(&msg)
 	if err != nil {
@@ -146,14 +142,18 @@ func (c *Client) Closed() <-chan struct{} {
 
 func (c *Client) post(req *jsonrpc.Request) (*http.Response, error) {
 	// TODO: use buffer for this
-	buf := bufpool.GetStd()
-	defer bufpool.PutStd(buf)
+	buf := jjson.GetBuf()
+	defer jjson.PutBuf(buf)
 	buf.Reset()
 	err := json.NewEncoder(buf).Encode(req)
 	if err != nil {
 		return nil, err
 	}
-	return c.postBuf(req.Context(), buf)
+	resp, err := c.postBuf(req.Context(), buf)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (c *Client) postBuf(ctx context.Context, rd io.Reader) (*http.Response, error) {
