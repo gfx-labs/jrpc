@@ -3,10 +3,11 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"sync"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"github.com/goccy/go-json"
 )
 
 // batchingRespWriter is NOT thread safe
@@ -48,7 +49,7 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 	if v != nil && c.err == nil {
 		buf := &bytes.Buffer{}
 		w := newWriter(buf, maxBatchSizeBytes, false)
-		err = json.NewEncoder(w).Encode(v)
+		err = jjson.Encode(w, v)
 		if err != nil {
 			// the user just gets a generic error saying that the json is bad
 			c.err = jsonrpc.NewInternalError("server sent bad json")

@@ -2,8 +2,7 @@ package jsonrpc
 
 import (
 	"context"
-
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 // http.ResponseWriter interface, but for jrpc

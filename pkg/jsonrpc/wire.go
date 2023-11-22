@@ -2,11 +2,12 @@ package jsonrpc
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 
-	"github.com/goccy/go-json"
+	"gfx.cafe/open/jrpc/pkg/jjson"
 )
 
 // Version represents a JSON-RPC version.
@@ -137,12 +138,12 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 	}
 	// it has to be a string or number
 	var num int
-	err := json.Unmarshal(data, &num)
+	err := jjson.Unmarshal(data, &num)
 	if err == nil {
 		return nil
 	}
 	var str string
-	err = json.Unmarshal(data, &str)
+	err = jjson.Unmarshal(data, &str)
 	if err == nil {
 		return nil
 	}

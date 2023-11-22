@@ -1,12 +1,13 @@
 package argreflect
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"github.com/go-faster/jx"
-	"github.com/goccy/go-json"
 )
 
 // parsePositionalArguments tries to parse the given args to an array of values with the
@@ -59,7 +60,7 @@ func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Valu
 		if err != nil {
 			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("invalid raw argument %d: %v", i, err))
 		}
-		err = json.Unmarshal(raw, argval.Interface())
+		err = jjson.Unmarshal(raw, argval.Interface())
 		if err != nil {
 			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("invalid argument %d: %v", i, err))
 		}

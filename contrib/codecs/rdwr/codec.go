@@ -3,11 +3,11 @@ package rdwr
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"io"
 	"sync"
 
-	"github.com/goccy/go-json"
-
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
@@ -19,8 +19,6 @@ type Codec struct {
 	rd io.Reader
 	wr *bufio.Writer
 
-	dec     *json.Decoder
-	decBuf  json.RawMessage
 	decLock sync.Mutex
 }
 
@@ -31,7 +29,6 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 		cn:  cn,
 		rd:  bufio.NewReader(rd),
 		wr:  bufio.NewWriter(wr),
-		dec: json.NewDecoder(rd),
 	}
 	return c
 }
@@ -48,13 +45,12 @@ func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
 	c.decLock.Lock()
 	defer c.decLock.Unlock()
-	//c.decBuf = c.decBuf[:0]
-	c.decBuf = json.RawMessage{}
-	err := c.dec.DecodeContext(ctx, &c.decBuf)
+	decBuf := make(json.RawMessage, 0)
+	err := jjson.Decode(c.rd, &decBuf)
 	if err != nil {
 		return nil, err
 	}
-	return serverutil.ParseBundle(c.decBuf), nil
+	return serverutil.ParseBundle(decBuf), nil
 }
 
 func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {

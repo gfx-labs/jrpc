@@ -2,18 +2,19 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	"gfx.cafe/util/go/bufpool"
 
 	"github.com/go-faster/jx"
-	"github.com/goccy/go-json"
 )
 
 // Server is an RPC server.
@@ -330,9 +331,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 			case func(e *jx.Writer) error:
 				err = cast(enc)
 			default:
-				err = json.NewEncoder(w).EncodeWithOption(cast, func(eo *json.EncodeOption) {
-					eo.DisableNewline = true
-				})
+				err = jjson.Encode(w, cast)
 			}
 		} else {
 			enc.Null()
@@ -361,7 +360,7 @@ func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) 
 	//  allocate a temp buffer for this packet
 	buf := bufpool.GetStd()
 	defer bufpool.PutStd(buf)
-	err = json.NewEncoder(buf).Encode(env.dat)
+	err = jjson.Encode(buf, env.dat)
 	if err != nil {
 		msg.Error = err
 	} else {

@@ -2,16 +2,17 @@ package websocket
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"gfx.cafe/open/websocket"
-	"github.com/goccy/go-json"
 
 	_ "net/http/pprof"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
@@ -81,7 +82,7 @@ func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, er
 		return nil, err
 	}
 	defer io.Copy(io.Discard, r)
-	err = json.NewDecoder(r).DecodeContext(ctx, &c.decBuf)
+	err = jjson.Decode(r, &c.decBuf)
 	if err != nil {
 		return nil, err
 	}

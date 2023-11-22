@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/util/go/frand"
-
-	json "github.com/goccy/go-json"
 )
 
 var serviceMethodSeparator = "/"
@@ -95,7 +95,7 @@ type Notifier struct {
 // Notify sends a notification to the client with the given data as payload.
 // If an error occurs the RPC connection is closed and the error is returned.
 func (n *Notifier) Notify(data any) error {
-	enc, err := json.Marshal(data)
+	enc, err := jjson.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (n *Notifier) Err() <-chan error {
 }
 
 func (n *Notifier) send(data json.RawMessage) error {
-	params, _ := json.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
+	params, _ := jjson.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
 	return n.h.Notify(
 		n.namespace+
 			serviceMethodSeparator+
