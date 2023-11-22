@@ -50,7 +50,7 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 		}
 		if m.Error != nil {
 			e.Field("error", func(e *jx.Encoder) {
-				EncodeError(e, m.Error)
+				e.Raw(MarshalError(m.Error))
 			})
 			return
 		}

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"io"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
@@ -293,53 +294,56 @@ type callEnv struct {
 }
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
-	enc := jx.GetEncoder()
-	defer jx.PutEncoder(enc)
+	w := c.remote
+	enc := jx.GetWriter()
+	defer jx.PutWriter(enc)
 	enc.Grow(4096)
-	enc.ResetWriter(c.remote)
-	enc.Obj(func(e *jx.Encoder) {
-		e.Field("jsonrpc", func(e *jx.Encoder) {
-			e.Str("2.0")
-		})
-		if env.id != nil {
-			e.Field("id", func(e *jx.Encoder) {
-				e.Raw(env.id.RawMessage())
-			})
-		}
-		if env.err != nil {
-			e.Field("error", func(e *jx.Encoder) {
-				jsonrpc.EncodeError(e, env.err)
-			})
-		} else {
-			// if there is no error, we try to marshal the result
-			e.Field("result", func(e *jx.Encoder) {
-				if env.v != nil {
-					switch cast := (env.v).(type) {
-					case json.RawMessage:
-						if len(cast) == 0 {
-							e.Null()
-						} else {
-							e.Raw(cast)
-						}
-					case func(e *jx.Encoder) error:
-						err = cast(e)
-					default:
-						err = json.NewEncoder(e).EncodeWithOption(cast, func(eo *json.EncodeOption) {
-							eo.DisableNewline = true
-						})
-					}
+	enc.ResetWriter(w)
+	enc.ObjStart()
+	enc.FieldStart("jsonrpc")
+	enc.Str("2.0")
+	if env.id != nil {
+		enc.Comma()
+		enc.FieldStart("id")
+		enc.Raw(env.id.RawMessage())
+	}
+	if env.err != nil {
+		enc.Comma()
+		enc.FieldStart("error")
+		enc.Raw(jsonrpc.MarshalError(env.err))
+	} else {
+		// if there is no error, we try to marshal the result
+		enc.Comma()
+		enc.FieldStart("result")
+		enc.Close()
+		enc.ResetWriter(w)
+		if env.v != nil {
+			switch cast := (env.v).(type) {
+			case json.RawMessage:
+				if len(cast) == 0 {
+					enc.Null()
 				} else {
-					e.Null()
+					enc.Raw(cast)
 				}
-			})
+			case func(e io.Writer) error:
+				err = cast(w)
+			case func(e *jx.Writer) error:
+				err = cast(enc)
+			default:
+				err = json.NewEncoder(w).EncodeWithOption(cast, func(eo *json.EncodeOption) {
+					eo.DisableNewline = true
+				})
+			}
+		} else {
+			enc.Null()
 		}
-		if env.err == nil && err != nil {
-			e.Field("error", func(e *jx.Encoder) {
-				jsonrpc.EncodeError(e, err)
-			})
-		}
-	})
-	// a json encoding error here is possibly fatal....
+	}
+	if env.err == nil && err != nil {
+		enc.Comma()
+		enc.FieldStart("error")
+		enc.Raw(jsonrpc.MarshalError(err))
+	}
+	enc.ObjEnd()
 	err = enc.Close()
 	if err != nil {
 		return err

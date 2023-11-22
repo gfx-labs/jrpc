@@ -4,8 +4,6 @@ go 1.21
 
 replace github.com/goccy/go-json v0.10.2 => github.com/elee1766/go-json v0.10.2-1
 
-replace github.com/go-faster/jx v1.1.0 => github.com/elee1766/jx v1.1.0-1
-
 require (
 	gfx.cafe/open/websocket v1.9.2
 	gfx.cafe/util/go/bufpool v0.0.0-20230721185457-c559e86c829c

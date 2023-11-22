@@ -44,7 +44,8 @@ type DataError interface {
 	ErrorData() any // returns the error data
 }
 
-func EncodeError(enc *jx.Encoder, err error) error {
+func MarshalError(err error) []byte {
+	enc := jx.GetEncoder()
 	enc.Obj(func(e *jx.Encoder) {
 		switch er := err.(type) {
 		case DataError:
@@ -69,7 +70,7 @@ func EncodeError(enc *jx.Encoder, err error) error {
 			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
 		}
 	})
-	return nil
+	return enc.Bytes()
 }
 
 func WrapErr(data any, code int, err error) error {
