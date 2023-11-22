@@ -110,11 +110,17 @@ func (c *Client) listen() error {
 
 func (c *Client) Do(ctx context.Context, result any, method string, params any) error {
 	id := c.p.NextId()
+	buf := jjson.GetBuf()
+	defer jjson.PutBuf(buf)
 	req, err := jsonrpc.NewRequest(ctx, jsonrpc.NewId(id), method, params)
 	if err != nil {
 		return err
 	}
-	err = jjson.MarshalAndEncode(c.wr, req)
+	err = json.NewEncoder(buf).Encode(req)
+	if err != nil {
+		return err
+	}
+	err = c.writeContext(req.Context(), buf.Bytes())
 	if err != nil {
 		return err
 	}
