@@ -11,6 +11,7 @@ require (
 	gfx.cafe/util/go/bufpool v0.0.0-20230721185457-c559e86c829c
 	gfx.cafe/util/go/frand v0.0.0-20230721185457-c559e86c829c
 	gfx.cafe/util/go/generic v0.0.0-20230721185457-c559e86c829c
+	github.com/davecgh/go-spew v1.1.1
 	github.com/go-faster/jx v1.1.0
 	github.com/goccy/go-json v0.10.2
 	github.com/stretchr/testify v1.8.4
@@ -21,7 +22,6 @@ require (
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
