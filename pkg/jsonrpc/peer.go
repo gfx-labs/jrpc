@@ -12,5 +12,5 @@ type PeerInfo struct {
 	RemoteAddr string
 
 	// Additional information for HTTP and WebSocket connections.
-	HTTP *http.Request
+	HTTP *http.Request `json:"-"`
 }

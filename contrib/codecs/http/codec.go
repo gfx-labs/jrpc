@@ -65,7 +65,7 @@ func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 func (c *Codec) peerInfo() {
 	c.i.Transport = "http"
 	c.i.RemoteAddr = c.r.RemoteAddr
-	c.i.HTTP = &http.Request{}
+	c.i.HTTP = c.r.Clone(c.r.Context())
 }
 
 // gets the peer info

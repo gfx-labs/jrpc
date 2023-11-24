@@ -176,40 +176,6 @@ func TestHTTPErrorResponse(t *testing.T) {
 	}
 }
 
-func TestHTTPPeerInfo(t *testing.T) {
-	s := jrpctest.NewServer()
-	ts := httptest.NewServer(&Server{Server: s})
-	defer ts.Close()
-
-	c, err := DialHTTP(ts.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c.SetHeader("user-agent", "ua-testing")
-	c.SetHeader("x-forwarded-for", "origin.example.com")
-
-	// Request peer information.
-	var info jsonrpc.PeerInfo
-	if err := c.Do(nil, &info, "test_peerInfo", nil); err != nil {
-		t.Fatal(err)
-	}
-
-	if info.RemoteAddr == "" {
-		t.Error("RemoteAddr not set")
-	}
-	if info.Transport != "http" {
-		t.Errorf("wrong Transport %q", info.Transport)
-	}
-	if info.HTTP.Proto != "HTTP/1.1" {
-		t.Errorf("wrong HTTP.Version %q", info.HTTP.Proto)
-	}
-	if info.HTTP.UserAgent() != "ua-testing" {
-		t.Errorf("wrong HTTP.UserAgent %q", info.HTTP.UserAgent())
-	}
-	if info.HTTP.Host != "origin.example.com" {
-		t.Errorf("wrong HTTP.Origin %q", info.HTTP.Host)
-	}
-}
 func TestClientHTTP(t *testing.T) {
 	s := jrpctest.NewServer()
 	ts := httptest.NewServer(&Server{Server: s})

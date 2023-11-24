@@ -9,7 +9,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
@@ -92,40 +91,6 @@ func TestWebsocketLargeCall(t *testing.T) {
 	err = client.Do(nil, &result, "test_echo", []any{arg})
 	if err == nil {
 		t.Fatal("no error for too large call")
-	}
-}
-
-func TestWebsocketPeerInfo(t *testing.T) {
-	var (
-		s     = jrpctest.NewServer()
-		ts    = httptest.NewServer(websocket.WebsocketHandler(s, []string{"origin.example.com"}))
-		tsurl = "ws:" + strings.TrimPrefix(ts.URL, "http:")
-	)
-	defer ts.Close()
-
-	ctx := context.Background()
-	c, err := websocket.DialWebsocket(ctx, tsurl, "http://origin.example.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Request peer information.
-	var connInfo jsonrpc.PeerInfo
-	if err := c.Do(nil, &connInfo, "test_peerInfo", []any{}); err != nil {
-		t.Fatal(err)
-	}
-
-	if connInfo.RemoteAddr == "" {
-		t.Error("RemoteAddr not set")
-	}
-	if connInfo.Transport != "ws" {
-		t.Errorf("wrong Transport %q", connInfo.Transport)
-	}
-	if connInfo.HTTP.UserAgent() != "Go-http-client/1.1" {
-		t.Errorf("wrong HTTP.UserAgent %q", connInfo.HTTP.UserAgent())
-	}
-	if connInfo.HTTP.Host != "http://origin.example.com" {
-		t.Errorf("wrong HTTP.Origin %q", connInfo.HTTP.Host)
 	}
 }
 
