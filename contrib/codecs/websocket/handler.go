@@ -22,7 +22,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	c := newWebsocketCodec(r.Context(), conn, "", r.Header)
+	c := newWebsocketCodec(r.Context(), conn, "", r)
 	err = s.Server.ServeCodec(r.Context(), c)
 	if err != nil {
 		// slog.Error("codec err", "error", err)
@@ -43,7 +43,7 @@ func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
 		if err != nil {
 			return
 		}
-		codec := newWebsocketCodec(r.Context(), conn, r.Host, r.Header)
+		codec := newWebsocketCodec(r.Context(), conn, r.Host, r)
 		err = s.ServeCodec(r.Context(), codec)
 		if err != nil {
 			// slog.Error("codec err", "error", err)

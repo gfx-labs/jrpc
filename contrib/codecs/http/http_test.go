@@ -200,14 +200,14 @@ func TestHTTPPeerInfo(t *testing.T) {
 	if info.Transport != "http" {
 		t.Errorf("wrong Transport %q", info.Transport)
 	}
-	if info.HTTP.Version != "HTTP/1.1" {
-		t.Errorf("wrong HTTP.Version %q", info.HTTP.Version)
+	if info.HTTP.Proto != "HTTP/1.1" {
+		t.Errorf("wrong HTTP.Version %q", info.HTTP.Proto)
 	}
-	if info.HTTP.UserAgent != "ua-testing" {
-		t.Errorf("wrong HTTP.UserAgent %q", info.HTTP.UserAgent)
+	if info.HTTP.UserAgent() != "ua-testing" {
+		t.Errorf("wrong HTTP.UserAgent %q", info.HTTP.UserAgent())
 	}
-	if info.HTTP.Origin != "origin.example.com" {
-		t.Errorf("wrong HTTP.Origin %q", info.HTTP.UserAgent)
+	if info.HTTP.Host != "origin.example.com" {
+		t.Errorf("wrong HTTP.Origin %q", info.HTTP.Host)
 	}
 }
 func TestClientHTTP(t *testing.T) {

@@ -30,7 +30,7 @@ type Codec struct {
 	i jsonrpc.PeerInfo
 }
 
-func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req http.Header) *Codec {
+func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req *http.Request) *Codec {
 	conn.SetReadLimit(WsMessageSizeLimit)
 	c := &Codec{
 		closed: make(chan struct{}),
@@ -38,19 +38,7 @@ func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, r
 	}
 	c.i.Transport = "ws"
 	// Fill in connection details.
-	c.i.HTTP.Host = host
-	// traefik proxy protocol headers
-	c.i.HTTP.Origin = req.Get("X-Real-Ip")
-	if c.i.HTTP.Origin == "" {
-		c.i.HTTP.Origin = req.Get("X-Forwarded-For")
-	}
-	// origin header fallback
-	if c.i.HTTP.Origin == "" {
-		c.i.HTTP.Origin = req.Get("origin")
-	}
-	c.i.RemoteAddr = c.i.HTTP.Origin
-	c.i.HTTP.UserAgent = req.Get("User-Agent")
-	c.i.HTTP.Headers = req
+	c.i.HTTP = req.Clone(req.Context())
 	// Start pinger.
 	go heartbeat(ctx, conn, WsPingInterval)
 	return c

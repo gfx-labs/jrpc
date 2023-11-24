@@ -121,11 +121,11 @@ func TestWebsocketPeerInfo(t *testing.T) {
 	if connInfo.Transport != "ws" {
 		t.Errorf("wrong Transport %q", connInfo.Transport)
 	}
-	if connInfo.HTTP.UserAgent != "Go-http-client/1.1" {
-		t.Errorf("wrong HTTP.UserAgent %q", connInfo.HTTP.UserAgent)
+	if connInfo.HTTP.UserAgent() != "Go-http-client/1.1" {
+		t.Errorf("wrong HTTP.UserAgent %q", connInfo.HTTP.UserAgent())
 	}
-	if connInfo.HTTP.Origin != "http://origin.example.com" {
-		t.Errorf("wrong HTTP.Origin %q", connInfo.HTTP.Origin)
+	if connInfo.HTTP.Host != "http://origin.example.com" {
+		t.Errorf("wrong HTTP.Origin %q", connInfo.HTTP.Host)
 	}
 }
 

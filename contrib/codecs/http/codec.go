@@ -58,29 +58,14 @@ func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 
 	ctx := c.r.Context()
 	c.ctx, c.cn = context.WithCancel(ctx)
-	c.peerInfo()
 	c.doRead()
+	c.peerInfo()
 }
 
 func (c *Codec) peerInfo() {
 	c.i.Transport = "http"
 	c.i.RemoteAddr = c.r.RemoteAddr
-	c.i.HTTP = jsonrpc.HttpInfo{
-		Version:   c.r.Proto,
-		UserAgent: c.r.UserAgent(),
-		Host:      c.r.Host,
-		Headers:   c.r.Header.Clone(),
-	}
-	c.i.HTTP.Origin = c.r.Header.Get("X-Real-Ip")
-	if c.i.HTTP.Origin == "" {
-		c.i.HTTP.Origin = c.r.Header.Get("X-Forwarded-For")
-	}
-	if c.i.HTTP.Origin == "" {
-		c.i.HTTP.Origin = c.r.Header.Get("Origin")
-	}
-	if c.i.HTTP.Origin == "" {
-		c.i.HTTP.Origin = c.r.RemoteAddr
-	}
+	c.i.HTTP = &http.Request{}
 }
 
 // gets the peer info

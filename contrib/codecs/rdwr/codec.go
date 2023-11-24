@@ -38,7 +38,7 @@ func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 	return jsonrpc.PeerInfo{
 		Transport:  "ipc",
 		RemoteAddr: "",
-		HTTP:       jsonrpc.HttpInfo{},
+		HTTP:       nil,
 	}
 }
 
