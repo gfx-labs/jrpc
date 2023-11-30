@@ -3,10 +3,9 @@ package codecs
 import (
 	"context"
 	"net"
+	gohttp "net/http"
 	"net/url"
 	"strings"
-
-	gohttp "net/http"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
@@ -30,7 +29,7 @@ func init() {
 	}, "http+ws")
 
 	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", bind.String())
+		tcpAddr, err := net.ResolveTCPAddr("tcp", bind.Host)
 		if err != nil {
 			return err
 		}
@@ -56,8 +55,12 @@ func init() {
 		return websocket.DialWebsocket(ctx, url, "")
 	}, "wss", "ws")
 
-	RegisterDialer(func(ctx context.Context, url string) (jsonrpc.Conn, error) {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", url)
+	RegisterDialer(func(ctx context.Context, u string) (jsonrpc.Conn, error) {
+		pu, err := url.Parse(u)
+		if err != nil {
+			return nil, err
+		}
+		tcpAddr, err := net.ResolveTCPAddr("tcp", pu.Host)
 		if err != nil {
 			return nil, err
 		}
