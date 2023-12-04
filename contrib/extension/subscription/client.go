@@ -184,14 +184,14 @@ func (c *clientSub) Err() <-chan error {
 }
 
 func (c *clientSub) Unsubscribe() error {
+	if c.done.CompareAndSwap(false, true) {
+		close(c.subdone)
+	}
 	// TODO: dont use context background here...
 	var result string
 	err := c.conn.Do(context.Background(), &result, c.namespace+serviceMethodSeparator+unsubscribeMethodSuffix, nil)
 	if err != nil {
 		return err
-	}
-	if c.done.CompareAndSwap(false, true) {
-		close(c.subdone)
 	}
 	return nil
 }
