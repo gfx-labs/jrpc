@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -46,9 +47,17 @@ func TestWrapClient(t *testing.T) {
 	})
 	srv := server.NewServer(r)
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
+	httpSrv := http.Server{
+		Addr:    ":8855",
+		Handler: handler,
+	}
+	listener, err := net.Listen("tcp", ":8855")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	go func() {
-		err := http.ListenAndServe(":8855", handler)
-		if err != nil {
+		if err := httpSrv.Serve(listener); err != nil {
 			t.Error(err)
 			return
 		}
