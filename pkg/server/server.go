@@ -319,7 +319,7 @@ type notifyEnv struct {
 	dat    any
 }
 
-func (c *callResponder) notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
+func notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
 	err = s.Field("method", []byte(`"`+env.method+`"`))
 	if err != nil {
 		return err

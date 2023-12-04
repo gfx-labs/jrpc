@@ -68,7 +68,7 @@ func (c *batchingRespWriter) Notify(method string, v any) error {
 		return err
 	}
 	defer msg.Close()
-	err = c.cr.notify(&notifyEnv{
+	err = notify(&notifyEnv{
 		method: method,
 		dat:    v,
 	}, msg)

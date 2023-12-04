@@ -138,6 +138,9 @@ func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 	return &BatchWriter{
 		w: m.w,
 		ms: &MessageStream{
+			// we wrap the writer here with a noflush writer so we can reuse the messagestream
+			// when the messagestream creates its subwrites, they won't pass the interface check for Flush
+			// so they wont flush when they close.
 			w: &writer{m.w},
 		},
 		mu: m.mu,
