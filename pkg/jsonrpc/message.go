@@ -32,6 +32,7 @@ func flushIfFlusher(w io.Writer) error {
 	return nil
 }
 
+// sends a flush in order to send an empty payload
 func (m *MessageStream) Flush(ctx context.Context) error {
 	err := m.mu.Acquire(ctx, 1)
 	if err != nil {
@@ -110,6 +111,14 @@ type BatchWriter struct {
 	isNotFirst bool
 }
 
+type writer struct {
+	w io.Writer
+}
+
+func (w *writer) Write(p []byte) (n int, err error) {
+	return w.w.Write(p)
+}
+
 // Start writing a batch to the stream. this function acquires the lock
 // caller MUST call Close() on the BatchWriter iff err == nil
 func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
@@ -129,7 +138,7 @@ func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 	return &BatchWriter{
 		w: m.w,
 		ms: &MessageStream{
-			w: io.MultiWriter(m.w),
+			w: &writer{m.w},
 		},
 		mu: m.mu,
 	}, nil
