@@ -2,7 +2,6 @@ package subscription
 
 import (
 	"context"
-	"log"
 	"net/http/httptest"
 	_ "net/http/pprof"
 	"strings"
@@ -60,6 +59,44 @@ func TestSubscription(t *testing.T) {
 		if v != i {
 			t.Errorf("expected %d but got %d", i, v)
 		}
+	}
+}
+
+func TestUnsubscribeNoRead(t *testing.T) {
+	engine := NewEngine()
+	r := jmux.NewRouter()
+	r.Use(engine.Middleware())
+	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		notifier, ok := NotifierFromContext(r.Context())
+		if !ok {
+			_ = w.Send(nil, ErrNotificationsUnsupported)
+			return
+		}
+
+		for i := 0; i < 10; i++ {
+			if err := notifier.Notify(i); err != nil {
+				panic(err)
+			}
+		}
+	})
+
+	srv := server.NewServer(r)
+	handler := codecs.WebsocketHandler(srv, []string{"*"})
+	httpSrv := httptest.NewServer(handler)
+
+	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
+	cl, err := UpgradeConn(jrpc.Dial(wsURL))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	ch := make(chan int)
+	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
+	time.Sleep(time.Second)
+	if err = sub.Unsubscribe(); err != nil {
+		t.Error(err)
+		return
 	}
 }
 
@@ -135,8 +172,7 @@ func TestWrapClient(t *testing.T) {
 						t.Errorf("sub errored: %v", err)
 					}
 					return
-				case v := <-ch:
-					log.Printf("%v", v)
+				case <-ch:
 				}
 			}
 		}()
