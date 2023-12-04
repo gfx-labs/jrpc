@@ -49,33 +49,27 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	if v != nil {
 		ce.v = v
 	}
-	err = c.cr.mu.Acquire(c.ctx, 1)
+	msg, err := c.cr.stream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}
-	defer c.cr.mu.Release(1)
-	if c.err != nil {
-		e = c.err
-	}
-	if err = c.cr.send(c.ctx, ce); err != nil {
-		return err
-	}
-	if err = c.cr.remote.Flush(); err != nil {
+	defer msg.Close()
+	if err = send(ce, msg); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *streamingRespWriter) Notify(method string, v any) error {
-	err := c.cr.mu.Acquire(c.ctx, 1)
+	msg, err := c.cr.stream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}
-	defer c.cr.mu.Release(1)
-	err = c.cr.notify(c.ctx, &notifyEnv{
+	defer msg.Close()
+	err = c.cr.notify(&notifyEnv{
 		method: method,
 		dat:    v,
-	})
+	}, msg)
 	if err != nil {
 		return err
 	}

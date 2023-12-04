@@ -63,19 +63,15 @@ func (c *batchingRespWriter) Send(v any, e error) (err error) {
 }
 
 func (c *batchingRespWriter) Notify(method string, v any) error {
-	err := c.cr.mu.Acquire(c.ctx, 1)
+	msg, err := c.cr.stream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}
-	defer c.cr.mu.Release(1)
-	err = c.cr.notify(c.ctx, &notifyEnv{
+	defer msg.Close()
+	err = c.cr.notify(&notifyEnv{
 		method: method,
 		dat:    v,
-	})
-	if err != nil {
-		return err
-	}
-	err = c.cr.remote.Flush()
+	}, msg)
 	if err != nil {
 		return err
 	}

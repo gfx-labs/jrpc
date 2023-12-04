@@ -21,17 +21,46 @@ func NewStream(w io.Writer) *MessageStream {
 	}
 }
 
-// NewMessage starts a new message and acquires the write lock.
-// to free the write lock, you must call *MessageWriter.Close()
-// the lock MUST be closed if and only if err != nil
-func (m *MessageStream) NewMessage(ctx context.Context) (*MessageWriter, error) {
+type flusher interface {
+	Flush() error
+}
+
+func flushIfFlusher(w io.Writer) error {
+	if val, ok := w.(flusher); ok {
+		return val.Flush()
+	}
+	return nil
+}
+
+func (m *MessageStream) Flush(ctx context.Context) error {
 	err := m.mu.Acquire(ctx, 1)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	_, err = m.w.Write([]byte(`{"jsonrpc":"2.0"`))
+	defer m.mu.Release(1)
+	return flushIfFlusher(m.w)
+}
+
+type MessageWriter struct {
+	w  io.Writer
+	mu *semaphore.Weighted
+}
+
+// NewMessage starts a new message and acquires the write lock.
+// to free the write lock, you must call *MessageWriter.Close()
+// the lock MUST be closed if and only if err == nil
+func (m *MessageStream) NewMessage(ctx context.Context) (*MessageWriter, error) {
+	if m.mu != nil {
+		err := m.mu.Acquire(ctx, 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err := m.w.Write([]byte(`{"jsonrpc":"2.0"`))
 	if err != nil {
-		m.mu.Release(1)
+		if m.mu != nil {
+			m.mu.Release(1)
+		}
 		return nil, err
 	}
 	return &MessageWriter{
@@ -40,9 +69,17 @@ func (m *MessageStream) NewMessage(ctx context.Context) (*MessageWriter, error) 
 	}, nil
 }
 
-type MessageWriter struct {
-	w  io.Writer
-	mu *semaphore.Weighted
+// close must be called when you are done writing the message.
+// it releases the write lock
+func (m *MessageWriter) Close() error {
+	if m.mu != nil {
+		defer m.mu.Release(1)
+	}
+	_, err := m.w.Write([]byte("}"))
+	if err != nil {
+		return err
+	}
+	return flushIfFlusher(m.w)
 }
 
 func (m *MessageWriter) Field(name string, value json.RawMessage) error {
@@ -66,11 +103,63 @@ func (m *MessageWriter) Result() (io.Writer, error) {
 	return &ResultWriter{w: m.w}, nil
 }
 
-// close must be called when you are done writing the message.
+type BatchWriter struct {
+	w          io.Writer
+	mu         *semaphore.Weighted
+	ms         *MessageStream
+	isNotFirst bool
+}
+
+// Start writing a batch to the stream. this function acquires the lock
+// caller MUST call Close() on the BatchWriter iff err == nil
+func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
+	if m.mu != nil {
+		err := m.mu.Acquire(ctx, 1)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err := m.w.Write([]byte("["))
+	if err != nil {
+		if m.mu != nil {
+			m.mu.Release(1)
+		}
+		return nil, err
+	}
+	return &BatchWriter{
+		w: m.w,
+		ms: &MessageStream{
+			w: io.MultiWriter(m.w),
+		},
+		mu: m.mu,
+	}, nil
+}
+
+// Writes the next element in the batch. Note that the messagewriter is not thread safe
+func (m *BatchWriter) Next(ctx context.Context) (*MessageWriter, error) {
+	if m.isNotFirst == false {
+		m.isNotFirst = true
+	} else {
+		// write comma if not the first element
+		_, err := m.w.Write([]byte(","))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return m.ms.NewMessage(ctx)
+}
+
+// close must be called when you are done writing the batch.
 // it releases the write lock
-func (m *MessageWriter) Close() error {
-	_, err := m.w.Write([]byte("}"))
-	return err
+func (m *BatchWriter) Close() error {
+	if m.mu != nil {
+		defer m.mu.Release(1)
+	}
+	_, err := m.w.Write([]byte("]"))
+	if err != nil {
+		return err
+	}
+	return flushIfFlusher(m.w)
 }
 
 type ResultWriter struct {
