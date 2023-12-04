@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"testing"
 	"time"
 
@@ -14,6 +15,70 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
+
+func TestSubscription(t *testing.T) {
+	go func() {
+		t.Error(http.ListenAndServe(":6060", nil))
+	}()
+
+	const count = 100
+
+	engine := NewEngine()
+	r := jmux.NewRouter()
+	r.Use(engine.Middleware())
+	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		notifier, ok := NotifierFromContext(r.Context())
+		if !ok {
+			_ = w.Send(nil, ErrNotificationsUnsupported)
+			return
+		}
+
+		for i := 0; i < count; i++ {
+			if err := notifier.Notify(i); err != nil {
+				panic(err)
+			}
+		}
+	})
+
+	srv := server.NewServer(r)
+	handler := codecs.WebsocketHandler(srv, []string{"*"})
+	httpSrv := http.Server{
+		Addr:    ":8855",
+		Handler: handler,
+	}
+	listener, err := net.Listen("tcp", ":8855")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	go func() {
+		if err := httpSrv.Serve(listener); err != nil {
+			t.Error(err)
+			return
+		}
+	}()
+
+	cl, err := UpgradeConn(jrpc.Dial("ws://localhost:8855"))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	ch := make(chan int, count)
+	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
+	defer func() {
+		if err = sub.Unsubscribe(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	for i := 0; i < count; i++ {
+		v := <-ch
+		if v != i {
+			t.Errorf("expected %d but got %d", i, v)
+		}
+	}
+}
 
 func TestWrapClient(t *testing.T) {
 	engine := NewEngine()

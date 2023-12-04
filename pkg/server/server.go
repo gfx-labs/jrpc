@@ -325,7 +325,7 @@ func (c *callResponder) notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err er
 		return err
 	}
 	// if there is no error, we try to marshal the result
-	wr, err := s.Result()
+	wr, err := s.Params()
 	if err != nil {
 		return err
 	}
