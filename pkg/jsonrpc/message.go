@@ -3,57 +3,63 @@ package jsonrpc
 import (
 	"encoding/json"
 	"io"
-
-	"github.com/go-faster/jx"
 )
 
 // MessageStream is a writer used to write jsonrpc message to a stream
 type MessageStream struct {
-	w  io.Writer
-	jx *jx.Writer
+	w io.Writer
 }
 
-func NewStream(w io.Writer) (*MessageStream, error) {
-	enc := jx.GetWriter()
-	defer jx.PutWriter(enc)
-	enc.Grow(4096)
-	enc.ResetWriter(w)
-	enc.ObjStart()
-	enc.FieldStart("jsonrpc")
-	enc.Str("2.0")
-	enc.Close()
+func NewStream(w io.Writer) *MessageStream {
 	return &MessageStream{
-		w:  w,
-		jx: enc,
+		w: w,
+	}
+}
+
+func (m *MessageStream) NewMessage() (*MessageWriter, error) {
+	_, err := m.w.Write([]byte(`{"jsonrpc":"2.0"`))
+	if err != nil {
+		return nil, err
+	}
+	return &MessageWriter{
+		w: m.w,
 	}, nil
-}
-
-func (m *MessageStream) Field(name string, value json.RawMessage) error {
-	m.jx.ResetWriter(m.w)
-	m.jx.Comma()
-	m.jx.FieldStart(name)
-	m.jx.Raw(value)
-	return m.jx.Close()
-}
-
-// Result returns a writecloser that writes to a result field
-func (m *MessageStream) Result() (io.Writer, error) {
-	m.jx.ResetWriter(m.w)
-	m.jx.Comma()
-	m.jx.FieldStart("result")
-	m.jx.Close()
-	return &MessageWriter{w: m.w}, nil
-}
-
-func (m *MessageStream) Close() error {
-	_, err := m.w.Write([]byte("}"))
-	return err
 }
 
 type MessageWriter struct {
 	w io.Writer
 }
 
-func (m *MessageWriter) Write(p []byte) (n int, err error) {
+func (m *MessageWriter) Field(name string, value json.RawMessage) error {
+	_, err := m.w.Write([]byte(`,"` + name + `":`))
+	if err != nil {
+		return err
+	}
+	_, err = m.w.Write(value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Result returns a writer that writes to a result field
+func (m *MessageWriter) Result() (io.Writer, error) {
+	_, err := m.w.Write([]byte(`,"result":`))
+	if err != nil {
+		return nil, err
+	}
+	return &ResultWriter{w: m.w}, nil
+}
+
+func (m *MessageWriter) Close() error {
+	_, err := m.w.Write([]byte("}"))
+	return err
+}
+
+type ResultWriter struct {
+	w io.Writer
+}
+
+func (m *ResultWriter) Write(p []byte) (n int, err error) {
 	return m.w.Write(p)
 }
