@@ -293,7 +293,7 @@ type callEnv struct {
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	w := c.remote
-	s, err := jsonrpc.NewStream(w).NewMessage()
+	s, err := jsonrpc.NewStream(w).NewMessage(ctx)
 	if err != nil {
 		return err
 	}
