@@ -3,9 +3,9 @@ package subscription
 import (
 	"context"
 	"log"
-	"net"
-	"net/http"
+	"net/http/httptest"
 	_ "net/http/pprof"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,10 +17,6 @@ import (
 )
 
 func TestSubscription(t *testing.T) {
-	go func() {
-		t.Error(http.ListenAndServe(":6060", nil))
-	}()
-
 	const count = 100
 
 	engine := NewEngine()
@@ -42,23 +38,10 @@ func TestSubscription(t *testing.T) {
 
 	srv := server.NewServer(r)
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
-	httpSrv := http.Server{
-		Addr:    ":8855",
-		Handler: handler,
-	}
-	listener, err := net.Listen("tcp", ":8855")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	go func() {
-		if err := httpSrv.Serve(listener); err != nil {
-			t.Error(err)
-			return
-		}
-	}()
+	httpSrv := httptest.NewServer(handler)
 
-	cl, err := UpgradeConn(jrpc.Dial("ws://localhost:8855"))
+	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
+	cl, err := UpgradeConn(jrpc.Dial(wsURL))
 	if err != nil {
 		t.Error(err)
 		return
@@ -112,23 +95,10 @@ func TestWrapClient(t *testing.T) {
 	})
 	srv := server.NewServer(r)
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
-	httpSrv := http.Server{
-		Addr:    ":8855",
-		Handler: handler,
-	}
-	listener, err := net.Listen("tcp", ":8855")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	go func() {
-		if err := httpSrv.Serve(listener); err != nil {
-			t.Error(err)
-			return
-		}
-	}()
+	httpSrv := httptest.NewServer(handler)
 
-	cl, err := UpgradeConn(jrpc.Dial("ws://localhost:8855"))
+	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
+	cl, err := UpgradeConn(jrpc.Dial(wsURL))
 	if err != nil {
 		t.Error(err)
 		return
