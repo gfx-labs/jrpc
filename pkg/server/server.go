@@ -294,62 +294,49 @@ type callEnv struct {
 
 func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	w := c.remote
-	enc := jx.GetWriter()
-	defer jx.PutWriter(enc)
-	enc.Grow(4096)
-	enc.ResetWriter(w)
-	enc.ObjStart()
-	enc.FieldStart("jsonrpc")
-	enc.Str("2.0")
-	if env.id != nil {
-		enc.Comma()
-		enc.FieldStart("id")
-		enc.Raw(env.id.RawMessage())
-	}
-	if env.err != nil {
-		enc.Comma()
-		enc.FieldStart("error")
-		enc.Raw(jsonrpc.MarshalError(env.err))
-	} else {
-		// if there is no error, we try to marshal the result
-		enc.Comma()
-		enc.FieldStart("result")
-		enc.Close()
-		enc.ResetWriter(w)
-		if env.v != nil {
-			switch cast := (env.v).(type) {
-			case json.RawMessage:
-				if len(cast) == 0 {
-					enc.Null()
-				} else {
-					enc.Raw(cast)
-				}
-			case *io.PipeReader:
-				_, err := io.Copy(w, cast)
-				if err != nil {
-					return err
-				}
-				cast.Close()
-			case func(e io.Writer) error:
-				err = cast(w)
-			case func(e *jx.Writer) error:
-				err = cast(enc)
-			default:
-				err = jjson.Encode(w, cast)
-			}
-		} else {
-			enc.Null()
-		}
-	}
-	if env.err == nil && err != nil {
-		enc.Comma()
-		enc.FieldStart("error")
-		enc.Raw(jsonrpc.MarshalError(err))
-	}
-	enc.ObjEnd()
-	err = enc.Close()
+	s, err := jsonrpc.NewStream(w)
 	if err != nil {
 		return err
+	}
+	defer s.Close()
+	if env.id != nil {
+		s.Field("id", env.id.RawMessage())
+	}
+	if env.err != nil {
+		s.Field("error", jsonrpc.MarshalError(env.err))
+		return nil
+	}
+	// if there is no error, we try to marshal the result
+	wr, err := s.Result()
+	if err != nil {
+		return err
+	}
+	if env.v == nil {
+		_, err := wr.Write(jsonrpc.Null)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	switch cast := (env.v).(type) {
+	case json.RawMessage:
+		if len(cast) == 0 {
+		} else {
+			_, err := wr.Write(cast)
+			if err != nil {
+				return err
+			}
+		}
+	case *io.PipeReader:
+		_, err := io.Copy(wr, cast)
+		if err != nil {
+			return err
+		}
+		cast.Close()
+	case func(e io.Writer) error:
+		err = cast(wr)
+	default:
+		err = jjson.Encode(w, cast)
 	}
 	return nil
 }
