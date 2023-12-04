@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
@@ -321,20 +320,16 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	switch cast := (env.v).(type) {
 	case json.RawMessage:
 		if len(cast) == 0 {
+			_, err := wr.Write(jsonrpc.Null)
+			if err != nil {
+				return err
+			}
 		} else {
 			_, err := wr.Write(cast)
 			if err != nil {
 				return err
 			}
 		}
-	case *io.PipeReader:
-		_, err := io.Copy(wr, cast)
-		if err != nil {
-			return err
-		}
-		cast.Close()
-	case func(e io.Writer) error:
-		err = cast(wr)
 	default:
 		err = jjson.Encode(w, cast)
 	}
