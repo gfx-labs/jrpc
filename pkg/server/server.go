@@ -324,6 +324,12 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 				} else {
 					enc.Raw(cast)
 				}
+			case *io.PipeReader:
+				_, err := io.Copy(w, cast)
+				if err != nil {
+					return err
+				}
+				cast.Close()
 			case func(e io.Writer) error:
 				err = cast(w)
 			case func(e *jx.Writer) error:
