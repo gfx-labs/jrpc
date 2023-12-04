@@ -2,7 +2,6 @@ package subscription
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	_ "net/http/pprof"
@@ -178,8 +177,7 @@ func TestWrapClient(t *testing.T) {
 						t.Errorf("sub errored: %v", err)
 					}
 					return
-				case v := <-ch:
-					log.Printf("%v", v)
+				case <-ch:
 				}
 			}
 		}()
