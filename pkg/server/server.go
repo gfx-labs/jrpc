@@ -4,15 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"sync"
-
-	"golang.org/x/sync/semaphore"
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-
-	"github.com/go-faster/jx"
 )
 
 // Server is an RPC server.
@@ -37,9 +32,11 @@ func NewServer(r jsonrpc.Handler) *Server {
 func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) error {
 	defer remote.Close()
 
-	sema := semaphore.NewWeighted(1)
+	stream := jsonrpc.NewStream(remote)
 	// add a cancel to the context so we can cancel all the child tasks on return
-	ctx, cn := context.WithCancel(ContextWithPeerInfo(ctx, remote.PeerInfo()))
+	ctx = ContextWithPeerInfo(ctx, remote.PeerInfo())
+	ctx = ContextWithMessageStream(ctx, stream)
+	ctx, cn := context.WithCancel(ctx)
 	defer cn()
 
 	allErrs := []error{}
@@ -58,7 +55,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 				responder := &callResponder{
 					remote: remote,
 					batch:  batch,
-					mu:     sema,
+					stream: stream,
 				}
 				err = s.serve(ctx, incoming, responder)
 				if err != nil {
@@ -109,13 +106,8 @@ func (s *Server) serveSingle(ctx context.Context,
 	)
 	req.Peer = r.remote.PeerInfo()
 	if rw.msg.ID == nil {
-		// all notification, so immediately flush
-		err := r.mu.Acquire(ctx, 1)
-		if err != nil {
-			return err
-		}
-		defer r.mu.Release(1)
-		err = r.remote.Flush()
+		// all notification, so immediately flush a response
+		err := r.stream.Flush(ctx)
 		if err != nil {
 			return err
 		}
@@ -155,20 +147,15 @@ func (s *Server) serveBatch(ctx context.Context,
 	// check for empty batch
 	if r.batch && len(incoming) == 0 {
 		// if it is empty batch, send the empty batch error and immediately return
-		err := r.mu.Acquire(ctx, 1)
+		mw, err := r.stream.NewMessage(ctx)
 		if err != nil {
 			return err
 		}
-		defer r.mu.Release(1)
-		err = r.send(ctx, &callEnv{
-			id:  jsonrpc.NewNullIDPtr(),
-			err: jsonrpc.NewInvalidRequestError("empty batch"),
-		})
-		if err != nil {
+		defer mw.Close()
+		if err := mw.Field("id", jsonrpc.Null); err != nil {
 			return err
 		}
-		err = r.remote.Flush()
-		if err != nil {
+		if err := mw.Field("error", jsonrpc.MarshalError(jsonrpc.NewInvalidRequestError("empty batch"))); err != nil {
 			return err
 		}
 		return nil
@@ -229,61 +216,55 @@ func (s *Server) serveBatch(ctx context.Context,
 	if totalRequests > 0 {
 		// TODO: channel?
 		respWg.Wait()
-		err := r.mu.Acquire(ctx, 1)
-		if err != nil {
-			return err
-		}
-		defer r.mu.Release(1)
-		// write them, one by one
-		_, err = r.remote.Write([]byte{'['})
-		if err != nil {
-			return err
-		}
-		for i, v := range batchResults {
-			err = r.send(ctx, &callEnv{
-				v:   v.payload,
-				err: v.err,
-				id:  v.msg.ID,
-			})
+		err := func() error {
+			batch, err := r.stream.NewBatch(ctx)
 			if err != nil {
 				return err
 			}
-			// write the comma or ]
-			char := ','
-			if i == len(batchResults)-1 {
-				char = ']'
+			defer batch.Close()
+			// write them, one by one
+			for _, v := range batchResults {
+				err := func() error {
+					msg, err := batch.Next(ctx)
+					if err != nil {
+						return err
+					}
+					defer msg.Close()
+					err = send(&callEnv{
+						v:   v.payload,
+						err: v.err,
+						id:  v.msg.ID,
+					}, msg)
+					if err != nil {
+						return err
+					}
+					return nil
+				}()
+				if err != nil {
+					return err
+				}
 			}
-			_, err = r.remote.Write([]byte{byte(char)})
-			if err != nil {
-				return err
-			}
-		}
-		err = r.remote.Flush()
+			return nil
+		}()
 		if err != nil {
 			return err
 		}
 	} else if totalRequests == 0 {
-		// all notification, so immediately flush
-		err := r.mu.Acquire(ctx, 1)
-		if err != nil {
-			return err
-		}
-		defer r.mu.Release(1)
-		err = r.remote.Flush()
+		// all notification, so immediately flush, and that's the whole message
+		err := r.stream.Flush(ctx)
 		if err != nil {
 			return err
 		}
 	}
+	// wait for the returnWg to return
 	returnWg.Wait()
 	return nil
 }
 
 type callResponder struct {
 	remote jsonrpc.ReaderWriter
-	mu     *semaphore.Weighted
-
-	batch        bool
-	batchStarted bool
+	stream *jsonrpc.MessageStream
+	batch  bool
 }
 
 type callEnv struct {
@@ -292,13 +273,7 @@ type callEnv struct {
 	id  *jsonrpc.ID
 }
 
-func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
-	w := c.remote
-	s, err := jsonrpc.NewStream(w)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
+func send(env *callEnv, s *jsonrpc.MessageWriter) (err error) {
 	if env.id != nil {
 		s.Field("id", env.id.RawMessage())
 	}
@@ -311,6 +286,7 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 	if err != nil {
 		return err
 	}
+	// if is nil, just write null
 	if env.v == nil {
 		_, err := wr.Write(jsonrpc.Null)
 		if err != nil {
@@ -318,25 +294,22 @@ func (c *callResponder) send(ctx context.Context, env *callEnv) (err error) {
 		}
 		return nil
 	}
+	// if is not nil, do switch statement
 	switch cast := (env.v).(type) {
 	case json.RawMessage:
 		if len(cast) == 0 {
+			_, err := wr.Write(jsonrpc.Null)
+			if err != nil {
+				return err
+			}
 		} else {
 			_, err := wr.Write(cast)
 			if err != nil {
 				return err
 			}
 		}
-	case *io.PipeReader:
-		_, err := io.Copy(wr, cast)
-		if err != nil {
-			return err
-		}
-		cast.Close()
-	case func(e io.Writer) error:
-		err = cast(wr)
 	default:
-		err = jjson.Encode(w, cast)
+		err = jjson.Encode(wr, cast)
 	}
 	return nil
 }
@@ -346,26 +319,40 @@ type notifyEnv struct {
 	dat    any
 }
 
-func (c *callResponder) notify(ctx context.Context, env *notifyEnv) (err error) {
-	msg := &jsonrpc.Message{}
-	//  allocate a temp buffer for this packet
-	buf := jjson.GetBuf()
-	defer jjson.PutBuf(buf)
-	err = jjson.Encode(buf, env.dat)
-	if err != nil {
-		msg.Error = err
-	} else {
-		msg.Params = buf.Bytes()
-	}
-	// add the method
-	msg.Method = env.method
-	enc := jx.GetEncoder()
-	defer jx.PutEncoder(enc)
-	enc.Grow(4096)
-	enc.ResetWriter(c.remote)
-	err = jsonrpc.MarshalMessage(msg, enc)
+func (c *callResponder) notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
+	err = s.Field("method", []byte(`"`+env.method+`"`))
 	if err != nil {
 		return err
 	}
-	return enc.Close()
+	// if there is no error, we try to marshal the result
+	wr, err := s.Result()
+	if err != nil {
+		return err
+	}
+	// if is nil, just write null
+	if env.dat == nil {
+		_, err := wr.Write(jsonrpc.Null)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	// if is not nil, do switch statement
+	switch cast := (env.dat).(type) {
+	case json.RawMessage:
+		if len(cast) == 0 {
+			_, err := wr.Write(jsonrpc.Null)
+			if err != nil {
+				return err
+			}
+		} else {
+			_, err := wr.Write(cast)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		err = jjson.Encode(wr, cast)
+	}
+	return nil
 }
