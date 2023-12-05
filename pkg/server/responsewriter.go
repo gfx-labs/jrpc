@@ -6,11 +6,6 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-// 128mb... should be more than enough for any batch.
-// you shouldn't be batching more than this. really, you shouldn't be using batching at all.
-// TODO: make this configurable
-const maxBatchSizeBytes = 1024 * 1024 * 1024 * 128
-
 var _ jsonrpc.ResponseWriter = (*streamingRespWriter)(nil)
 
 // streamingRespWriter is NOT thread safe
