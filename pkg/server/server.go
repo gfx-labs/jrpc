@@ -6,9 +6,10 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/mailgun/multibuf"
+
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"github.com/mailgun/multibuf"
 )
 
 // Server is an RPC server.

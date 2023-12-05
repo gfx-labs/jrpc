@@ -3,6 +3,8 @@ package jsonrpc
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/go-faster/jx"
 )
 
 // http.ResponseWriter interface, but for jrpc
@@ -39,9 +41,12 @@ func NewRawRequest(ctx context.Context, id *ID, method string, params json.RawMe
 
 // NewRequest makes a new request
 func NewRequest(ctx context.Context, id *ID, method string, params any) (r *Request, err error) {
-	raw, err := json.Marshal(params)
-	if err != nil {
-		return nil, err
+	var raw json.RawMessage
+	if params != nil {
+		raw, err = json.Marshal(params)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return NewRawRequest(ctx, id, method, raw), nil
 }
@@ -63,4 +68,25 @@ func (r *Request) WithContext(ctx context.Context) *Request {
 	r2.Params = r.Params
 	r2.Peer = r.Peer
 	return r2
+}
+
+func (r Request) MarshalJSON() ([]byte, error) {
+	enc := jx.GetEncoder()
+	enc.Obj(func(e *jx.Encoder) {
+		e.FieldStart("jsonrpc")
+		e.Str(VersionString)
+		if r.ID != nil {
+			e.FieldStart("id")
+			e.Raw(*r.ID)
+		}
+		if r.Method != "" {
+			e.FieldStart("method")
+			e.Str(r.Method)
+		}
+		if r.Params != nil {
+			e.FieldStart("params")
+			e.Raw(r.Params)
+		}
+	})
+	return enc.Bytes(), nil
 }
