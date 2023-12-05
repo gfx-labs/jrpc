@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	_ "net/http/pprof"
 	"strings"
@@ -101,6 +102,12 @@ func TestUnsubscribeNoRead(t *testing.T) {
 }
 
 func TestWrapClient(t *testing.T) {
+	go func() {
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	engine := NewEngine()
 	r := jmux.NewRouter()
 	r.Use(engine.Middleware())
@@ -160,7 +167,7 @@ func TestWrapClient(t *testing.T) {
 		}
 
 		go func() {
-			time.Sleep(2 * time.Second)
+			time.Sleep(20 * time.Millisecond)
 			_ = sub.Unsubscribe()
 		}()
 

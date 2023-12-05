@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
@@ -46,15 +45,11 @@ func (c *WrapClient) Middleware(h jsonrpc.Handler) jsonrpc.Handler {
 			// probably some malformed packet, ignore it
 			return
 		}
-		c.mu.Lock()
+		c.mu.RLock()
 		clientSub, ok := c.subs[params.ID]
-		c.mu.Unlock()
+		c.mu.RUnlock()
 		if ok {
-			// this could deadlock if we waited on onmsg and the sub was done
-			select {
-			case clientSub.onmsg <- params.Result:
-			case <-clientSub.subdone:
-			}
+			clientSub.notify(params.Result)
 		}
 	})
 }
@@ -88,59 +83,8 @@ func (c *WrapClient) Subscribe(ctx context.Context, namespace string, channel an
 		namespace: namespace,
 		id:        result,
 		channel:   chanVal,
-		onmsg:     make(chan json.RawMessage),
-		subdone:   make(chan struct{}),
-		readErr:   make(chan error),
+		readErr:   make(chan error, 1),
 	}
-
-	// will get the type of the event
-	etype := chanVal.Type().Elem()
-
-	go func() {
-		defer func() {
-			// close if possible
-			if sub.done.CompareAndSwap(false, true) {
-				close(sub.subdone)
-			}
-			// we're done reading
-			close(sub.readErr)
-		}()
-		for {
-			select {
-			case <-sub.subdone:
-				return
-			case params, ok := <-sub.onmsg:
-				if !ok {
-					return
-				}
-				val := reflect.New(etype)
-				err := json.Unmarshal(params, val.Interface())
-				if err != nil {
-					sub.readErr <- err
-					return
-				}
-				// and now send the elem
-				// this could deadlock if the client stopped waiting on the chan and unsubscribed
-				reflect.Select([]reflect.SelectCase{
-					{
-						Dir:  reflect.SelectSend,
-						Chan: sub.channel,
-						Send: val.Elem(),
-					},
-					{
-						Dir:  reflect.SelectRecv,
-						Chan: reflect.ValueOf(ctx.Done()),
-					},
-					{
-						Dir:  reflect.SelectRecv,
-						Chan: reflect.ValueOf(sub.subdone),
-					},
-				})
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
 
 	c.mu.Lock()
 	c.subs[sub.id] = sub
@@ -170,13 +114,43 @@ type clientSub struct {
 	conn      jsonrpc.Conn
 	namespace string
 	id        string
-	channel   reflect.Value
-	onmsg     chan json.RawMessage
-	subdone   chan struct{}
+
+	channel reflect.Value
 
 	readErr chan error
+	closed  bool
+	mu      sync.Mutex
+}
 
-	done atomic.Bool
+func (c *clientSub) err(err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return
+	}
+	select {
+	case c.readErr <- err:
+	default:
+	}
+}
+
+func (c *clientSub) notify(result json.RawMessage) {
+	val := reflect.New(c.channel.Type().Elem())
+	err := json.Unmarshal(result, val.Interface())
+	if err != nil {
+		c.err(err)
+		return
+	}
+	reflect.Select([]reflect.SelectCase{
+		{
+			Dir:  reflect.SelectSend,
+			Chan: c.channel,
+			Send: val.Elem(),
+		},
+		{
+			Dir: reflect.SelectDefault,
+		},
+	})
 }
 
 func (c *clientSub) Err() <-chan error {
@@ -184,9 +158,19 @@ func (c *clientSub) Err() <-chan error {
 }
 
 func (c *clientSub) Unsubscribe() error {
-	if c.done.CompareAndSwap(false, true) {
-		close(c.subdone)
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		return nil
 	}
+	c.closed = true
+	close(c.readErr)
+	c.mu.Unlock()
+
+	c.engine.mu.Lock()
+	delete(c.engine.subs, c.id)
+	c.engine.mu.Unlock()
+
 	// TODO: dont use context background here...
 	var result string
 	err := c.conn.Do(context.Background(), &result, c.namespace+serviceMethodSeparator+unsubscribeMethodSuffix, nil)
