@@ -320,7 +320,6 @@ func notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
 	if err != nil {
 		return err
 	}
-	defer wr.Close()
 	// if is nil, just write null
 	if env.dat == nil {
 		_, err := wr.Write(jsonrpc.Null)
