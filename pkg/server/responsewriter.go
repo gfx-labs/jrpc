@@ -34,19 +34,19 @@ type streamingRespWriter struct {
 	sendCalled bool
 }
 
-func (c *streamingRespWriter) SendStream() jsonrpc.MessageStreamer {
+func (c *streamingRespWriter) SendStream(fn func(jsonrpc.MessageStreamer) error) error {
 	if c.sendCalled {
-		return c.sendStream
+		return jsonrpc.ErrSendAlreadyCalled
 	}
 	c.sendCalled = true
 	if c.done != nil {
-		c.done()
+		defer c.done()
 	}
-	return c.sendStream
+	return fn(c.sendStream)
 }
 
-func (c *streamingRespWriter) NotifyStream() jsonrpc.MessageStreamer {
-	return c.sendStream
+func (c *streamingRespWriter) NotifyStream(fn func(jsonrpc.MessageStreamer) error) error {
+	return fn(c.notifyStream)
 }
 
 func (c *streamingRespWriter) Send(v any, e error) (err error) {
@@ -57,7 +57,7 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 		return jsonrpc.ErrSendAlreadyCalled
 	}
 	if c.done != nil {
-		c.done()
+		defer c.done()
 	}
 	c.sendCalled = true
 	ce := &callEnv{

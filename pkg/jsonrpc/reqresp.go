@@ -11,6 +11,12 @@ type ResponseWriter interface {
 	Notify(method string, v any) error
 }
 
+type StreamingResponseWriter interface {
+	ResponseWriter
+	SendStream(func(MessageStreamer) error) error
+	NotifyStream(func(MessageStreamer) error) error
+}
+
 type Request struct {
 	ID     *ID             `json:"id,omitempty"`
 	Method string          `json:"method,omitempty"`

@@ -45,7 +45,6 @@ so to jrpc, we added a new "feature", which is that batch requests are executed 
 this is a feature that jsonrpc2 does not have, for jsonrpc2 allows any amount of concurrency and evaluation order for batch requests.
 
 
-
 ## maybe outdated but somewhat useful contribution info
 
 basic structure
