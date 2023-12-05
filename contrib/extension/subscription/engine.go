@@ -62,7 +62,7 @@ func (e *Engine) Middleware() func(jsonrpc.Handler) jsonrpc.Handler {
 				h.ServeRPC(w, r)
 			case strings.HasSuffix(r.Method, serviceMethodSeparator+unsubscribeMethodSuffix):
 				// read the subscription id to close
-				resp := []SubID{}
+				var resp []SubID
 				err := json.Unmarshal(r.Params, &resp)
 				if err != nil {
 					w.Send(false, err)

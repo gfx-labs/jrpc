@@ -12,9 +12,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"golang.org/x/net/http2"
+
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"golang.org/x/net/http2"
 )
 
 var (

@@ -223,7 +223,7 @@ func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 		msgs = []*Message{}
 		dec.Arr(func(d *jx.Decoder) error {
 			msg := new(Message)
-			//err := UnmarshalMessage(msg, d)
+			// err := UnmarshalMessage(msg, d)
 			raw, err := d.Raw()
 			if err != nil {
 				raw = []byte{}

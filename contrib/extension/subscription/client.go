@@ -172,8 +172,10 @@ func (c *clientSub) Unsubscribe() error {
 	c.engine.mu.Unlock()
 
 	// TODO: dont use context background here...
-	var result string
-	err := c.conn.Do(context.Background(), &result, c.namespace+serviceMethodSeparator+unsubscribeMethodSuffix, nil)
+	var result bool
+	err := c.conn.Do(context.Background(), &result, c.namespace+serviceMethodSeparator+unsubscribeMethodSuffix, []string{
+		c.id,
+	})
 	if err != nil {
 		return err
 	}
