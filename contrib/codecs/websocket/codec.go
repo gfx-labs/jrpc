@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"time"
 
 	"gfx.cafe/open/websocket"
-
-	_ "net/http/pprof"
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"

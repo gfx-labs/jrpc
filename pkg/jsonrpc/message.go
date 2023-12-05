@@ -121,6 +121,15 @@ func (m *MessageWriter) Result() (io.WriteCloser, error) {
 	return &ResultWriter{w: m.w}, nil
 }
 
+// Params returns a writer that writes to a params field
+func (m *MessageWriter) Params() (io.Writer, error) {
+	_, err := m.w.Write([]byte(`,"params":`))
+	if err != nil {
+		return nil, err
+	}
+	return &ResultWriter{w: m.w}, nil
+}
+
 type BatchWriter struct {
 	w          io.Writer
 	mu         *semaphore.Weighted
