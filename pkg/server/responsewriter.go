@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"sync"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
@@ -16,30 +15,54 @@ var _ jsonrpc.ResponseWriter = (*streamingRespWriter)(nil)
 
 // streamingRespWriter is NOT thread safe
 type streamingRespWriter struct {
-	cr  *callResponder
-	msg *jsonrpc.Message
+	// this should be the same context as the request
 	ctx context.Context
+	// the stream that Send will write to
+	sendStream jsonrpc.MessageStreamer
+	// the stream that Notify will write to
+	notifyStream jsonrpc.MessageStreamer
+	// the id to write the response with
+	id *jsonrpc.ID
 
+	// a function that is called on the first call to send
+	// it's optional
+	done func()
+
+	// if set, will ensure that send will always send this error, instead of whatever send does
 	err error
-
+	// marks whether or not send was called. it may only be called once
 	sendCalled bool
+}
 
-	mu sync.Mutex
+func (c *streamingRespWriter) SendStream() jsonrpc.MessageStreamer {
+	if c.sendCalled {
+		return c.sendStream
+	}
+	c.sendCalled = true
+	if c.done != nil {
+		c.done()
+	}
+	return c.sendStream
+}
+
+func (c *streamingRespWriter) NotifyStream() jsonrpc.MessageStreamer {
+	return c.sendStream
 }
 
 func (c *streamingRespWriter) Send(v any, e error) (err error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.msg.ID == nil {
+	if c.id == nil {
 		return jsonrpc.ErrCantSendNotification
 	}
 	if c.sendCalled {
 		return jsonrpc.ErrSendAlreadyCalled
 	}
+	if c.done != nil {
+		c.done()
+	}
 	c.sendCalled = true
 	ce := &callEnv{
 		err: c.err,
-		id:  c.msg.ID,
+		id:  c.id,
 	}
 	// only override error if not already set
 	if ce.err == nil {
@@ -49,7 +72,7 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	if v != nil {
 		ce.v = v
 	}
-	msg, err := c.cr.stream.NewMessage(c.ctx)
+	msg, err := c.sendStream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}
@@ -61,7 +84,7 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 }
 
 func (c *streamingRespWriter) Notify(method string, v any) error {
-	msg, err := c.cr.stream.NewMessage(c.ctx)
+	msg, err := c.notifyStream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}

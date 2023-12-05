@@ -11,7 +11,9 @@ import (
 	"github.com/go-faster/jx"
 )
 
-var Null = json.RawMessage("null")
+const NullString = "null"
+
+var Null = json.RawMessage(NullString)
 
 func NewNull() json.RawMessage {
 	return json.RawMessage("null")

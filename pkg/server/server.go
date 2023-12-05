@@ -8,6 +8,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/mailgun/multibuf"
 )
 
 // Server is an RPC server.
@@ -53,9 +54,9 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 			go func() {
 				defer wg.Done()
 				responder := &callResponder{
-					remote: remote,
-					batch:  batch,
-					stream: stream,
+					peerinfo: remote.PeerInfo(),
+					batch:    batch,
+					stream:   stream,
 				}
 				err = s.serve(ctx, incoming, responder)
 				if err != nil {
@@ -94,18 +95,21 @@ func (s *Server) serveSingle(ctx context.Context,
 	r *callResponder,
 ) error {
 	rw := &streamingRespWriter{
-		ctx: ctx,
-		cr:  r,
+		ctx:          ctx,
+		sendStream:   r.stream,
+		notifyStream: r.stream,
 	}
-	rw.msg, rw.err = produceOutputMessage(incoming)
+	om, omerr := produceOutputMessage(incoming)
+	rw.id = om.ID
+	rw.err = omerr
 	req := jsonrpc.NewRawRequest(
 		ctx,
-		rw.msg.ID,
-		rw.msg.Method,
-		rw.msg.Params,
+		rw.id,
+		incoming.Method,
+		incoming.Params,
 	)
-	req.Peer = r.remote.PeerInfo()
-	if rw.msg.ID == nil {
+	req.Peer = r.peerinfo
+	if rw.id == nil {
 		// all notification, so immediately flush a response
 		err := r.stream.Flush(ctx)
 		if err != nil {
@@ -113,7 +117,7 @@ func (s *Server) serveSingle(ctx context.Context,
 		}
 	}
 	s.services.ServeRPC(rw, req)
-	if rw.sendCalled == false && rw.msg.ID != nil {
+	if rw.sendCalled == false && rw.id != nil {
 		rw.Send(jsonrpc.Null, nil)
 	}
 	return nil
@@ -161,91 +165,77 @@ func (s *Server) serveBatch(ctx context.Context,
 		return nil
 	}
 
-	rs := []*batchingRespWriter{}
-
 	totalRequests := 0
 	// populate the envelope we are about to send. this is synchronous pre-prpcessing
-	for _, v := range incoming {
-		// create the response writer
-		rw := &batchingRespWriter{
-			ctx: ctx,
-			cr:  r,
-		}
-		rs = append(rs, rw)
-		rw.msg, rw.err = produceOutputMessage(v)
-		// requests and malformed requests both count as requests
-		if rw.msg.ID != nil {
-			totalRequests += 1
-		}
+	ansBuf, err := multibuf.NewWriterOnce(
+		// store up to 16mb per batch in memory
+		multibuf.MemBytes(16*1024*1024),
+		// store up to 256gb per batch on disk
+		multibuf.MaxBytes(256*1204*1024*1024),
+	)
+	defer ansBuf.Close()
+	if err != nil {
+		return err
+	}
+	ansStream := jsonrpc.NewStream(ansBuf)
+	ansBatch, err := ansStream.NewBatch(ctx)
+	if err != nil {
+		return err
 	}
 
 	// create a waitgroup for when every handler returns
 	returnWg := sync.WaitGroup{}
-	returnWg.Add(len(rs))
-	// for each item in the envelope
-	peerInfo := r.remote.PeerInfo()
-	batchResults := []*batchingRespWriter{}
-
-	respWg := &sync.WaitGroup{}
-	respWg.Add(totalRequests)
-
-	for _, vRef := range rs {
-		v := vRef
-		if v.msg.ID != nil {
-			v.wg = respWg
-			batchResults = append(batchResults, v)
+	returnWg.Add(len(incoming))
+	for _, v := range incoming {
+		canNext := make(chan struct{})
+		// create the response writer
+		rw := &streamingRespWriter{
+			ctx:          ctx,
+			sendStream:   ansBatch,
+			notifyStream: r.stream,
 		}
-		// now process each request in its own goroutine
-		// TODO: stress test this.
+		om, omerr := produceOutputMessage(v)
+		rw.id = om.ID
+		rw.err = omerr
+		if rw.id != nil {
+			totalRequests += 1
+			rw.done = func() {
+				close(canNext)
+			}
+		}
+		req := jsonrpc.NewRawRequest(
+			ctx,
+			om.ID,
+			om.Method,
+			om.Params,
+		)
+		req.Peer = r.peerinfo
 		go func() {
 			defer returnWg.Done()
-			req := jsonrpc.NewRawRequest(
-				ctx,
-				v.msg.ID,
-				v.msg.Method,
-				v.msg.Params,
-			)
-			req.Peer = peerInfo
-			s.services.ServeRPC(v, req)
-			if v.sendCalled == false && v.err == nil {
-				v.Send(jsonrpc.Null, nil)
+			s.services.ServeRPC(rw, req)
+			if rw.sendCalled == false && rw.id != nil {
+				rw.Send(jsonrpc.Null, nil)
 			}
 		}()
+		if rw.id != nil {
+			<-canNext
+		}
 	}
+
+	err = ansBatch.Close()
+	if err != nil {
+		return err
+	}
+
+	mr, err := ansBuf.Reader()
+	if err != nil {
+		return err
+	}
+	defer mr.Close()
 
 	if totalRequests > 0 {
 		// TODO: channel?
-		respWg.Wait()
-		err := func() error {
-			batch, err := r.stream.NewBatch(ctx)
-			if err != nil {
-				return err
-			}
-			defer batch.Close()
-			// write them, one by one
-			for _, v := range batchResults {
-				err := func() error {
-					msg, err := batch.Next(ctx)
-					if err != nil {
-						return err
-					}
-					defer msg.Close()
-					err = send(&callEnv{
-						v:   v.payload,
-						err: v.err,
-						id:  v.msg.ID,
-					}, msg)
-					if err != nil {
-						return err
-					}
-					return nil
-				}()
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		}()
+		err := r.stream.ReadFrom(ctx, mr)
 		if err != nil {
 			return err
 		}
@@ -262,9 +252,9 @@ func (s *Server) serveBatch(ctx context.Context,
 }
 
 type callResponder struct {
-	remote jsonrpc.ReaderWriter
-	stream *jsonrpc.MessageStream
-	batch  bool
+	peerinfo jsonrpc.PeerInfo
+	stream   *jsonrpc.MessageStream
+	batch    bool
 }
 
 type callEnv struct {
@@ -286,6 +276,7 @@ func send(env *callEnv, s *jsonrpc.MessageWriter) (err error) {
 	if err != nil {
 		return err
 	}
+	defer wr.Close()
 	// if is nil, just write null
 	if env.v == nil {
 		_, err := wr.Write(jsonrpc.Null)
@@ -329,6 +320,7 @@ func notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
 	if err != nil {
 		return err
 	}
+	defer wr.Close()
 	// if is nil, just write null
 	if env.dat == nil {
 		_, err := wr.Write(jsonrpc.Null)

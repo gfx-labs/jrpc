@@ -29,6 +29,23 @@ it is currently being used in the oku.trade api in proxy, client, and server app
  - openrpc schema parser and code generator
 
 
+## batch requests
+
+batch requests are very weird. the jsonrpc spec indicates that all batch responses must be returned at the same time,
+this means for maximum throughput, the user should never use batch requests.
+
+browsers should prefer to use websocket, as it is far more performance than HTTP with batching. websocket frame sizes can also make things such as latency just as good as batching
+
+batch requests are evaulated in a single threaded manner, the next request in the batch blocking until "Send" has been called on the handler.
+
+as a result, batch requests are not very useful.
+
+so to jrpc, we added a new "feature", which is that batch requests are executed sequentially (however in different goroutines).
+
+this is a feature that jsonrpc2 does not have, for jsonrpc2 allows any amount of concurrency and evaluation order for batch requests.
+
+
+
 ## maybe outdated but somewhat useful contribution info
 
 basic structure

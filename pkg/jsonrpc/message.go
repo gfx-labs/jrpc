@@ -8,6 +8,20 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+type MessageStreamer interface {
+	NewMessage(ctx context.Context) (*MessageWriter, error)
+}
+type flusher interface {
+	Flush() error
+}
+
+func flushIfFlusher(w io.Writer) error {
+	if val, ok := w.(flusher); ok {
+		return val.Flush()
+	}
+	return nil
+}
+
 // MessageStream is a writer used to write jsonrpc message to a stream
 type MessageStream struct {
 	w  io.Writer
@@ -21,17 +35,6 @@ func NewStream(w io.Writer) *MessageStream {
 	}
 }
 
-type flusher interface {
-	Flush() error
-}
-
-func flushIfFlusher(w io.Writer) error {
-	if val, ok := w.(flusher); ok {
-		return val.Flush()
-	}
-	return nil
-}
-
 // sends a flush in order to send an empty payload
 func (m *MessageStream) Flush(ctx context.Context) error {
 	err := m.mu.Acquire(ctx, 1)
@@ -39,6 +42,20 @@ func (m *MessageStream) Flush(ctx context.Context) error {
 		return err
 	}
 	defer m.mu.Release(1)
+	return flushIfFlusher(m.w)
+}
+
+// ReadFrom calls io.Copy within the semaphore, then calls flush
+func (m *MessageStream) ReadFrom(ctx context.Context, r io.Reader) error {
+	err := m.mu.Acquire(ctx, 1)
+	if err != nil {
+		return err
+	}
+	defer m.mu.Release(1)
+	_, err = io.Copy(m.w, r)
+	if err != nil {
+		return err
+	}
 	return flushIfFlusher(m.w)
 }
 
@@ -96,7 +113,7 @@ func (m *MessageWriter) Field(name string, value json.RawMessage) error {
 }
 
 // Result returns a writer that writes to a result field
-func (m *MessageWriter) Result() (io.Writer, error) {
+func (m *MessageWriter) Result() (io.WriteCloser, error) {
 	_, err := m.w.Write([]byte(`,"result":`))
 	if err != nil {
 		return nil, err
@@ -148,7 +165,7 @@ func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 }
 
 // Writes the next element in the batch. Note that the messagewriter is not thread safe
-func (m *BatchWriter) Next(ctx context.Context) (*MessageWriter, error) {
+func (m *BatchWriter) NewMessage(ctx context.Context) (*MessageWriter, error) {
 	if m.isNotFirst == false {
 		m.isNotFirst = true
 	} else {
@@ -175,9 +192,19 @@ func (m *BatchWriter) Close() error {
 }
 
 type ResultWriter struct {
-	w io.Writer
+	w     io.Writer
+	wrote bool
 }
 
 func (m *ResultWriter) Write(p []byte) (n int, err error) {
+	m.wrote = true
 	return m.w.Write(p)
+}
+
+func (m *ResultWriter) Close() error {
+	if m.wrote == false {
+		_, err := m.w.Write(Null)
+		return err
+	}
+	return nil
 }
