@@ -105,14 +105,20 @@ func TestWrapClient(t *testing.T) {
 	r := jmux.NewRouter()
 	r.Use(engine.Middleware())
 	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-		_ = w.Send(r.Params, nil)
+		err := w.Send(r.Params, nil)
+		if err != nil {
+			t.Error(err)
+		}
 	})
 	// extremely fast subscription to fill buffers to get a higher chance that we receive another message while trying
 	// to unsubscribe
 	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		notifier, ok := NotifierFromContext(r.Context())
 		if !ok {
-			_ = w.Send(nil, ErrNotificationsUnsupported)
+			err := w.Send(nil, ErrNotificationsUnsupported)
+			if err != nil {
+				t.Error(err)
+			}
 			return
 		}
 		go func() {
@@ -125,7 +131,10 @@ func TestWrapClient(t *testing.T) {
 					return
 				default:
 				}
-				_ = notifier.Notify(idx)
+				err := notifier.Notify(idx)
+				if err != nil {
+					t.Error(err)
+				}
 				idx += 1
 			}
 		}()
@@ -152,17 +161,13 @@ func TestWrapClient(t *testing.T) {
 			return
 		}
 
-		ch := make(chan int, 1)
-		sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
+		ch := make(chan int, 101)
+		var sub ClientSubscription
+		sub, err = cl.Subscribe(context.Background(), "test", ch, nil)
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
-		go func() {
-			time.Sleep(20 * time.Millisecond)
-			_ = sub.Unsubscribe()
-		}()
 
 		func() {
 			for {
@@ -172,7 +177,16 @@ func TestWrapClient(t *testing.T) {
 						t.Errorf("sub errored: %v", err)
 					}
 					return
-				case <-ch:
+				case n, ok := <-ch:
+					if !ok {
+						return
+					}
+					if n == 100 {
+						if err = sub.Unsubscribe(); err != nil {
+							t.Error(err)
+							return
+						}
+					}
 				}
 			}
 		}()
