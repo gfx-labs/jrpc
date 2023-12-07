@@ -28,11 +28,14 @@ func TestSubscription(t *testing.T) {
 			return
 		}
 
-		for i := 0; i < count; i++ {
-			if err := notifier.Notify(i); err != nil {
-				panic(err)
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			for i := 0; i < count; i++ {
+				if err := notifier.Notify(i); err != nil {
+					panic(err)
+				}
 			}
-		}
+		}()
 	})
 
 	srv := server.NewServer(r)
@@ -80,11 +83,14 @@ func TestUnsubscribeNoRead(t *testing.T) {
 			return
 		}
 
-		for i := 0; i < 10; i++ {
-			if err := notifier.Notify(i); err != nil {
-				panic(err)
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			for i := 0; i < 10; i++ {
+				if err := notifier.Notify(i); err != nil {
+					panic(err)
+				}
 			}
-		}
+		}()
 	})
 
 	srv := server.NewServer(r)
@@ -136,6 +142,7 @@ func TestWrapClient(t *testing.T) {
 			return
 		}
 		go func() {
+			time.Sleep(10 * time.Millisecond)
 			idx := 0
 			for {
 				select {

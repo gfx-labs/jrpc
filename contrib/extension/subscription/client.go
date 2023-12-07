@@ -76,6 +76,10 @@ func (c *WrapClient) Subscribe(ctx context.Context, namespace string, channel an
 		return nil, ErrSubscriptionNotFound
 	}
 
+	// FIXME(garet): we can lose subscription messages here. if they send a notification and the server handles it
+	// before we finish adding it to the subs, the message will be lost. Ping will almost always be much much longer
+	// than us adding the sub so it probably doesn't matter. but it fails the unit tests :(
+
 	// now create a client sub
 	sub := &clientSub{
 		engine:    c,
