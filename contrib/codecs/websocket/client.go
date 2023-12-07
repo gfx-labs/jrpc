@@ -29,5 +29,8 @@ func newClient(conn *websocket.Conn) (*Client, error) {
 }
 
 func (c *Client) Close() error {
-	return c.conn.Close(websocket.StatusNormalClosure, "")
+	if err := c.conn.Close(websocket.StatusNormalClosure, ""); err != nil {
+		return err
+	}
+	return c.Client.Close()
 }

@@ -28,16 +28,21 @@ func TestSubscription(t *testing.T) {
 			return
 		}
 
-		for i := 0; i < count; i++ {
-			if err := notifier.Notify(i); err != nil {
-				panic(err)
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			for i := 0; i < count; i++ {
+				if err := notifier.Notify(i); err != nil {
+					panic(err)
+				}
 			}
-		}
+		}()
 	})
 
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -45,6 +50,11 @@ func TestSubscription(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	ch := make(chan int, count)
 	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
@@ -73,16 +83,21 @@ func TestUnsubscribeNoRead(t *testing.T) {
 			return
 		}
 
-		for i := 0; i < 10; i++ {
-			if err := notifier.Notify(i); err != nil {
-				panic(err)
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			for i := 0; i < 10; i++ {
+				if err := notifier.Notify(i); err != nil {
+					panic(err)
+				}
 			}
-		}
+		}()
 	})
 
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -90,6 +105,11 @@ func TestUnsubscribeNoRead(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	ch := make(chan int)
 	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
@@ -105,17 +125,24 @@ func TestWrapClient(t *testing.T) {
 	r := jmux.NewRouter()
 	r.Use(engine.Middleware())
 	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-		_ = w.Send(r.Params, nil)
+		err := w.Send(r.Params, nil)
+		if err != nil {
+			t.Error(err)
+		}
 	})
 	// extremely fast subscription to fill buffers to get a higher chance that we receive another message while trying
 	// to unsubscribe
 	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		notifier, ok := NotifierFromContext(r.Context())
 		if !ok {
-			_ = w.Send(nil, ErrNotificationsUnsupported)
+			err := w.Send(nil, ErrNotificationsUnsupported)
+			if err != nil {
+				t.Error(err)
+			}
 			return
 		}
 		go func() {
+			time.Sleep(10 * time.Millisecond)
 			idx := 0
 			for {
 				select {
@@ -125,14 +152,19 @@ func TestWrapClient(t *testing.T) {
 					return
 				default:
 				}
-				_ = notifier.Notify(idx)
+				err := notifier.Notify(idx)
+				if err != nil {
+					t.Error(err)
+				}
 				idx += 1
 			}
 		}()
 	})
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -140,6 +172,11 @@ func TestWrapClient(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	for i := 0; i < 10; i++ {
 		var res string
@@ -152,17 +189,13 @@ func TestWrapClient(t *testing.T) {
 			return
 		}
 
-		ch := make(chan int, 1)
-		sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
+		ch := make(chan int, 101)
+		var sub ClientSubscription
+		sub, err = cl.Subscribe(context.Background(), "test", ch, nil)
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
-		go func() {
-			time.Sleep(20 * time.Millisecond)
-			_ = sub.Unsubscribe()
-		}()
 
 		func() {
 			for {
@@ -172,7 +205,16 @@ func TestWrapClient(t *testing.T) {
 						t.Errorf("sub errored: %v", err)
 					}
 					return
-				case <-ch:
+				case n, ok := <-ch:
+					if !ok {
+						return
+					}
+					if n == 100 {
+						if err = sub.Unsubscribe(); err != nil {
+							t.Error(err)
+							return
+						}
+					}
 				}
 			}
 		}()
