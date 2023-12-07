@@ -41,7 +41,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	ctx, cn := context.WithCancel(ctx)
 	defer cn()
 
-	allErrs := []error{}
+	var allErrs []error
 	var mu sync.Mutex
 	wg := sync.WaitGroup{}
 	err := func() error {
@@ -69,7 +69,9 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 		}
 	}()
 	wg.Wait()
-	allErrs = append(allErrs, err)
+	if err != nil {
+		allErrs = append(allErrs, err)
+	}
 	if len(allErrs) > 0 {
 		return errors.Join(allErrs...)
 	}

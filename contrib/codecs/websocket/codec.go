@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gfx.cafe/open/websocket"
+	"golang.org/x/sync/semaphore"
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
@@ -24,7 +25,7 @@ type Codec struct {
 	wrLock       sync.Mutex
 
 	decBuf  json.RawMessage
-	decLock sync.Mutex
+	decLock *semaphore.Weighted
 
 	i jsonrpc.PeerInfo
 }
@@ -32,8 +33,9 @@ type Codec struct {
 func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req *http.Request) *Codec {
 	conn.SetReadLimit(WsMessageSizeLimit)
 	c := &Codec{
-		closed: make(chan struct{}),
-		conn:   conn,
+		closed:  make(chan struct{}),
+		conn:    conn,
+		decLock: semaphore.NewWeighted(1),
 	}
 	c.i.Transport = "ws"
 	// Fill in connection details.
@@ -61,8 +63,10 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 }
 
 func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
-	c.decLock.Lock()
-	defer c.decLock.Unlock()
+	if err := c.decLock.Acquire(ctx, 1); err != nil {
+		return nil, err
+	}
+	defer c.decLock.Release(1)
 	c.decBuf = c.decBuf[:0]
 	_, r, err := c.conn.Reader(ctx)
 	if err != nil {

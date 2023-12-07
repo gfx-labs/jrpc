@@ -36,8 +36,10 @@ func TestSubscription(t *testing.T) {
 	})
 
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -45,6 +47,11 @@ func TestSubscription(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	ch := make(chan int, count)
 	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
@@ -81,8 +88,10 @@ func TestUnsubscribeNoRead(t *testing.T) {
 	})
 
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -90,6 +99,11 @@ func TestUnsubscribeNoRead(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	ch := make(chan int)
 	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
@@ -140,8 +154,10 @@ func TestWrapClient(t *testing.T) {
 		}()
 	})
 	srv := server.NewServer(r)
+	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
+	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
@@ -149,6 +165,11 @@ func TestWrapClient(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer func() {
+		if err = cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	for i := 0; i < 10; i++ {
 		var res string
