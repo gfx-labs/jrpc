@@ -66,7 +66,9 @@ func (c *Client) Mount(h jsonrpc.Middleware) {
 
 func (c *Client) listen() error {
 	var msg json.RawMessage
-	defer c.cn()
+	defer func() {
+		_ = c.Close()
+	}()
 	dec := json.NewDecoder(bufio.NewReader(c.rd))
 	for {
 		err := dec.Decode(&msg)
@@ -157,7 +159,7 @@ func (c *Client) SetHeader(key string, value string) {
 
 func (c *Client) Close() error {
 	c.cn()
-	return nil
+	return c.p.Close()
 }
 
 func (c *Client) writeContext(ctx context.Context, xs []byte) error {

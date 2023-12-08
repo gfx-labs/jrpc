@@ -3,6 +3,7 @@ package clientutil
 import (
 	"context"
 	"io"
+	"net"
 	"sync"
 	"sync/atomic"
 
@@ -11,6 +12,8 @@ import (
 
 type IdReply struct {
 	id atomic.Int64
+
+	closed chan struct{}
 
 	chs map[string]chan msgOrError
 	mu  sync.Mutex
@@ -23,7 +26,8 @@ type msgOrError struct {
 
 func NewIdReply() *IdReply {
 	return &IdReply{
-		chs: make(map[string]chan msgOrError, 1),
+		closed: make(chan struct{}),
+		chs:    make(map[string]chan msgOrError, 1),
 	}
 }
 
@@ -94,5 +98,16 @@ func (i *IdReply) Ask(ctx context.Context, id []byte) (io.ReadCloser, error) {
 	case <-ctx.Done():
 		i.remove(id)
 		return nil, ctx.Err()
+	case <-i.closed:
+		return nil, net.ErrClosed
 	}
+}
+
+func (i *IdReply) Closed() <-chan struct{} {
+	return i.closed
+}
+
+func (i *IdReply) Close() error {
+	close(i.closed)
+	return nil
 }
