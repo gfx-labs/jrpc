@@ -13,7 +13,8 @@ import (
 type IdReply struct {
 	id atomic.Int64
 
-	closed chan struct{}
+	amClosed atomic.Bool
+	closed   chan struct{}
 
 	chs map[string]chan msgOrError
 	mu  sync.Mutex
@@ -108,6 +109,9 @@ func (i *IdReply) Closed() <-chan struct{} {
 }
 
 func (i *IdReply) Close() error {
+	if i.amClosed.Swap(true) {
+		return net.ErrClosed
+	}
 	close(i.closed)
 	return nil
 }
