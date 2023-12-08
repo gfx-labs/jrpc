@@ -173,7 +173,7 @@ func TestCloseClient(t *testing.T) {
 	}
 
 	go func() {
-		if err = cl.Close(); err != nil {
+		if err := cl.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
