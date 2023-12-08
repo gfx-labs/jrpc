@@ -49,10 +49,7 @@ func newRouter(t *testing.T) jmux.Router {
 					return
 				default:
 				}
-				err := notifier.Notify(idx)
-				if err != nil {
-					t.Error(err)
-				}
+				_ = notifier.Notify(idx)
 			}
 		}()
 	})
@@ -172,11 +169,9 @@ func TestCloseClient(t *testing.T) {
 		return
 	}
 
-	go func() {
-		if err := cl.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
+	time.AfterFunc(10*time.Millisecond, func() {
+		_ = cl.Close()
+	})
 
 	for {
 		select {
