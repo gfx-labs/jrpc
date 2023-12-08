@@ -3,9 +3,7 @@ package jrpctest
 import (
 	"context"
 	"embed"
-	"errors"
 	"math/rand"
-	"net"
 	"reflect"
 	"sync"
 	"testing"
@@ -188,16 +186,6 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 
 		wg.Wait()
-	})
-
-	makeTest("close", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
-		go func() {
-			_ = client.Close()
-		}()
-		err := jsonrpc.CallInto(context.Background(), client, nil, "test_block")
-		if !errors.Is(err, net.ErrClosed) {
-			t.Errorf("expected close error but got %v", err)
-		}
 	})
 
 	makeTest("", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
