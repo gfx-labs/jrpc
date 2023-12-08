@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"encoding/json"
 	"net/http/httptest"
 	_ "net/http/pprof"
 	"strings"
@@ -15,112 +16,7 @@ import (
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-func TestSubscription(t *testing.T) {
-	const count = 100
-
-	engine := NewEngine()
-	r := jmux.NewRouter()
-	r.Use(engine.Middleware())
-	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-		notifier, ok := NotifierFromContext(r.Context())
-		if !ok {
-			_ = w.Send(nil, ErrNotificationsUnsupported)
-			return
-		}
-
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			for i := 0; i < count; i++ {
-				if err := notifier.Notify(i); err != nil {
-					panic(err)
-				}
-			}
-		}()
-	})
-
-	srv := server.NewServer(r)
-	defer srv.Shutdown(context.Background())
-	handler := codecs.WebsocketHandler(srv, []string{"*"})
-	httpSrv := httptest.NewServer(handler)
-	defer httpSrv.Close()
-
-	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
-	cl, err := UpgradeConn(jrpc.Dial(wsURL))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	defer func() {
-		if err = cl.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	ch := make(chan int, count)
-	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
-	defer func() {
-		if err = sub.Unsubscribe(); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	for i := 0; i < count; i++ {
-		v := <-ch
-		if v != i {
-			t.Errorf("expected %d but got %d", i, v)
-		}
-	}
-}
-
-func TestUnsubscribeNoRead(t *testing.T) {
-	engine := NewEngine()
-	r := jmux.NewRouter()
-	r.Use(engine.Middleware())
-	r.HandleFunc("test/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-		notifier, ok := NotifierFromContext(r.Context())
-		if !ok {
-			_ = w.Send(nil, ErrNotificationsUnsupported)
-			return
-		}
-
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			for i := 0; i < 10; i++ {
-				if err := notifier.Notify(i); err != nil {
-					panic(err)
-				}
-			}
-		}()
-	})
-
-	srv := server.NewServer(r)
-	defer srv.Shutdown(context.Background())
-	handler := codecs.WebsocketHandler(srv, []string{"*"})
-	httpSrv := httptest.NewServer(handler)
-	defer httpSrv.Close()
-
-	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
-	cl, err := UpgradeConn(jrpc.Dial(wsURL))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	defer func() {
-		if err = cl.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	ch := make(chan int)
-	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
-	time.Sleep(time.Second)
-	if err = sub.Unsubscribe(); err != nil {
-		t.Error(err)
-		return
-	}
-}
-
-func TestWrapClient(t *testing.T) {
+func newRouter(t *testing.T) jmux.Router {
 	engine := NewEngine()
 	r := jmux.NewRouter()
 	r.Use(engine.Middleware())
@@ -141,10 +37,11 @@ func TestWrapClient(t *testing.T) {
 			}
 			return
 		}
+		var count int
+		_ = json.Unmarshal(r.Params, &count)
 		go func() {
 			time.Sleep(10 * time.Millisecond)
-			idx := 0
-			for {
+			for idx := 0; count == 0 || idx < count; idx++ {
 				select {
 				case <-r.Context().Done():
 					return
@@ -156,31 +53,75 @@ func TestWrapClient(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				idx += 1
 			}
 		}()
 	})
+
+	return r
+}
+
+func newServer(t *testing.T) (Conn, func()) {
+	r := newRouter(t)
 	srv := server.NewServer(r)
-	defer srv.Shutdown(context.Background())
 	handler := codecs.WebsocketHandler(srv, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
-	defer httpSrv.Close()
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
 	cl, err := UpgradeConn(jrpc.Dial(wsURL))
 	if err != nil {
 		t.Error(err)
-		return
+		return nil, nil
 	}
+
+	return cl, func() {
+		_ = cl.Close()
+		httpSrv.Close()
+		srv.Shutdown(context.Background())
+	}
+}
+
+func TestSubscription(t *testing.T) {
+	const count = 100
+
+	cl, done := newServer(t)
+	defer done()
+
+	ch := make(chan int, count)
+	sub, err := cl.Subscribe(context.Background(), "test", ch, count)
 	defer func() {
-		if err = cl.Close(); err != nil {
+		if err = sub.Unsubscribe(); err != nil {
 			t.Error(err)
 		}
 	}()
 
+	for i := 0; i < count; i++ {
+		v := <-ch
+		if v != i {
+			t.Errorf("expected %d but got %d", i, v)
+		}
+	}
+}
+
+func TestUnsubscribeNoRead(t *testing.T) {
+	cl, done := newServer(t)
+	defer done()
+
+	ch := make(chan int)
+	sub, err := cl.Subscribe(context.Background(), "test", ch, 10)
+	time.Sleep(time.Second)
+	if err = sub.Unsubscribe(); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestWrapClient(t *testing.T) {
+	cl, done := newServer(t)
+	defer done()
+
 	for i := 0; i < 10; i++ {
 		var res string
-		if err = cl.Do(context.Background(), &res, "echo", "test"); err != nil {
+		if err := cl.Do(context.Background(), &res, "echo", "test"); err != nil {
 			t.Error(err)
 			return
 		}
@@ -190,8 +131,7 @@ func TestWrapClient(t *testing.T) {
 		}
 
 		ch := make(chan int, 101)
-		var sub ClientSubscription
-		sub, err = cl.Subscribe(context.Background(), "test", ch, nil)
+		sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
 		if err != nil {
 			t.Error(err)
 			return
@@ -218,5 +158,37 @@ func TestWrapClient(t *testing.T) {
 				}
 			}
 		}()
+	}
+}
+
+func TestCloseClient(t *testing.T) {
+	cl, done := newServer(t)
+	defer done()
+
+	ch := make(chan int)
+	sub, err := cl.Subscribe(context.Background(), "test", ch, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	go func() {
+		if err := cl.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	for {
+		select {
+		case err, ok := <-sub.Err():
+			if ok {
+				t.Errorf("sub errored: %v", err)
+			}
+			return
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		}
 	}
 }
