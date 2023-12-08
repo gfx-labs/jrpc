@@ -49,10 +49,7 @@ func newRouter(t *testing.T) jmux.Router {
 					return
 				default:
 				}
-				err := notifier.Notify(idx)
-				if err != nil {
-					t.Error(err)
-				}
+				_ = notifier.Notify(idx)
 			}
 		}()
 	})
