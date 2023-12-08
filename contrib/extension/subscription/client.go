@@ -90,6 +90,17 @@ func (c *WrapClient) Subscribe(ctx context.Context, namespace string, channel an
 		readErr:   make(chan error, 1),
 	}
 
+	go func() {
+		defer func() {
+			_ = sub.Unsubscribe()
+		}()
+		select {
+		case <-c.Closed():
+		case <-ctx.Done():
+			sub.err(ctx.Err())
+		}
+	}()
+
 	c.mu.Lock()
 	c.subs[sub.id] = sub
 	c.mu.Unlock()
