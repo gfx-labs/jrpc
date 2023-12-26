@@ -26,6 +26,7 @@ it is currently being used in the oku.trade api in proxy, client, and server app
  - extensions, which allow setting arbitrary fields on the parent object, like in sourcegraph jsonrpc2
  - jmux, which allows for http-like routing, implemented like `go-chi/v5`, except for jsonrpc2 paths
  - argreflect, which allows mounting methods on structs to the rpc engine, like go-ethereum/rpc
+ - allows for streaming over eventsource - means subscriptions without websockets
 
 
 ## batch requests
@@ -54,7 +55,7 @@ pkg/             - packages for implementing jrpc
   clientutil/      - common utilities for client implementations to use
     idreply.go       - generalizes making a request with an incrementing id, then waiting on it
     helper.go        - helpers for decoding messages, etc
-  codec/           - codec related things. to implement new codecs, use this package
+  jsonrpc/           - jsonrpc related things. to implement new codecs, use this package
     errors.go        - jsonrpc2 error codes and marshaling
     json.go          - jsonrpc2 json rules, encoding, decoding
     peer.go          - peerinfo
@@ -92,7 +93,7 @@ contrib/         - packages that add to jrpc
     argreflect/      - go-ethereum style struct reflection
   middleware/      - pre implemented middleware
   extension/       - extensions to the protocol
-    subscription/    - WIP: subscription engine for go-ethereum style subs
+    subscription/    - subscription engine for go-ethereum style subs
 
 ```
 
