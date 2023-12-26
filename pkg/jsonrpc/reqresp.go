@@ -20,10 +20,11 @@ type StreamingResponseWriter interface {
 }
 
 type Request struct {
-	ID     *ID             `json:"id,omitempty"`
-	Method string          `json:"method,omitempty"`
-	Params json.RawMessage `json:"params,omitempty"`
-	Peer   PeerInfo        `json:"-"`
+	ID         *ID                        `json:"id,omitempty"`
+	Method     string                     `json:"method,omitempty"`
+	Params     json.RawMessage            `json:"params,omitempty"`
+	Peer       PeerInfo                   `json:"-"`
+	Extensions map[string]json.RawMessage `json:"-"`
 
 	ctx context.Context
 }
@@ -86,6 +87,12 @@ func (r Request) MarshalJSON() ([]byte, error) {
 		if r.Params != nil {
 			e.FieldStart("params")
 			e.Raw(r.Params)
+		}
+		if r.Extensions != nil {
+			for k, v := range r.Extensions {
+				e.FieldStart(k)
+				e.Raw(v)
+			}
 		}
 	})
 	return enc.Bytes(), nil

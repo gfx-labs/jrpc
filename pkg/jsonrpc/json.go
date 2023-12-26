@@ -22,10 +22,11 @@ func NewNull() json.RawMessage {
 // A value of this type can a JSON-RPC request, notification, successful response or
 // error response. Which one it is depends on the fields.
 type Message struct {
-	ID     *ID             `json:"id,omitempty"`
-	Method string          `json:"method,omitempty"`
-	Params json.RawMessage `json:"params,omitempty"`
-	Error  error           `json:"error,omitempty"`
+	ID         *ID                        `json:"id,omitempty"`
+	Method     string                     `json:"method,omitempty"`
+	Params     json.RawMessage            `json:"params,omitempty"`
+	Error      error                      `json:"error,omitempty"`
+	Extensions map[string]json.RawMessage `json:"-"`
 
 	Result io.ReadCloser `json:"result,omitempty"`
 }
@@ -70,6 +71,13 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 				}
 			})
 		}
+		if m.Extensions != nil {
+			for k, v := range m.Extensions {
+				e.Field(k, func(e *jx.Encoder) {
+					e.Raw(v)
+				})
+			}
+		}
 	})
 	if err != nil {
 		return err
@@ -84,6 +92,15 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 	err := dec.Obj(func(d *jx.Decoder, key string) (err error) {
 		switch key {
+		default:
+			raw, err := d.Raw()
+			if err != nil {
+				return err
+			}
+			if m.Extensions == nil {
+				m.Extensions = make(map[string]json.RawMessage)
+			}
+			m.Extensions[key] = json.RawMessage(raw)
 		case "jsonrpc":
 			value, err := d.Str()
 			if err != nil {
