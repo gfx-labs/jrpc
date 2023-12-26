@@ -26,7 +26,6 @@ it is currently being used in the oku.trade api in proxy, client, and server app
  - extensions, which allow setting arbitrary fields on the parent object, like in sourcegraph jsonrpc2
  - jmux, which allows for http-like routing, implemented like `go-chi/v5`, except for jsonrpc2 paths
  - argreflect, which allows mounting methods on structs to the rpc engine, like go-ethereum/rpc
- - openrpc schema parser and code generator
 
 
 ## batch requests
