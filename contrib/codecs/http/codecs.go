@@ -31,7 +31,7 @@ type HttpCodec struct {
 func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, error) {
 	switch r.Method {
 	case http.MethodGet:
-		if r.Header.Get("Accept") == "text/event-stream" {
+		if r.Header.Get("Accept") == "text/event-stream" || r.URL.Query().Has("sse") {
 			return NewSseCodec(w, r)
 		}
 		return NewGetCodec(w, r), nil
