@@ -17,43 +17,36 @@ import (
 )
 
 func main() {
-
 	engine := subscription.NewEngine()
 	r := jmux.NewRouter()
 	r.Use(middleware.Logger)
 	srv := server.NewServer(r)
-
 	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		w.Send(r.Params, nil)
 	})
-
 	r.Group(func(r jmux.Router) {
 		r.Use(engine.Middleware())
-
 		r.HandleFunc("testservice/subscribe", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			notifier, ok := subscription.NotifierFromContext(r.Context())
 			if !ok {
 				w.Send(nil, subscription.ErrNotificationsUnsupported)
 				return
 			}
-			go func() {
-				idx := 0
-				for {
-					select {
-					case <-r.Context().Done():
-						return
-					case <-notifier.Err():
-						return
-					default:
-					}
-					notifier.Notify(idx)
-					time.Sleep(1 * time.Second)
-					idx = idx + 1
+			idx := 0
+			for {
+				select {
+				case <-r.Context().Done():
+					return
+				case <-notifier.Err():
+					return
+				default:
 				}
-			}()
+				notifier.Notify(idx)
+				time.Sleep(1 * time.Second)
+				idx = idx + 1
+			}
 		})
 	})
-
 	go func() {
 		err := client()
 		if err != nil {

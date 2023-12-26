@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"sync"
 
 	"github.com/mailgun/multibuf"
@@ -37,6 +38,12 @@ func NewServer(r jsonrpc.Handler) *Server {
 // 1. every request read from ReadBatch until ReadBatch returns context.Canceled is processed.
 // 2. there is a server related error (failed encoding, broken conn) that was received while processing/reading messages.
 func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) error {
+	select {
+	case <-s.lctx.Done():
+		return http.ErrServerClosed
+	default:
+	}
+	// close the remote after handling it
 	defer remote.Close()
 	stream := jsonrpc.NewStream(remote)
 	// add a cancel to the context so we can cancel all the child tasks on return
@@ -94,8 +101,9 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	}
 }
 
-func (s *Server) Shutdown(ctx context.Context) {
+func (s *Server) Shutdown(ctx context.Context) error {
 	s.cn()
+	return nil
 }
 
 func (s *Server) serve(ctx context.Context,

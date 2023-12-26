@@ -28,9 +28,12 @@ type HttpCodec struct {
 	msgs *serverutil.Bundle
 }
 
-func NewCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
+func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, error) {
 	switch r.Method {
 	case http.MethodGet:
+		if r.Header.Get("Accept") == "text/event-stream" {
+			return NewSseCodec(w, r)
+		}
 		return NewGetCodec(w, r), nil
 	case http.MethodPost:
 		return NewPostCodec(w, r)
