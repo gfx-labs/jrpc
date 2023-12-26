@@ -7,9 +7,11 @@ import (
 	"sync"
 
 	"github.com/mailgun/multibuf"
+	"golang.org/x/sync/errgroup"
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 // Server is an RPC server.
@@ -30,52 +32,66 @@ func NewServer(r jsonrpc.Handler) *Server {
 }
 
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
-// the response back using the given codec. It will block until the codec is closed
+// the response back using the given codec. It will block until the codec is closed.
+// the codec will return if either of these conditions are met
+// 1. every request read from ReadBatch until ReadBatch returns context.Canceled is processed.
+// 2. there is a server related error (failed encoding, broken conn) that was received while processing/reading messages.
 func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) error {
 	defer remote.Close()
-
 	stream := jsonrpc.NewStream(remote)
 	// add a cancel to the context so we can cancel all the child tasks on return
 	ctx = ContextWithPeerInfo(ctx, remote.PeerInfo())
 	ctx = ContextWithMessageStream(ctx, stream)
 	ctx, cn := context.WithCancel(ctx)
 	defer cn()
-
-	var allErrs []error
-	var mu sync.Mutex
-	wg := sync.WaitGroup{}
-	err := func() error {
+	errCh := make(chan error)
+	batches := make(chan serverutil.Bundle, 1)
+	go func() {
+		defer close(batches)
 		for {
 			// read messages from the stream synchronously
 			incoming, batch, err := remote.ReadBatch(ctx)
 			if err != nil {
-				return err
+				// if its not context canceled, aka our graceful closure, we error, otherwise we only return
+				// in both cases we close the batches channel. this error will then immediately return.
+				if !errors.Is(err, context.Canceled) {
+					errCh <- err
+				}
+				return
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				responder := &callResponder{
-					peerinfo: remote.PeerInfo(),
-					batch:    batch,
-					stream:   stream,
-				}
-				err = s.serve(ctx, incoming, responder)
-				if err != nil {
-					mu.Lock()
-					defer mu.Unlock()
-					allErrs = append(allErrs, err)
-				}
-			}()
+			batches <- serverutil.Bundle{
+				Messages: incoming,
+				Batch:    batch,
+			}
 		}
 	}()
-	wg.Wait()
-	if err != nil {
-		allErrs = append(allErrs, err)
+	wg := sync.WaitGroup{}
+	// this errgroup controls the max concurrent requests per codec
+	egg := errgroup.Group{}
+	for batch := range batches {
+		incoming, batch := batch.Messages, batch.Batch
+		wg.Add(1)
+		responder := &callResponder{
+			peerinfo: remote.PeerInfo(),
+			batch:    batch,
+			stream:   stream,
+		}
+		egg.Go(func() error {
+			return s.serve(ctx, incoming, responder)
+		})
 	}
-	if len(allErrs) > 0 {
-		return errors.Join(allErrs...)
+	go func() {
+		err := egg.Wait()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		errCh <- nil
+	}()
+	select {
+	case err := <-errCh:
+		return err
 	}
-	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) {

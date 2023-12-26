@@ -116,9 +116,11 @@ func (c *HttpCodec) PeerInfo() jsonrpc.PeerInfo {
 
 func (c *HttpCodec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	if c.msgs == nil {
-		return nil, false, io.EOF
+		return nil, false, context.Canceled
 	}
-	c.msgs = nil
+	defer func() {
+		c.msgs = nil
+	}()
 	return c.msgs.Messages, c.msgs.Batch, nil
 }
 

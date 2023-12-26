@@ -51,51 +51,10 @@ func confirmStatusCode(t *testing.T, got, want int) {
 	t.Fatalf("response status code: got %d, want %d", got, want)
 }
 
-func confirmRequestValidationCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
-	t.Helper()
-	request := httptest.NewRequest(method, "http://url.com", strings.NewReader(body))
-	if len(contentType) > 0 {
-		request.Header.Set("Content-Type", contentType)
-	}
-	code, err := ValidateRequest(request)
-	if code == 0 {
-		if err != nil {
-			t.Errorf("validation: got error %v, expected nil", err)
-		}
-	} else if err == nil {
-		t.Errorf("validation: code %d: got nil, expected error", code)
-	}
-	confirmStatusCode(t, code, expectedStatusCode)
-}
-
-func TestHTTPErrorResponseWithDelete(t *testing.T) {
-	confirmRequestValidationCode(t, http.MethodDelete, contentType, "", http.StatusMethodNotAllowed)
-}
-
-func TestHTTPErrorResponseWithPut(t *testing.T) {
-	confirmRequestValidationCode(t, http.MethodPut, contentType, "", http.StatusMethodNotAllowed)
-}
-
-func TestHTTPErrorResponseWithMaxContentLength(t *testing.T) {
-	body := make([]rune, maxRequestContentLength+1)
-	confirmRequestValidationCode(t,
-		http.MethodPost, contentType, string(body), http.StatusRequestEntityTooLarge)
-}
-
-//NOTE: this test is not needed since we no longer check this
-//
-//func TestHTTPErrorResponseWithEmptyContentType(t *testing.T) {
-//	confirmRequestValidationCode(t, http.MethodPost, "", "", http.StatusUnsupportedMediaType)
-//}
-
-func TestHTTPErrorResponseWithValidRequest(t *testing.T) {
-	confirmRequestValidationCode(t, http.MethodPost, contentType, "", 0)
-}
-
 func confirmHTTPRequestYieldsStatusCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
 	t.Helper()
 	s := server.NewServer(jmux.NewMux())
-	ts := httptest.NewServer(&Server{Server: s})
+	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 
 	request, err := http.NewRequest(method, ts.URL, strings.NewReader(body))
@@ -119,7 +78,7 @@ func TestHTTPResponseWithEmptyGet(t *testing.T) {
 // This checks that maxRequestContentLength is not applied to the response of a request.
 func TestHTTPRespBodyUnlimited(t *testing.T) {
 	s := jrpctest.NewServer()
-	ts := httptest.NewServer(&Server{Server: s})
+	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 
 	c, err := DialHTTP(ts.URL)
@@ -178,7 +137,7 @@ func TestHTTPErrorResponse(t *testing.T) {
 
 func TestClientHTTP(t *testing.T) {
 	s := jrpctest.NewServer()
-	ts := httptest.NewServer(&Server{Server: s})
+	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 	c, err := DialHTTP(ts.URL)
 	if err != nil {
