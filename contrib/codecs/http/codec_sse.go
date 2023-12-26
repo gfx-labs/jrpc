@@ -103,7 +103,6 @@ func (c *SseCodec) Flush() error {
 		Event: []byte("object"),
 		Data:  &c.cur,
 	})
-	c.w.Write([]byte{'\n'})
 	if c.f != nil {
 		c.f.Flush()
 	}
