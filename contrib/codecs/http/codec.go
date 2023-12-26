@@ -40,12 +40,6 @@ type httpError struct {
 	err  error
 }
 
-func NewCodec(w http.ResponseWriter, r *http.Request) *Codec {
-	c := &Codec{}
-	c.Reset(w, r)
-	return c
-}
-
 func (c *Codec) Reset(w http.ResponseWriter, r *http.Request) {
 	c.wr = bufio.NewWriter(w)
 	if w == nil {

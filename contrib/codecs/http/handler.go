@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"sync"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -13,30 +12,22 @@ import (
 )
 
 func HttpHandler(s *server.Server) http.Handler {
-	return h2c.NewHandler(&Server{Server: s}, &http2.Server{})
-}
-
-type Server struct {
-	Server *server.Server
-}
-
-var codecPool = sync.Pool{
-	New: func() any {
-		return &Codec{}
-	},
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.Server == nil {
-		http.Error(w, "no server set", http.StatusInternalServerError)
-		return
-	}
-	c := NewCodec(w, r)
-	w.Header().Set("content-type", contentType)
-	err := s.Server.ServeCodec(r.Context(), c)
-	if err != nil && !errors.Is(err, context.Canceled) {
-		//  slog.Error("codec err", "err", err)
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
-	}
-	<-c.Closed()
+	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s == nil {
+			http.Error(w, "no server set", http.StatusInternalServerError)
+			return
+		}
+		c, err := NewCodec(w, r)
+		if err != nil {
+			return
+		}
+		w.Header().Set("content-type", contentType)
+		err = s.ServeCodec(r.Context(), c)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			//  slog.Error("codec err", "err", err)
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+			return
+		}
+		<-c.Closed()
+	}), &http2.Server{})
 }
