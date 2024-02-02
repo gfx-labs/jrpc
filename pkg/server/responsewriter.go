@@ -12,8 +12,6 @@ var _ jsonrpc.ResponseWriter = (*streamingRespWriter)(nil)
 type streamingRespWriter struct {
 	// this should be the same context as the request
 	ctx context.Context
-	// if there is an unrecoverable error, this should be used to immediately terminate the codec
-	cancel func()
 	// the stream that Send will write to
 	sendStream jsonrpc.MessageStreamer
 	// the stream that Notify will write to
@@ -75,7 +73,6 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	}
 	defer msg.Close()
 	if err = send(ce, msg); err != nil {
-		c.cancel()
 		return err
 	}
 	return nil
@@ -92,7 +89,6 @@ func (c *streamingRespWriter) Notify(method string, v any) error {
 		dat:    v,
 	}, msg)
 	if err != nil {
-		c.cancel()
 		return err
 	}
 	return nil

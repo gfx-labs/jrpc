@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"log"
 	"net/http"
 	"sync"
 
@@ -55,6 +55,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	batches := make(chan serverutil.Bundle, 1)
 	go func() {
 		defer func() {
+			log.Println("exiting")
 			close(batches)
 		}()
 		for {
@@ -63,48 +64,43 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 			if err != nil {
 				// if its not context canceled, aka our graceful closure, we error, otherwise we only return
 				// in both cases we close the batches channel. this error will then immediately return.
-				if !errors.Is(err, context.Canceled) {
-					select {
-					case errCh <- err:
-					default:
-					}
+				select {
+				case errCh <- err:
+				default:
 				}
 				return
 			}
-			batches <- serverutil.Bundle{
+			select {
+			case batches <- serverutil.Bundle{
 				Messages: incoming,
 				Batch:    batch,
+			}:
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
 	wg := sync.WaitGroup{}
 	// this errgroup controls the max concurrent requests per codec
-	egg := errgroup.Group{}
-	egg.SetLimit(4)
-	for batch := range batches {
-		incoming, batch := batch.Messages, batch.Batch
-		wg.Add(1)
-		responder := &callResponder{
-			peerinfo: remote.PeerInfo(),
-			batch:    batch,
-			stream:   stream,
-		}
-		egg.Go(func() error {
-			return s.serve(ctx, func() {
-				cn()
-			}, incoming, responder)
-		})
-	}
+	egg, ctx := errgroup.WithContext(ctx)
 	go func() {
-		err := egg.Wait()
-		if err != nil {
-			errCh <- err
-			return
+		for batch := range batches {
+			incoming, batch := batch.Messages, batch.Batch
+			wg.Add(1)
+			responder := &callResponder{
+				peerinfo: remote.PeerInfo(),
+				batch:    batch,
+				stream:   stream,
+			}
+			egg.Go(func() error {
+				return s.serve(ctx, incoming, responder)
+			})
 		}
-		errCh <- nil
+		egg.Wait()
 	}()
-
 	select {
+	case <-ctx.Done():
+		return nil
 	case err := <-errCh:
 		return err
 	}
@@ -115,24 +111,23 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) serve(ctx context.Context, cancelFunc func(),
+func (s *Server) serve(ctx context.Context,
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {
 	if r.batch {
-		return s.serveBatch(ctx, cancelFunc, incoming, r)
+		return s.serveBatch(ctx, incoming, r)
 	} else {
-		return s.serveSingle(ctx, cancelFunc, incoming[0], r)
+		return s.serveSingle(ctx, incoming[0], r)
 	}
 }
 
-func (s *Server) serveSingle(ctx context.Context, cancelFunc func(),
+func (s *Server) serveSingle(ctx context.Context,
 	incoming *jsonrpc.Message,
 	r *callResponder,
 ) error {
 	rw := &streamingRespWriter{
 		ctx:          ctx,
-		cancel:       cancelFunc,
 		sendStream:   r.stream,
 		notifyStream: r.stream,
 	}
@@ -182,7 +177,6 @@ func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, 
 }
 
 func (s *Server) serveBatch(ctx context.Context,
-	cancelFunc func(),
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {
