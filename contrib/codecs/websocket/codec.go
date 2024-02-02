@@ -20,6 +20,8 @@ import (
 type Codec struct {
 	closed chan struct{}
 	conn   *websocket.Conn
+	closer func()
+	ctx    context.Context
 
 	currentFrame io.WriteCloser
 	wrLock       sync.Mutex
@@ -32,14 +34,20 @@ type Codec struct {
 
 func newWebsocketCodec(ctx context.Context, conn *websocket.Conn, host string, req *http.Request) *Codec {
 	conn.SetReadLimit(WsMessageSizeLimit)
+
+	ctx, cn := context.WithCancel(ctx)
 	c := &Codec{
 		closed:  make(chan struct{}),
 		conn:    conn,
 		decLock: semaphore.NewWeighted(1),
+		ctx:     ctx,
+	}
+	c.closer = func() {
+		cn()
 	}
 	c.i.Transport = "ws"
 	// Fill in connection details.
-	c.i.HTTP = req.Clone(req.Context())
+	c.i.HTTP = req.Clone(ctx)
 	// Start pinger.
 	go heartbeat(ctx, conn, WsPingInterval)
 	return c
@@ -92,20 +100,26 @@ func (c *Codec) Write(p []byte) (n int, err error) {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
 	if c.currentFrame == nil {
-		wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
+		wr, err := c.conn.Writer(c.ctx, websocket.MessageText)
 		if err != nil {
+			c.Close()
 			return 0, err
 		}
 		c.currentFrame = wr
 	}
-	return c.currentFrame.Write(p)
+
+	n, err = c.currentFrame.Write(p)
+	if err != nil {
+		c.Close()
+	}
+	return
 }
 
 func (c *Codec) Flush() error {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
 	if c.currentFrame == nil {
-		wr, err := c.conn.Writer(context.Background(), websocket.MessageText)
+		wr, err := c.conn.Writer(c.ctx, websocket.MessageText)
 		if err != nil {
 			return err
 		}
@@ -132,6 +146,7 @@ func (c *Codec) Close() error {
 	case <-c.closed:
 		return nil
 	default:
+		c.closer()
 		close(c.closed)
 	}
 	return c.conn.Close(websocket.StatusNormalClosure, "")

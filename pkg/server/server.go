@@ -51,10 +51,12 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	ctx = ContextWithMessageStream(ctx, stream)
 	ctx, cn := context.WithCancel(ctx)
 	defer cn()
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	batches := make(chan serverutil.Bundle, 1)
 	go func() {
-		defer close(batches)
+		defer func() {
+			close(batches)
+		}()
 		for {
 			// read messages from the stream synchronously
 			incoming, batch, err := remote.ReadBatch(ctx)
@@ -62,7 +64,10 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 				// if its not context canceled, aka our graceful closure, we error, otherwise we only return
 				// in both cases we close the batches channel. this error will then immediately return.
 				if !errors.Is(err, context.Canceled) {
-					errCh <- err
+					select {
+					case errCh <- err:
+					default:
+					}
 				}
 				return
 			}
@@ -75,6 +80,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	wg := sync.WaitGroup{}
 	// this errgroup controls the max concurrent requests per codec
 	egg := errgroup.Group{}
+	egg.SetLimit(4)
 	for batch := range batches {
 		incoming, batch := batch.Messages, batch.Batch
 		wg.Add(1)
@@ -84,7 +90,9 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 			stream:   stream,
 		}
 		egg.Go(func() error {
-			return s.serve(ctx, incoming, responder)
+			return s.serve(ctx, func() {
+				cn()
+			}, incoming, responder)
 		})
 	}
 	go func() {
@@ -95,6 +103,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 		}
 		errCh <- nil
 	}()
+
 	select {
 	case err := <-errCh:
 		return err
@@ -106,23 +115,24 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) serve(ctx context.Context,
+func (s *Server) serve(ctx context.Context, cancelFunc func(),
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {
 	if r.batch {
-		return s.serveBatch(ctx, incoming, r)
+		return s.serveBatch(ctx, cancelFunc, incoming, r)
 	} else {
-		return s.serveSingle(ctx, incoming[0], r)
+		return s.serveSingle(ctx, cancelFunc, incoming[0], r)
 	}
 }
 
-func (s *Server) serveSingle(ctx context.Context,
+func (s *Server) serveSingle(ctx context.Context, cancelFunc func(),
 	incoming *jsonrpc.Message,
 	r *callResponder,
 ) error {
 	rw := &streamingRespWriter{
 		ctx:          ctx,
+		cancel:       cancelFunc,
 		sendStream:   r.stream,
 		notifyStream: r.stream,
 	}
@@ -172,6 +182,7 @@ func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, 
 }
 
 func (s *Server) serveBatch(ctx context.Context,
+	cancelFunc func(),
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 ) error {

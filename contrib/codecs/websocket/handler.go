@@ -25,7 +25,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := newWebsocketCodec(r.Context(), conn, "", r)
 	err = s.Server.ServeCodec(r.Context(), c)
 	if err != nil {
-		// slog.Error("codec err", "error", err)
+		//slog.Error("codec err", "error", err)
 	}
 }
 
