@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 
@@ -55,7 +54,6 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	batches := make(chan serverutil.Bundle, 1)
 	go func() {
 		defer func() {
-			log.Println("exiting")
 			close(batches)
 		}()
 		for {
