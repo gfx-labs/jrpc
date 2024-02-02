@@ -89,7 +89,7 @@ type Notifier struct {
 	mu sync.Mutex
 
 	id  SubID
-	err chan error // closed on unsubscribe
+	err chan error
 }
 
 // Notify sends a notification to the client with the given data as payload.
@@ -110,8 +110,14 @@ func (n *Notifier) Err() <-chan error {
 
 func (n *Notifier) send(data json.RawMessage) error {
 	params, _ := jjson.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
-	return n.h.Notify(
+	err := n.h.Notify(
 		n.namespace+
 			serviceMethodSeparator+
 			notificationMethodSuffix, json.RawMessage(params))
+
+	if err != nil {
+		n.err <- err
+		return err
+	}
+	return nil
 }
