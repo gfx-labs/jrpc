@@ -29,7 +29,7 @@ type HttpCodec struct {
 }
 
 func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, error) {
-	switch r.Method {
+	switch strings.ToUpper(r.Method) {
 	case http.MethodGet:
 		if r.Header.Get("Accept") == "text/event-stream" || r.URL.Query().Has("sse") {
 			return NewSseCodec(w, r)
@@ -37,6 +37,8 @@ func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, err
 		return NewGetCodec(w, r), nil
 	case http.MethodPost:
 		return NewPostCodec(w, r)
+	case "JRPC":
+		return NewJrpcCodec(w, r)
 	default:
 		http.Error(w, "method not supported", http.StatusMethodNotAllowed)
 		return nil, errors.New("method not allowed")
@@ -108,6 +110,52 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 		return nil, err
 	}
 	c.msgs = serverutil.ParseBundle(data)
+
+	pathMethod := strings.TrimPrefix(r.URL.Path, "/")
+	for _, v := range c.msgs.Messages {
+		if v != nil {
+			if v.Method == "" {
+				v.Method = pathMethod
+			}
+		}
+	}
+	return c, nil
+}
+
+func NewJrpcCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
+	c := &HttpCodec{
+		r: r,
+		w: w,
+		i: jsonrpc.PeerInfo{
+			Transport:  "http",
+			RemoteAddr: r.RemoteAddr,
+			HTTP:       r.Clone(r.Context()),
+		},
+	}
+	c.ctx, c.cn = context.WithCancel(r.Context())
+	flusher, ok := w.(http.Flusher)
+	if ok {
+		c.f = flusher
+	}
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	method := strings.TrimPrefix(r.URL.Path, "/")
+	id := r.Header.Get("id")
+	if id == "" {
+		id = "none"
+	}
+	c.msgs = &serverutil.Bundle{
+		Messages: []*jsonrpc.Message{{
+			ID:     jsonrpc.NewId(id),
+			Method: method,
+			Params: data,
+		}},
+		Batch: false,
+	}
 
 	return c, nil
 }

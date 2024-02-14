@@ -221,7 +221,6 @@ func IsBatchMessage(raw json.RawMessage) bool {
 // Message.
 func ParseMessage(in json.RawMessage) ([]*Message, bool) {
 	return ReadMessage(jx.DecodeBytes(in))
-
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
