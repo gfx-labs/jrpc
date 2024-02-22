@@ -77,6 +77,6 @@ func client() error {
 	}()
 	defer jcs.Unsubscribe()
 	for {
-		//log.Println("receiving", <-out)
+		log.Println("receiving", <-out)
 	}
 }
