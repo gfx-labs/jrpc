@@ -117,6 +117,9 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 			if v.Method == "" {
 				v.Method = pathMethod
 			}
+			if v.ID == nil {
+				v.ID = jsonrpc.NewId(1)
+			}
 		}
 	}
 	return c, nil
