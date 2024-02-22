@@ -50,6 +50,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	ctx = ContextWithMessageStream(ctx, stream)
 	ctx, cn := context.WithCancel(ctx)
 	defer cn()
+	egg, ctx := errgroup.WithContext(ctx)
 	errCh := make(chan error, 1)
 	batches := make(chan serverutil.Bundle, 1)
 	go func() {
@@ -80,7 +81,6 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	}()
 	wg := sync.WaitGroup{}
 	// this errgroup controls the max concurrent requests per codec
-	egg, ctx := errgroup.WithContext(ctx)
 	for batch := range batches {
 		incoming, batch := batch.Messages, batch.Batch
 		wg.Add(1)
