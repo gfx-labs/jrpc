@@ -15,7 +15,6 @@ import (
 
 func TestRDWRSetup(t *testing.T) {
 	mux := jmux.NewMux()
-	srv := server.NewServer(mux)
 
 	ctx := context.Background()
 
@@ -25,7 +24,7 @@ func TestRDWRSetup(t *testing.T) {
 	clientCodec := rdwr.NewCodec(rd_s, wr_c)
 	client := rdwr.NewClient(rd_c, wr_s)
 	go func() {
-		err := srv.ServeCodec(ctx, clientCodec)
+		err := server.ServeCodec(ctx, clientCodec, mux)
 		assert.NoError(t, err)
 	}()
 

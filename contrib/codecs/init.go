@@ -11,14 +11,13 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func init() {
-	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
+	RegisterHandler(func(bind *url.URL, srv jsonrpc.Handler, opts map[string]any) error {
 		return gohttp.ListenAndServe(bind.Host, HttpHandler(srv))
 	}, "http")
-	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
+	RegisterHandler(func(bind *url.URL, srv jsonrpc.Handler, opts map[string]any) error {
 		origins := []string{}
 		if val, ok := opts["origins"]; ok {
 			if t, ok := val.([]string); ok {
@@ -28,7 +27,7 @@ func init() {
 		return gohttp.ListenAndServe(bind.Host, HttpWebsocketHandler(srv, origins))
 	}, "http+ws")
 
-	RegisterHandler(func(bind *url.URL, srv *server.Server, opts map[string]any) error {
+	RegisterHandler(func(bind *url.URL, srv jsonrpc.Handler, opts map[string]any) error {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", bind.Host)
 		if err != nil {
 			return err

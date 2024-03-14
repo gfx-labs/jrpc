@@ -13,7 +13,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func newRouter(t *testing.T) jmux.Router {
@@ -59,8 +58,7 @@ func newRouter(t *testing.T) jmux.Router {
 
 func newServer(t *testing.T) (Conn, func()) {
 	r := newRouter(t)
-	srv := server.NewServer(r)
-	handler := codecs.WebsocketHandler(srv, []string{"*"})
+	handler := codecs.WebsocketHandler(r, []string{"*"})
 	httpSrv := httptest.NewServer(handler)
 
 	wsURL := "ws:" + strings.TrimPrefix(httpSrv.URL, "http:")
@@ -73,7 +71,6 @@ func newServer(t *testing.T) (Conn, func()) {
 	return cl, func() {
 		_ = cl.Close()
 		httpSrv.Close()
-		srv.Shutdown(context.Background())
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 
 	gohttp "net/http"
 	"net/url"
@@ -14,7 +14,7 @@ import (
 var WebsocketHandler = websocket.WebsocketHandler
 var HttpHandler = http.HttpHandler
 
-var HttpWebsocketHandler = func(srv *server.Server, origins []string) gohttp.Handler {
+var HttpWebsocketHandler = func(srv jsonrpc.Handler, origins []string) gohttp.Handler {
 	cwss := WebsocketHandler(srv, origins)
 	chttp := HttpHandler(srv)
 	return gohttp.HandlerFunc(func(w gohttp.ResponseWriter, r *gohttp.Request) {
@@ -31,7 +31,7 @@ var HttpWebsocketHandler = func(srv *server.Server, origins []string) gohttp.Han
 //}
 
 // ListenAndServe
-func ListenAndServe(u string, srv *server.Server, opts map[string]any) error {
+func ListenAndServe(u string, srv jsonrpc.Handler, opts map[string]any) error {
 	pu, err := url.Parse(u)
 	if err != nil {
 		return err

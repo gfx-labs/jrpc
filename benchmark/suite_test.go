@@ -9,7 +9,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func TestBenchmarkSuite(t *testing.T) {
@@ -21,7 +20,7 @@ func TestBenchmarkSuite(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	makeTest("SingleClient", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("SingleClient", func(t *testing.T, h jsonrpc.Handler, client jsonrpc.Conn) {
 		err := client.Do(ctx, nil, "test_ping", nil)
 		if err != nil {
 			t.Error(err)
@@ -37,7 +36,7 @@ func runBenchmarkSuite(b *testing.B, sm jrpctest.ServerMaker) {
 			executeBench(b, fm)
 		})
 	}
-	makeBench("SingleClient", func(b *testing.B, server *server.Server, client jsonrpc.Conn) {
+	makeBench("SingleClient", func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
 		for i := 0; i < b.N; i++ {
 			err := client.Do(ctx, nil, "test_ping", nil)
 			if err != nil {

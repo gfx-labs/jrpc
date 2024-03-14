@@ -9,7 +9,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 func TestWebsocketClientHeaders(t *testing.T) {
@@ -35,7 +34,7 @@ func TestWebsocketOriginCheck(t *testing.T) {
 	t.Parallel()
 
 	var (
-		srv     = jrpctest.NewServer()
+		srv     = jrpctest.NewRouter()
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"http://example.com"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
@@ -64,7 +63,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 	t.Parallel()
 
 	var (
-		srv     = jrpctest.NewServer()
+		srv     = jrpctest.NewRouter()
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, []string{"*"}))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)
@@ -98,7 +97,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 func TestClientWebsocketLargeMessage(t *testing.T) {
 	mux := jmux.NewMux()
 	var (
-		srv     = server.NewServer(mux)
+		srv     = mux
 		httpsrv = httptest.NewServer(websocket.WebsocketHandler(srv, nil))
 		wsURL   = "ws:" + strings.TrimPrefix(httpsrv.URL, "http:")
 	)

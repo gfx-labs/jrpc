@@ -27,15 +27,11 @@ type (
 	// Request is the request object
 	Request = jsonrpc.Request
 	// Server is a jrpc server
-	Server = server.Server
 	// Middleware is a middleware
 	Middleware = func(Handler) Handler
 )
 
 var (
-
-	// NewServer creates a jrpc server
-	NewServer = server.NewServer
 
 	// DialContext is to dial a conn with context
 	DialContext = codecs.DialContext

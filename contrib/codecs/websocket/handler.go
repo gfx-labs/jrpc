@@ -5,15 +5,16 @@ import (
 
 	"gfx.cafe/open/websocket"
 
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
 type Server struct {
-	Server *server.Server
+	Handler jsonrpc.Handler
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.Server == nil {
+	if s.Handler == nil {
 		http.Error(w, "no server set", http.StatusInternalServerError)
 		return
 	}
@@ -23,7 +24,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := newWebsocketCodec(r.Context(), conn, "", r)
-	err = s.Server.ServeCodec(r.Context(), c)
+	err = server.ServeCodec(r.Context(), c, s.Handler)
 	if err != nil {
 		//slog.Error("codec err", "error", err)
 	}
@@ -33,7 +34,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // allowedOrigins should be a comma-separated list of allowed origin URLs.
 // To allow connections with any origin, pass "*".
-func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
+func WebsocketHandler(s jsonrpc.Handler, allowedOrigins []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			OriginPatterns:       allowedOrigins,
@@ -44,7 +45,7 @@ func WebsocketHandler(s *server.Server, allowedOrigins []string) http.Handler {
 			return
 		}
 		codec := newWebsocketCodec(r.Context(), conn, r.Host, r)
-		err = s.ServeCodec(r.Context(), codec)
+		err = server.ServeCodec(r.Context(), codec, s)
 		if err != nil {
 			// slog.Error("codec err", "error", err)
 		}

@@ -9,15 +9,18 @@ import (
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
+func ServerMaker() (jsonrpc.Handler, jrpctest.ClientMaker, func()) {
 	rd_s, wr_s := io.Pipe()
 	rd_c, wr_c := io.Pipe()
-	s := jrpctest.NewServer()
+	s := jrpctest.NewRouter()
 	clientCodec := NewCodec(rd_c, wr_s)
+	ctx, cn := context.WithCancel(context.Background())
 	go func() {
-		s.ServeCodec(context.Background(), clientCodec)
+		server.ServeCodec(ctx, clientCodec, s)
 	}()
 	return s, func() jsonrpc.Conn {
-		return NewClient(rd_s, wr_c)
-	}, func() {}
+			return NewClient(rd_s, wr_c)
+		}, func() {
+			cn()
+		}
 }

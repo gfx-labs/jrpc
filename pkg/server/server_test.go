@@ -10,6 +10,7 @@ import (
 
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/pkg/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,9 +21,9 @@ func TestGoEthereumTestScripts(t *testing.T) {
 			// create a net pipe
 			rd, wr := net.Pipe()
 			readbuf := bufio.NewReader(rd)
-			srv := jrpctest.NewServer()
+			srv := jrpctest.NewRouter()
 			c := rdwr.NewCodec(wr, wr)
-			go srv.ServeCodec(context.TODO(), c)
+			go server.ServeCodec(context.TODO(), c, srv)
 			for _, act := range tf.Action {
 				switch act.Direction {
 				case jrpctest.DirectionRecv:

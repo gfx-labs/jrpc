@@ -10,27 +10,25 @@ import (
 	"time"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type ClientMaker func() jsonrpc.Conn
-type ServerMaker func() (*server.Server, ClientMaker, func())
+type ServerMaker func() (jsonrpc.Handler, ClientMaker, func())
 
 type BasicTestSuiteArgs struct {
 	ServerMaker ServerMaker
 }
 
-type TestContext func(t *testing.T, server *server.Server, client jsonrpc.Conn)
-type BenchContext func(t *testing.B, server *server.Server, client jsonrpc.Conn)
+type TestContext func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn)
+type BenchContext func(t *testing.B, server jsonrpc.Handler, client jsonrpc.Conn)
 
 func TestExecutor(sm ServerMaker) func(t *testing.T, c TestContext) {
 	return func(t *testing.T, c TestContext) {
 		server, dialer, cn := sm()
 		defer cn()
-		defer server.Shutdown(context.Background())
 		client := dialer()
 		defer client.Close()
 		c(t, server, client)
@@ -40,7 +38,6 @@ func BenchExecutor(sm ServerMaker) func(t *testing.B, c BenchContext) {
 	return func(t *testing.B, c BenchContext) {
 		server, dialer, cn := sm()
 		defer cn()
-		defer server.Shutdown(context.Background())
 		client := dialer()
 		defer client.Close()
 		c(t, server, client)
@@ -60,7 +57,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 	}
 
 	t.Parallel()
-	makeTest("Request", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("Request", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		var resp EchoResult
 		err := client.Do(nil, &resp, "test_echo", []any{"hello", 10, &EchoArgs{"world"}})
 		require.NoError(t, err)
@@ -69,7 +66,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ResponseType", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("ResponseType", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		err := jsonrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"})
 		assert.NoErrorf(t, err, "passing nil as result should be ok")
 		var resultVar EchoResult
@@ -78,7 +75,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		assert.Error(t, err, "passing var as nil gives error")
 	})
 
-	makeTest("ResposeType2", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("ResposeType2", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		if err := jsonrpc.CallInto(nil, client, nil, "test_echo", "hello", 10, &EchoArgs{"world"}); err != nil {
 			t.Errorf("Passing nil as result should be fine, but got an error: %v", err)
 		}
@@ -90,7 +87,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("ErrorReturnType", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("ErrorReturnType", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		var resp any
 		err := jsonrpc.CallInto(nil, client, &resp, "test_returnError")
 		require.Error(t, err)
@@ -108,7 +105,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 			t.Fatalf("wrong error data %#v, want %#v", e.ErrorData(), testError{}.ErrorData())
 		}
 	})
-	makeTest("Notify", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("Notify", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		if c, ok := client.(jsonrpc.Conn); ok {
 			if err := c.Notify(context.Background(), "test_echo", []any{"hello", 10, &EchoArgs{"world"}}); err != nil {
 				t.Fatal(err)
@@ -116,7 +113,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		}
 	})
 
-	makeTest("context cancel", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("context cancel", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		maxContextCancelTimeout := 300 * time.Millisecond
 		// The actual test starts here.
 		var (
@@ -164,7 +161,7 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		wg.Wait()
 	})
 
-	makeTest("big", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("big", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 		var (
 			wg       sync.WaitGroup
 			nreqs    = 2
@@ -188,6 +185,6 @@ func RunBasicTestSuite(t *testing.T, args BasicTestSuiteArgs) {
 		wg.Wait()
 	})
 
-	makeTest("", func(t *testing.T, server *server.Server, client jsonrpc.Conn) {
+	makeTest("", func(t *testing.T, server jsonrpc.Handler, client jsonrpc.Conn) {
 	})
 }

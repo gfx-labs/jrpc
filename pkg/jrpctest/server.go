@@ -5,13 +5,8 @@ import (
 
 	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-func NewServer() *server.Server {
-	server := server.NewServer(NewRouter())
-	return server
-}
 func NewRouter() *jmux2.Mux {
 	mux := jmux2.NewRouter()
 	mux.Use(middleware.LegacyUnderscoreReplacer)

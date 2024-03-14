@@ -6,12 +6,11 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-func ServerMaker() (*server.Server, jrpctest.ClientMaker, func()) {
-	s := jrpctest.NewServer()
-	hsrv := httptest.NewServer(&Server{Server: s})
+func ServerMaker() (jsonrpc.Handler, jrpctest.ClientMaker, func()) {
+	s := jrpctest.NewRouter()
+	hsrv := httptest.NewServer(&Server{Handler: s})
 	return s, func() jsonrpc.Conn {
 		conn, err := DialWebsocket(context.Background(), hsrv.URL, "")
 		if err != nil {

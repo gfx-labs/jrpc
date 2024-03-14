@@ -11,7 +11,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc"
 )
@@ -20,7 +19,6 @@ func main() {
 	engine := subscription.NewEngine()
 	r := jmux.NewRouter()
 	r.Use(middleware.Logger)
-	srv := server.NewServer(r)
 	r.HandleFunc("echo", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 		w.Send(r.Params, nil)
 	})
@@ -55,7 +53,7 @@ func main() {
 	}()
 	log.Println("running on 8855")
 
-	handler := codecs.HttpWebsocketHandler(srv, []string{"*"})
+	handler := codecs.HttpWebsocketHandler(r, []string{"*"})
 	err := http.ListenAndServe(":8855", handler)
 	if err != nil {
 		log.Println(err)

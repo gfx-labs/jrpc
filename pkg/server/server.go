@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"sync"
 
 	"github.com/mailgun/multibuf"
@@ -14,43 +13,25 @@ import (
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
-// Server is an RPC server.
-// it is in charge of calling the handler on the message object, the json encoding of responses, and dealing with batch semantics.
-// a server can be used to listenandserve multiple codecs at a time
-type Server struct {
-	services jsonrpc.Handler
-
-	lctx context.Context
-	cn   context.CancelFunc
-}
-
-// NewServer creates a new server instance with no registered handlers.
-func NewServer(r jsonrpc.Handler) *Server {
-	server := &Server{services: r}
-	server.lctx, server.cn = context.WithCancel(context.Background())
-	return server
-}
-
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed.
 // the codec will return if either of these conditions are met
 // 1. every request read from ReadBatch until ReadBatch returns context.Canceled is processed.
 // 2. there is a server related error (failed encoding, broken conn) that was received while processing/reading messages.
-func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) error {
-	select {
-	case <-s.lctx.Done():
-		return http.ErrServerClosed
-	default:
-	}
+func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrpc.Handler) error {
 	// close the remote after handling it
 	defer remote.Close()
 	stream := jsonrpc.NewStream(remote)
 	// add a cancel to the context so we can cancel all the child tasks on return
-	ctx = ContextWithPeerInfo(ctx, remote.PeerInfo())
-	ctx = ContextWithMessageStream(ctx, stream)
+	ctx = ContextWithMessageStream(ContextWithPeerInfo(
+		ctx,
+		remote.PeerInfo(),
+	), stream,
+	)
+	egg, ctx := errgroup.WithContext(ctx)
 	ctx, cn := context.WithCancel(ctx)
 	defer cn()
-	egg, ctx := errgroup.WithContext(ctx)
+
 	errCh := make(chan error, 1)
 	batches := make(chan serverutil.Bundle, 1)
 	go func() {
@@ -90,7 +71,7 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 			stream:   stream,
 		}
 		egg.Go(func() error {
-			return s.serve(ctx, incoming, responder)
+			return serve(ctx, incoming, responder, handler)
 		})
 	}
 	egg.Wait()
@@ -102,25 +83,22 @@ func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter) er
 	}
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.cn()
-	return nil
-}
-
-func (s *Server) serve(ctx context.Context,
+func serve(ctx context.Context,
 	incoming []*jsonrpc.Message,
 	r *callResponder,
+	handler jsonrpc.Handler,
 ) error {
 	if r.batch {
-		return s.serveBatch(ctx, incoming, r)
+		return serveBatch(ctx, incoming, r, handler)
 	} else {
-		return s.serveSingle(ctx, incoming[0], r)
+		return serveSingle(ctx, incoming[0], r, handler)
 	}
 }
 
-func (s *Server) serveSingle(ctx context.Context,
+func serveSingle(ctx context.Context,
 	incoming *jsonrpc.Message,
 	r *callResponder,
+	handler jsonrpc.Handler,
 ) error {
 	rw := &streamingRespWriter{
 		ctx:          ctx,
@@ -144,37 +122,17 @@ func (s *Server) serveSingle(ctx context.Context,
 			return err
 		}
 	}
-	s.services.ServeRPC(rw, req)
+	handler.ServeRPC(rw, req)
 	if rw.sendCalled == false && rw.id != nil {
 		rw.Send(jsonrpc.Null, nil)
 	}
 	return nil
 }
 
-func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, err error) {
-	// a nil incoming message means return an invalid request.
-	if inputMessage == nil {
-		inputMessage = &jsonrpc.Message{ID: jsonrpc.NewNullIDPtr()}
-		err = jsonrpc.NewInvalidRequestError("invalid request")
-	}
-	out = inputMessage
-	out.Error = nil
-	// zero length method is always invalid request
-	if len(out.Method) == 0 {
-		// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
-		// this makes sure we add 1 to totalRequests
-		if out.ID == nil {
-			out.ID = jsonrpc.NewNullIDPtr()
-		}
-		err = jsonrpc.NewInvalidRequestError("invalid request")
-	}
-
-	return
-}
-
-func (s *Server) serveBatch(ctx context.Context,
+func serveBatch(ctx context.Context,
 	incoming []*jsonrpc.Message,
 	r *callResponder,
+	handler jsonrpc.Handler,
 ) error {
 	// check for empty batch
 	if r.batch && len(incoming) == 0 {
@@ -240,7 +198,7 @@ func (s *Server) serveBatch(ctx context.Context,
 		req.Peer = r.peerinfo
 		go func() {
 			defer returnWg.Done()
-			s.services.ServeRPC(rw, req)
+			handler.ServeRPC(rw, req)
 			if rw.sendCalled == false && rw.id != nil {
 				rw.Send(jsonrpc.Null, nil)
 			}
@@ -277,6 +235,27 @@ func (s *Server) serveBatch(ctx context.Context,
 	// wait for the returnWg to return
 	returnWg.Wait()
 	return nil
+}
+
+func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, err error) {
+	// a nil incoming message means return an invalid request.
+	if inputMessage == nil {
+		inputMessage = &jsonrpc.Message{ID: jsonrpc.NewNullIDPtr()}
+		err = jsonrpc.NewInvalidRequestError("invalid request")
+	}
+	out = inputMessage
+	out.Error = nil
+	// zero length method is always invalid request
+	if len(out.Method) == 0 {
+		// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
+		// this makes sure we add 1 to totalRequests
+		if out.ID == nil {
+			out.ID = jsonrpc.NewNullIDPtr()
+		}
+		err = jsonrpc.NewInvalidRequestError("invalid request")
+	}
+
+	return
 }
 
 type callResponder struct {

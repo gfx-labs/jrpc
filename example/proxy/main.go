@@ -9,7 +9,6 @@ import (
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc"
 )
@@ -31,8 +30,7 @@ func main() {
 
 	log.Println("running on 8855")
 
-	srv := server.NewServer(r)
-	log.Println(http.ListenAndServe(":8855", codecs.HttpHandler(srv)))
+	log.Println(http.ListenAndServe(":8855", codecs.HttpHandler(r)))
 }
 
 // http://localhost:8855/?method=eth_blockNumber

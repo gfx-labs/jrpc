@@ -5,10 +5,9 @@ import (
 	"net/url"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-type handlerFunc = func(bind *url.URL, srv *server.Server, opts map[string]any) error
+type handlerFunc = func(bind *url.URL, h jsonrpc.Handler, opts map[string]any) error
 
 var handlerFuncs map[string]handlerFunc = map[string]handlerFunc{}
 

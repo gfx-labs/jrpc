@@ -27,7 +27,6 @@ import (
 	"gfx.cafe/open/jrpc"
 	"gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
 
 	"gfx.cafe/open/jrpc/pkg/jrpctest"
 
@@ -53,7 +52,7 @@ func confirmStatusCode(t *testing.T, got, want int) {
 
 func confirmHTTPRequestYieldsStatusCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
 	t.Helper()
-	s := server.NewServer(jmux.NewMux())
+	s := jmux.NewMux()
 	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 
@@ -77,7 +76,7 @@ func TestHTTPResponseWithEmptyGet(t *testing.T) {
 
 // This checks that maxRequestContentLength is not applied to the response of a request.
 func TestHTTPRespBodyUnlimited(t *testing.T) {
-	s := jrpctest.NewServer()
+	s := jrpctest.NewRouter()
 	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 
@@ -136,7 +135,7 @@ func TestHTTPErrorResponse(t *testing.T) {
 }
 
 func TestClientHTTP(t *testing.T) {
-	s := jrpctest.NewServer()
+	s := jrpctest.NewRouter()
 	ts := httptest.NewServer(HttpHandler(s))
 	defer ts.Close()
 	c, err := DialHTTP(ts.URL)

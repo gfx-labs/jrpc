@@ -13,12 +13,12 @@ import (
 )
 
 func JrpcToHttp(h jsonrpc.Handler) http.Handler {
-	return HttpHandler(server.NewServer(h))
+	return HttpHandler(h)
 }
 
-func HttpHandler(s *server.Server) http.Handler {
+func HttpHandler(h jsonrpc.Handler) http.Handler {
 	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s == nil {
+		if h == nil {
 			http.Error(w, "no server set", http.StatusInternalServerError)
 			return
 		}
@@ -27,7 +27,7 @@ func HttpHandler(s *server.Server) http.Handler {
 			return
 		}
 		w.Header().Set("content-type", contentType)
-		err = s.ServeCodec(r.Context(), c)
+		err = server.ServeCodec(r.Context(), c, h)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			//  slog.Error("codec err", "err", err)
 			http.Error(w, "Internal Error", http.StatusInternalServerError)
