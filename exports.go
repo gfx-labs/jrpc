@@ -16,10 +16,14 @@ type Conn interface {
 }
 
 // Handler is the equivalent of http.Handler, but for jsonrpc.
-type Handler = jsonrpc.Handler
+type Handler interface {
+	jsonrpc.Handler
+}
 
 // ResponseWriter is used to write responses to the request
-type ResponseWriter = jsonrpc.ResponseWriter
+type ResponseWriter interface {
+	jsonrpc.ResponseWriter
+}
 
 type (
 	// HandlerFunc is a Handler that exists as a function
