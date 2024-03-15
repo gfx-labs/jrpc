@@ -150,7 +150,7 @@ func NewJrpcCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 	}
 
 	method := strings.TrimPrefix(r.URL.Path, "/")
-	id := r.Header.Get("id")
+	id := r.Header.Get("Jrpc-Request-Id")
 	if id == "" {
 		id = "none"
 	}
