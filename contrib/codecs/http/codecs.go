@@ -38,6 +38,9 @@ func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, err
 	case http.MethodPost:
 		return NewPostCodec(w, r)
 	case "JRPC":
+		if r.Header.Get("Accept") == "text/event-stream" || r.URL.Query().Has("sse") {
+			return NewSseCodec(w, r)
+		}
 		return NewJrpcCodec(w, r)
 	default:
 		http.Error(w, "method not supported", http.StatusMethodNotAllowed)
