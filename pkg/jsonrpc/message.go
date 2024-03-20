@@ -122,7 +122,7 @@ func (m *MessageWriter) Result() (io.WriteCloser, error) {
 }
 
 // Params returns a writer that writes to a params field
-func (m *MessageWriter) Params() (io.Writer, error) {
+func (m *MessageWriter) Params() (io.WriteCloser, error) {
 	_, err := m.w.Write([]byte(`,"params":`))
 	if err != nil {
 		return nil, err

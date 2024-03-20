@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"sync"
 
 	"github.com/mailgun/multibuf"
 	"golang.org/x/sync/errgroup"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
@@ -42,8 +41,9 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 			// read messages from the stream synchronously
 			incoming, batch, err := remote.ReadBatch(ctx)
 			if err != nil {
-				// if its not context canceled, aka our graceful closure, we error, otherwise we only return
-				// in both cases we close the batches channel. this error will then immediately return.
+				if errors.Is(err, jsonrpc.ErrNoMoreBatches) {
+					return
+				}
 				select {
 				case errCh <- err:
 				default:
@@ -266,89 +266,4 @@ type callEnv struct {
 	v   any
 	err error
 	id  *jsonrpc.ID
-}
-
-func send(env *callEnv, s *jsonrpc.MessageWriter) (err error) {
-	if env.id != nil {
-		s.Field("id", env.id.RawMessage())
-	}
-	if env.err != nil {
-		s.Field("error", jsonrpc.MarshalError(env.err))
-		return nil
-	}
-	// if there is no error, we try to marshal the result
-	wr, err := s.Result()
-	if err != nil {
-		return err
-	}
-	defer wr.Close()
-	// if is nil, just write null
-	if env.v == nil {
-		_, err := wr.Write(jsonrpc.Null)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	// if is not nil, do switch statement
-	switch cast := (env.v).(type) {
-	case json.RawMessage:
-		if len(cast) == 0 {
-			_, err := wr.Write(jsonrpc.Null)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err := wr.Write(cast)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		err = jjson.Encode(wr, cast)
-	}
-	return nil
-}
-
-type notifyEnv struct {
-	method string
-	dat    any
-}
-
-func notify(env *notifyEnv, s *jsonrpc.MessageWriter) (err error) {
-	err = s.Field("method", []byte(`"`+env.method+`"`))
-	if err != nil {
-		return err
-	}
-	// if there is no error, we try to marshal the result
-	wr, err := s.Params()
-	if err != nil {
-		return err
-	}
-	// if is nil, just write null
-	if env.dat == nil {
-		_, err := wr.Write(jsonrpc.Null)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	// if is not nil, do switch statement
-	switch cast := (env.dat).(type) {
-	case json.RawMessage:
-		if len(cast) == 0 {
-			_, err := wr.Write(jsonrpc.Null)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err := wr.Write(cast)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		err = jjson.Encode(wr, cast)
-	}
-	return nil
 }

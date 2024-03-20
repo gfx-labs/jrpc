@@ -55,27 +55,30 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 		defer c.done()
 	}
 	c.sendCalled = true
-	ce := &callEnv{
-		err: c.err,
-		id:  c.id,
-	}
+	sentErr := c.err
 	// only override error if not already set
-	if ce.err == nil {
-		ce.err = e
-	}
-	// only set value if value is not nil
-	if v != nil {
-		ce.v = v
+	if sentErr == nil {
+		sentErr = e
 	}
 	msg, err := c.sendStream.NewMessage(c.ctx)
 	if err != nil {
 		return err
 	}
 	defer msg.Close()
-	if err = send(ce, msg); err != nil {
+	if c.id != nil {
+		msg.Field("id", c.id.RawMessage())
+	}
+	if sentErr != nil {
+		msg.Field("error", jsonrpc.MarshalError(sentErr))
+		return nil
+	}
+	// if there is no error, we try to marshal the result
+	wr, err := msg.Result()
+	if err != nil {
 		return err
 	}
-	return nil
+	defer wr.Close()
+	return jsonrpc.EncodeObject(wr, v)
 }
 
 func (c *streamingRespWriter) Notify(method string, v any) error {
@@ -84,12 +87,16 @@ func (c *streamingRespWriter) Notify(method string, v any) error {
 		return err
 	}
 	defer msg.Close()
-	err = notify(&notifyEnv{
-		method: method,
-		dat:    v,
-	}, msg)
+	dat := v
+	err = msg.Field("method", []byte(`"`+method+`"`))
 	if err != nil {
 		return err
 	}
-	return nil
+	// if there is no error, we try to marshal the result
+	wr, err := msg.Params()
+	if err != nil {
+		return err
+	}
+	defer wr.Close()
+	return jsonrpc.EncodeObject(wr, dat)
 }

@@ -2,9 +2,12 @@ package jsonrpc
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 )
+
+var ErrNoMoreBatches = errors.New("no more batches")
 
 type Listener interface {
 	Accept() (ReaderWriter, error)
