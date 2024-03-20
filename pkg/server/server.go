@@ -70,7 +70,10 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 			return serve(ctx, incoming, responder, handler)
 		})
 	}
-	egg.Wait()
+	err := egg.Wait()
+	if err != nil {
+		return err
+	}
 	select {
 	case <-ctx.Done():
 		return nil
