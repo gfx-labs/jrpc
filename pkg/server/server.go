@@ -60,11 +60,9 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 			}
 		}
 	}()
-	wg := sync.WaitGroup{}
 	// this errgroup controls the max concurrent requests per codec
 	for batch := range batches {
 		incoming, batch := batch.Messages, batch.Batch
-		wg.Add(1)
 		responder := &callResponder{
 			peerinfo: remote.PeerInfo(),
 			batch:    batch,
