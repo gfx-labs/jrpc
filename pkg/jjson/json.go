@@ -2,6 +2,7 @@ package jjson
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 
 	jsoniter "github.com/json-iterator/go"
@@ -29,26 +30,48 @@ func MarshalAndEncode(w io.Writer, v any) error {
 func Encode(w io.Writer, v any) error {
 	s := jConfig.BorrowStream(w)
 	defer jConfig.ReturnStream(s)
-	s.WriteVal(v)
-	return s.Flush()
+	switch cast := (v).(type) {
+	case func(e *jsoniter.Stream):
+		cast(s)
+		return s.Flush()
+	case json.Marshaler:
+		s.WriteVal(v)
+		return s.Flush()
+	case io.Reader:
+		_, err := io.Copy(w, cast)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		s.WriteVal(v)
+		return s.Flush()
+	}
 }
 
 func Decode(r io.Reader, v any) error {
 	d := jConfig.NewDecoder(r)
-	return d.Decode(v)
+	switch cast := (v).(type) {
+	case json.Unmarshaler:
+		return d.Decode(v)
+	case io.Writer:
+		_, err := io.Copy(cast, r)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		return d.Decode(v)
+	}
 }
 
 func Unmarshal(xs []byte, v any) error {
-	d := jConfig.NewDecoder(bytes.NewBuffer(xs))
-	return d.Decode(v)
+	return Decode(bytes.NewBuffer(xs), v)
 }
 
 func Marshal(v any) ([]byte, error) {
 	out := &bytes.Buffer{}
-	s := jConfig.BorrowStream(out)
-	defer jConfig.ReturnStream(s)
-	s.WriteVal(v)
-	err := s.Flush()
+	err := Encode(out, v)
 	if err != nil {
 		return nil, err
 	}
