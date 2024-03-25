@@ -31,6 +31,14 @@ func EncodeObject(wr io.Writer, dat any) error {
 			}
 		}
 		return nil
+	case json.Marshaler:
+		return jjson.Encode(wr, cast)
+	case io.Reader:
+		_, err := io.Copy(wr, cast)
+		if err != nil {
+			return err
+		}
+		return nil
 	default:
 		return jjson.Encode(wr, cast)
 	}
