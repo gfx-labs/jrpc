@@ -9,6 +9,7 @@ import (
 
 func NewRouter() *jmux2.Mux {
 	mux := jmux2.NewRouter()
+	mux.Use(middleware.EmptyMethodInvalid)
 	mux.Use(middleware.LegacyUnderscoreReplacer)
 	//mux.HandleFunc("testservice_subscribe", func(w jrpc.ResponseWriter, r *jrpc.Request) {
 	//	sub, err := jrpc.UpgradeToSubscription(w, r)

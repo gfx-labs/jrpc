@@ -142,14 +142,16 @@ func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, 
 	}
 	out = inputMessage
 	out.Error = nil
-	// zero length method is always invalid request
+	// NOTE: in the past, a zero length method was an invalid request
+	// now that is no longer the case
+	//// zero length method is always invalid request
 	if len(out.Method) == 0 {
-		// assume if the method is not there AND the id is not there that it's an invalid REQUEST not notification
+		// assume if the method is not there AND the id is not there that it's a REQUEST not notification
 		// this makes sure we add 1 to totalRequests
 		if out.ID == nil {
 			out.ID = jsonrpc.NewNullIDPtr()
 		}
-		err = jsonrpc.NewInvalidRequestError("invalid request")
+		//	err = jsonrpc.NewInvalidRequestError("invalid request")
 	}
 
 	return
