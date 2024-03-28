@@ -128,7 +128,7 @@ func serveSingle(ctx context.Context,
 		}
 	}
 	handler.ServeRPC(rw, req)
-	if rw.sendCalled == false && rw.id != nil {
+	if rw.sendCalled == false {
 		rw.Send(jsonrpc.Null, nil)
 	}
 	return nil
