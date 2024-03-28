@@ -11,19 +11,13 @@ import (
 // to make the repo cleaner, we export everything here. this way the packages dont need to ever import this
 
 // Conn is used to make requests to jsonrpc2 servers
-type Conn interface {
-	jsonrpc.Conn
-}
+type Conn = jsonrpc.Conn
 
 // Handler is the equivalent of http.Handler, but for jsonrpc.
-type Handler interface {
-	jsonrpc.Handler
-}
+type Handler = jsonrpc.Handler
 
 // ResponseWriter is used to write responses to the request
-type ResponseWriter interface {
-	jsonrpc.ResponseWriter
-}
+type ResponseWriter = jsonrpc.ResponseWriter
 
 type (
 	// HandlerFunc is a Handler that exists as a function
