@@ -60,9 +60,6 @@ func NewGetCodec(w http.ResponseWriter, r *http.Request) *HttpCodec {
 	}
 
 	method_up := r.URL.Query().Get("method")
-	if method_up == "" {
-		method_up = strings.TrimPrefix(r.URL.Path, "/")
-	}
 	params, _ := url.QueryUnescape(r.URL.Query().Get("params"))
 	var param []byte
 	// try to read params as base64
