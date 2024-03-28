@@ -123,7 +123,11 @@ func (c *Codec) Flush() error {
 		if err != nil {
 			return err
 		}
-		return wr.Close()
+		err = wr.Close()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 	err := c.currentFrame.Close()
 	if err != nil {

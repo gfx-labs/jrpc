@@ -3,7 +3,6 @@ package jsonrpc
 import (
 	"encoding/json"
 	"io"
-	"log"
 
 	"golang.org/x/net/context"
 	"golang.org/x/sync/semaphore"
@@ -18,7 +17,6 @@ type flusher interface {
 
 func flushIfFlusher(w io.Writer) error {
 	if val, ok := w.(flusher); ok {
-		log.Println("flushing response from notification")
 		return val.Flush()
 	}
 	return nil
