@@ -25,7 +25,7 @@ func main() {
 	r.RegisterStruct("server", server)
 
 	log.Println("running on 8855")
-	log.Println(http.ListenAndServe(":8855", codecs.HttpHandler(r)))
+	log.Println(http.ListenAndServe(":8855", codecs.HttpWebsocketHandler(r, []string{"*"})))
 }
 
 type EchoServer struct {
