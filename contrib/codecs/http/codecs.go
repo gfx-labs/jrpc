@@ -109,12 +109,8 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 	}
 	c.msgs = serverutil.ParseBundle(data)
 
-	pathMethod := strings.TrimPrefix(r.URL.Path, "/")
 	for _, v := range c.msgs.Messages {
 		if v != nil {
-			if v.Method == "" {
-				v.Method = pathMethod
-			}
 			if v.ID == nil {
 				v.ID = jsonrpc.NewId(1)
 			}
