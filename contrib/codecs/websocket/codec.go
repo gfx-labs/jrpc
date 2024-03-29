@@ -119,14 +119,6 @@ func (c *Codec) Flush() error {
 	c.wrLock.Lock()
 	defer c.wrLock.Unlock()
 	if c.currentFrame == nil {
-		wr, err := c.conn.Writer(c.ctx, websocket.MessageText)
-		if err != nil {
-			return err
-		}
-		err = wr.Close()
-		if err != nil {
-			return err
-		}
 		return nil
 	}
 	err := c.currentFrame.Close()
