@@ -3,7 +3,7 @@ module gfx.cafe/open/jrpc
 go 1.21
 
 require (
-	gfx.cafe/open/websocket v1.9.2
+	gfx.cafe/open/websocket v1.10.0
 	github.com/gfx-labs/sse v0.0.0-20240119011344-a9213f2a635b
 	github.com/go-faster/jx v1.1.0
 	github.com/json-iterator/go v1.1.12
@@ -16,7 +16,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
