@@ -79,6 +79,8 @@ func serveBatch(ctx context.Context,
 				rw.Send(jsonrpc.Null, nil)
 			}
 		}
+		// note that we wait for ServeRPC to return here
+		// this is again, so that we can promise that batch requests, even notifications, are sequentially served.
 		run()
 	}
 
