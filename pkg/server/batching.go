@@ -53,7 +53,6 @@ func serveBatch(ctx context.Context,
 	returnWg := sync.WaitGroup{}
 	returnWg.Add(len(incoming))
 	for _, v := range incoming {
-		canNext := make(chan struct{})
 		// create the response writer
 		om, omerr := produceOutputMessage(v)
 		rw := &streamingRespWriter{
@@ -65,9 +64,6 @@ func serveBatch(ctx context.Context,
 		}
 		if rw.id != nil {
 			totalRequests += 1
-			rw.done = func() {
-				close(canNext)
-			}
 		}
 		req := jsonrpc.NewRawRequest(
 			ctx,
@@ -76,16 +72,14 @@ func serveBatch(ctx context.Context,
 			om.Params,
 		)
 		req.Peer = r.peerinfo
-		go func() {
+		run := func() {
 			defer returnWg.Done()
 			handler.ServeRPC(rw, req)
 			if rw.sendCalled == false && rw.id != nil {
 				rw.Send(jsonrpc.Null, nil)
 			}
-		}()
-		if rw.id != nil {
-			<-canNext
 		}
+		run()
 	}
 
 	err = ansBatch.Close()

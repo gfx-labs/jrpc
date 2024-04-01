@@ -8,8 +8,15 @@ import (
 	"github.com/go-faster/jx"
 )
 
-// Error types defined below are the built-in JSON-RPC errors.
+var (
+	ErrIllegalExtraField    = errors.New("invalid extra field")
+	ErrSendAlreadyCalled    = errors.New("send already called")
+	ErrHijackAlreadyCalled  = errors.New("already hijacked")
+	ErrCantSendNotification = errors.New("can't send to a notification")
+	ErrNotSupported         = errors.New("not supported")
+)
 
+// Error types defined below are the built-in JSON-RPC errors.
 var (
 	_ Error = new(ErrorMethodNotFound)
 	_ Error = new(ErrorSubscriptionNotFound)
@@ -23,12 +30,6 @@ const (
 	ErrorCodeDefault     = -32000
 	ErrorCodeApplication = -32080
 	ErrorCodeJrpc        = -42000
-)
-
-var (
-	ErrIllegalExtraField    = errors.New("invalid extra field")
-	ErrSendAlreadyCalled    = errors.New("send already called")
-	ErrCantSendNotification = errors.New("can't send to a notification")
 )
 
 // Error wraps RPC errors, which contain an error code in addition to the message.

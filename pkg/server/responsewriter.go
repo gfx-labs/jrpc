@@ -19,40 +19,32 @@ type streamingRespWriter struct {
 	// the id to write the response with
 	id *jsonrpc.ID
 
-	// a function that is called on the first call to send
-	// it's optional
-	done func()
-
 	// if set, will ensure that send will always send this error, instead of whatever send does
 	err error
 	// marks whether or not send was called. it may only be called once
 	sendCalled bool
+	// marks whether or not hijack was called
+	hijackCalled bool
 }
 
-func (c *streamingRespWriter) SendStream(fn func(jsonrpc.MessageStreamer) error) error {
-	if c.sendCalled {
-		return jsonrpc.ErrSendAlreadyCalled
+func (c *streamingRespWriter) Hijack() (sender jsonrpc.MessageStreamer, notify jsonrpc.MessageStreamer, err error) {
+	if c.hijackCalled {
+		return nil, nil, jsonrpc.ErrHijackAlreadyCalled
 	}
+	c.hijackCalled = true
 	c.sendCalled = true
-	if c.done != nil {
-		defer c.done()
-	}
-	return fn(c.sendStream)
-}
-
-func (c *streamingRespWriter) NotifyStream(fn func(jsonrpc.MessageStreamer) error) error {
-	return fn(c.notifyStream)
+	return c.sendStream, c.notifyStream, nil
 }
 
 func (c *streamingRespWriter) Send(v any, e error) (err error) {
+	if c.hijackCalled {
+		return jsonrpc.ErrHijackAlreadyCalled
+	}
 	if c.id == nil {
 		return jsonrpc.ErrCantSendNotification
 	}
 	if c.sendCalled {
 		return jsonrpc.ErrSendAlreadyCalled
-	}
-	if c.done != nil {
-		defer c.done()
 	}
 	c.sendCalled = true
 	sentErr := c.err
@@ -82,6 +74,10 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 }
 
 func (c *streamingRespWriter) Notify(method string, v any) error {
+
+	if c.hijackCalled {
+		return jsonrpc.ErrHijackAlreadyCalled
+	}
 	msg, err := c.notifyStream.NewMessage(c.ctx)
 	if err != nil {
 		return err
