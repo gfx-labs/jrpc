@@ -16,7 +16,7 @@ type rwUnwrapper interface {
 	Unwrap() ResponseWriter
 }
 
-func (c *ResponseController) Hijack() (sender MessageStreamer, notify MessageStreamer, err error) {
+func (c *ResponseController) Hijack() (send MessageStreamer, notify MessageStreamer, err error) {
 	rw := c.rw
 	for {
 		switch t := rw.(type) {
