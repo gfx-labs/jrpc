@@ -6,6 +6,7 @@ import (
 	"io"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/valyala/bytebufferpool"
 )
 
 var encPool = NewPool()
@@ -17,9 +18,9 @@ var jConfig = jsoniter.Config{
 }.Froze()
 
 func MarshalAndEncode(w io.Writer, v any) error {
-	d := encPool.Get()
-	defer encPool.Put(d)
-	err := Encode(w, v)
+	d := bytebufferpool.Get()
+	defer bytebufferpool.Put(d)
+	err := Encode(d, v)
 	if err != nil {
 		return err
 	}

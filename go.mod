@@ -9,6 +9,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mailgun/multibuf v0.2.0
 	github.com/stretchr/testify v1.9.0
+	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/net v0.22.0
 	golang.org/x/sync v0.6.0
 )
