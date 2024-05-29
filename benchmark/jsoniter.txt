@@ -1,0 +1,12 @@
+goos: linux
+goarch: amd64
+pkg: gfx.cafe/open/jrpc/benchmark
+cpu: 13th Gen Intel(R) Core(TM) i9-13900K
+BenchmarkSimpleSuite/WebSocket/SingleClient-32         	   19402	     72574 ns/op	    4069 B/op	      75 allocs/op
+BenchmarkSimpleSuite/WebSocket/SingleClient#01-32      	      15	  73535455 ns/op	94923340 B/op	     178 allocs/op
+BenchmarkSimpleSuite/IoPipe/SingleClient-32            	   98760	     11833 ns/op	    4110 B/op	      77 allocs/op
+BenchmarkSimpleSuite/IoPipe/SingleClient#01-32         	      15	  68246193 ns/op	89429374 B/op	     136 allocs/op
+BenchmarkSimpleSuite/Http/SingleClient-32              	   15355	     99638 ns/op	   22660 B/op	     225 allocs/op
+BenchmarkSimpleSuite/Http/SingleClient#01-32           	      16	  72943398 ns/op	131715502 B/op	     284 allocs/op
+PASS
+ok  	gfx.cafe/open/jrpc/benchmark	13.889s
