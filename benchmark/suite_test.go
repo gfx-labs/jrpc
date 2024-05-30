@@ -50,7 +50,7 @@ func runBenchmarkSuite(b *testing.B, sm jrpctest.ServerMaker) {
 			}
 		}
 	})
-	makeBench("SingleClient", func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
+	makeBench("SingleClientLarge", func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
 		for i := 0; i < b.N; i++ {
 			err := client.Do(ctx, nil, "large_largeResp", nil)
 			if err != nil {
