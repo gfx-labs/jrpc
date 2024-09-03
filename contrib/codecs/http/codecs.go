@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
@@ -96,7 +98,7 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 	}
 	c.ctx, c.cn = context.WithCancel(r.Context())
 	flusher, ok := w.(http.Flusher)
-	if ok {
+	if ok && flusher != nil {
 		c.f = flusher
 	}
 
@@ -137,19 +139,33 @@ func (c *HttpCodec) Write(p []byte) (n int, err error) {
 }
 
 func (c *HttpCodec) Flush() error {
-	c.w.Write([]byte{'\n'})
-	if c.f != nil {
-		c.f.Flush()
+	_, err := c.w.Write([]byte{'\n'})
+	if err != nil {
+		return err
 	}
+	c._flush()
 	return nil
 }
 
 func (c *HttpCodec) Close() error {
+	select {
+	case <-c.ctx.Done():
+	default:
+		c._flush()
+		c.cn()
+	}
+	return nil
+}
+
+func (c *HttpCodec) _flush() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("err", err, "stack: \n"+string(debug.Stack()))
+		}
+	}()
 	if c.f != nil {
 		c.f.Flush()
 	}
-	c.cn()
-	return nil
 }
 
 // Closed returns a channel which is closed when the connection is closed.
