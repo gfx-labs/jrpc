@@ -2,6 +2,7 @@ package benchmark
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/http"
@@ -11,53 +12,74 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
+type testCase struct {
+	name     string
+	method   string
+	parallel bool
+}
+
+var testCases = []testCase{
+	{"SingleClient", "test_ping", false},
+	{"SingleClientLarge", "large_largeResp", false},
+	{"ParallelClient", "test_ping", true},
+	{"ParallelClientLarge", "large_largeResp", true},
+}
+
+func runTestCase(ctx context.Context, client jsonrpc.Conn, method string, parallel bool) error {
+	if !parallel {
+		return client.Do(ctx, nil, method, nil)
+	}
+	var wg sync.WaitGroup
+	errs := make(chan error, 10)
+
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := client.Do(ctx, nil, method, nil); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		return err // Return first error encountered
+	}
+	return nil
+}
+
 func TestBenchmarkSuite(t *testing.T) {
-	var executeTest = jrpctest.TestExecutor(rdwr.ServerMaker)
-	var makeTest = func(name string, fm jrpctest.TestContext) {
-		t.Run(name, func(t *testing.T) {
-			executeTest(t, fm)
+	executeTest := jrpctest.TestExecutor(rdwr.ServerMaker)
+	ctx := context.Background()
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			executeTest(t, func(t *testing.T, h jsonrpc.Handler, client jsonrpc.Conn) {
+				if err := runTestCase(ctx, client, tc.method, tc.parallel); err != nil {
+					t.Error(err)
+				}
+			})
 		})
 	}
-
-	ctx := context.Background()
-	makeTest("SingleClient", func(t *testing.T, h jsonrpc.Handler, client jsonrpc.Conn) {
-		err := client.Do(ctx, nil, "test_ping", nil)
-		if err != nil {
-			t.Error(err)
-		}
-	})
-	makeTest("SingleClientLarge", func(t *testing.T, h jsonrpc.Handler, client jsonrpc.Conn) {
-		err := client.Do(ctx, nil, "large_largeResp", nil)
-		if err != nil {
-			t.Error(err)
-		}
-	})
 }
 
 func runBenchmarkSuite(b *testing.B, sm jrpctest.ServerMaker) {
 	ctx := context.Background()
 	executeBench := jrpctest.BenchExecutor(sm)
-	var makeBench = func(name string, fm jrpctest.BenchContext) {
-		b.Run(name, func(b *testing.B) {
-			executeBench(b, fm)
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			executeBench(b, func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
+				for i := 0; i < b.N; i++ {
+					if err := runTestCase(ctx, client, tc.method, tc.parallel); err != nil {
+						panic(err)
+					}
+				}
+			})
 		})
 	}
-	makeBench("SingleClient", func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
-		for i := 0; i < b.N; i++ {
-			err := client.Do(ctx, nil, "test_ping", nil)
-			if err != nil {
-				panic(err)
-			}
-		}
-	})
-	makeBench("SingleClientLarge", func(b *testing.B, h jsonrpc.Handler, client jsonrpc.Conn) {
-		for i := 0; i < b.N; i++ {
-			err := client.Do(ctx, nil, "large_largeResp", nil)
-			if err != nil {
-				panic(err)
-			}
-		}
-	})
 }
 
 func BenchmarkSimpleSuite(b *testing.B) {
@@ -72,5 +94,4 @@ func BenchmarkSimpleSuite(b *testing.B) {
 			runBenchmarkSuite(b, v)
 		})
 	}
-
 }
