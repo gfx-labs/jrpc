@@ -10,6 +10,7 @@ import (
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/go-faster/jx"
 )
 
 type Client struct {
@@ -68,18 +69,9 @@ func (c *Client) listen() error {
 	defer func() {
 		_ = c.Close()
 	}()
-	//jd := jx.GetDecoder()
-	//defer jx.PutDecoder(jd)
-	//jd.Reset(c.rd)
-	//	for {
-	//	msg, err := jd.RawAppend(nil)
-	//		if err != nil {
-	//			return err
-	//	}
-	var msg json.RawMessage
-	dec := json.NewDecoder(bufio.NewReader(c.rd))
+	jd := jx.Decode(c.rd, 4096*4)
 	for {
-		err := dec.Decode(&msg)
+		msg, err := jd.Raw()
 		if err != nil {
 			return err
 		}

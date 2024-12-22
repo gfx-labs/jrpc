@@ -89,16 +89,13 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 	return nil
 }
 
-func UnmarshalMessage(m *Message, dec *jx.Decoder, doCopy bool) error {
+func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 	err := dec.Obj(func(d *jx.Decoder, key string) (err error) {
 		switch key {
 		default:
 			raw, err := d.Raw()
 			if err != nil {
 				return err
-			}
-			if doCopy {
-				raw = append([]byte(nil), raw...)
 			}
 			if m.Extensions == nil {
 				m.Extensions = make(map[string]json.RawMessage)
@@ -130,17 +127,11 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder, doCopy bool) error {
 			if err != nil {
 				return err
 			}
-			if doCopy {
-				val = append([]byte(nil), val...)
-			}
 			m.Params = json.RawMessage(val)
 		case "result":
 			val, err := d.Raw()
 			if err != nil {
 				return err
-			}
-			if doCopy {
-				val = append([]byte(nil), val...)
 			}
 			m.Result = io.NopCloser(bytes.NewBuffer(val))
 		case "error":
@@ -165,8 +156,9 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder, doCopy bool) error {
 func (m *Message) UnmarshalJSON(xs []byte) error {
 	dec := jx.GetDecoder()
 	defer jx.PutDecoder(dec)
-	dec.ResetBytes(xs)
-	return UnmarshalMessage(m, dec, true)
+	xsCopy := append([]byte(nil), xs...)
+	dec.ResetBytes(xsCopy)
+	return UnmarshalMessage(m, dec)
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {
@@ -228,22 +220,19 @@ func IsBatchMessage(raw json.RawMessage) bool {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // Message.
 func ParseMessage(in json.RawMessage) ([]*Message, bool) {
-	return ReadMessage(jx.DecodeBytes(in), true)
-}
-
-func ParseMessageCopyless(in json.RawMessage) ([]*Message, bool) {
-	return ReadMessage(jx.DecodeBytes(in), false)
+	inCopy := append([]byte(nil), in...)
+	return ReadMessage(jx.DecodeBytes(inCopy))
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
 // checks in this function because the raw message has already been syntax-checked when it
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // Message.
-func ReadMessage(dec *jx.Decoder, doCopy bool) ([]*Message, bool) {
+func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 	msgs := []*Message{{}}
 	switch dec.Next() {
 	case jx.Object:
-		_ = UnmarshalMessage(msgs[0], dec, doCopy)
+		_ = UnmarshalMessage(msgs[0], dec)
 		return msgs, false
 	default:
 		return msgs, false
@@ -251,9 +240,14 @@ func ReadMessage(dec *jx.Decoder, doCopy bool) ([]*Message, bool) {
 		msgs = []*Message{}
 		dec.Arr(func(d *jx.Decoder) error {
 			msg := new(Message)
-			err := UnmarshalMessage(msg, d, doCopy)
+			raw, err := d.Raw()
 			if err != nil {
 				msg = nil
+			} else {
+				err := UnmarshalMessage(msg, jx.DecodeBytes(raw))
+				if err != nil {
+					msg = nil
+				}
 			}
 			msgs = append(msgs, msg)
 			return nil
