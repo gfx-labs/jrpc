@@ -14,7 +14,6 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 type Codec struct {
@@ -70,30 +69,23 @@ func heartbeat(ctx context.Context, c *websocket.Conn, d time.Duration) {
 	}
 }
 
-func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
+func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
 	if err := c.decLock.Acquire(ctx, 1); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer c.decLock.Release(1)
 	c.decBuf = c.decBuf[:0]
 	_, r, err := c.conn.Reader(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer io.Copy(io.Discard, r)
 	err = jjson.Decode(r, &c.decBuf)
 	if err != nil {
-		return nil, err
-	}
-	return serverutil.ParseBundle(c.decBuf), nil
-}
-
-func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
-	ans, err := c.decodeSingleMessage(ctx)
-	if err != nil {
 		return nil, false, err
 	}
-	return ans.Messages, ans.Batch, nil
+	a, b := jsonrpc.ParseMessage(c.decBuf)
+	return a, b, nil
 }
 
 func (c *Codec) Write(p []byte) (n int, err error) {
