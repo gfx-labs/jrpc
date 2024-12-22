@@ -73,7 +73,7 @@ func (c *Client) listen() error {
 	defer jx.PutDecoder(jd)
 	jd.Reset(c.rd)
 	for {
-		msg, err := jd.RawAppend(nil)
+		msg, err := jd.Raw()
 		if err != nil {
 			return err
 		}
