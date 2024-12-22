@@ -5,6 +5,7 @@ import (
 
 	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
 	"gfx.cafe/open/jrpc/contrib/middleware"
+	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
 func NewRouter() *jmux2.Mux {
@@ -32,14 +33,17 @@ func NewRouter() *jmux2.Mux {
 	if err := mux.RegisterStruct("nftest", new(notificationTestService)); err != nil {
 		panic(err)
 	}
-
-	if err := mux.RegisterStruct("medium", largeRespService{1024 * 4}); err != nil {
-		panic(err)
-	}
-	if err := mux.RegisterStruct("large", largeRespService{1024 * 1024 * 5 * 3}); err != nil {
-		panic(err)
-	}
+	mux.HandleFunc("small/largeResp", largeResp(8))
+	mux.HandleFunc("medium/largeResp", largeResp(1024*4))
+	mux.HandleFunc("large/largeResp", largeResp(1024*1024*5*3))
 	return mux
+}
+
+func largeResp(length int) jsonrpc.HandlerFunc {
+	str := []byte(strings.Repeat("x", length))
+	return func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		w.Send(string(str), nil)
+	}
 }
 func NewRouterWithMaxSize(size int) *jmux2.Mux {
 	mux := jmux2.NewRouter()

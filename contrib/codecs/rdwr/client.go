@@ -10,7 +10,6 @@ import (
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"github.com/go-faster/jx"
 )
 
 type Client struct {
@@ -69,11 +68,18 @@ func (c *Client) listen() error {
 	defer func() {
 		_ = c.Close()
 	}()
-	jd := jx.GetDecoder()
-	defer jx.PutDecoder(jd)
-	jd.Reset(c.rd)
+	//jd := jx.GetDecoder()
+	//defer jx.PutDecoder(jd)
+	//jd.Reset(c.rd)
+	//	for {
+	//	msg, err := jd.RawAppend(nil)
+	//		if err != nil {
+	//			return err
+	//	}
+	var msg json.RawMessage
+	dec := json.NewDecoder(bufio.NewReader(c.rd))
 	for {
-		msg, err := jd.Raw()
+		err := dec.Decode(&msg)
 		if err != nil {
 			return err
 		}
@@ -90,6 +96,10 @@ func (c *Client) listen() error {
 				c.mu.RLock()
 				handler = c.handler
 				c.mu.RUnlock()
+				// dont run the handler if it is nil
+				if handler == nil {
+					continue
+				}
 				// writer should only be allowed to send notifications
 				// reader should contain the message above
 				// the context is the client context
