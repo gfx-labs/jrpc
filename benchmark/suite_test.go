@@ -20,8 +20,10 @@ type testCase struct {
 
 var testCases = []testCase{
 	{"SingleClient", "test_ping", false},
+	{"SingleClientMedium", "medium_largeResp", false},
 	{"SingleClientLarge", "large_largeResp", false},
 	{"ParallelClient", "test_ping", true},
+	{"ParallelClientMedium", "medium_largeResp", true},
 	{"ParallelClientLarge", "large_largeResp", true},
 }
 

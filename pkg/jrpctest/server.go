@@ -33,6 +33,9 @@ func NewRouter() *jmux2.Mux {
 		panic(err)
 	}
 
+	if err := mux.RegisterStruct("medium", largeRespService{1024 * 4}); err != nil {
+		panic(err)
+	}
 	if err := mux.RegisterStruct("large", largeRespService{1024 * 1024 * 5 * 3}); err != nil {
 		panic(err)
 	}
