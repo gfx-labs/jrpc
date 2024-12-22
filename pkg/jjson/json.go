@@ -17,9 +17,6 @@ var jConfig = jsoniter.Config{
 	SortMapKeys:            true,
 }.Froze()
 
-func ReadFromStream(w io.Reader) ([]byte, error) {
-}
-
 func MarshalAndEncode(w io.Writer, v any) error {
 	d := bytebufferpool.Get()
 	defer bytebufferpool.Put(d)
