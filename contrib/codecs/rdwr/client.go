@@ -10,6 +10,7 @@ import (
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/go-faster/jx"
 )
 
 type Client struct {
@@ -65,17 +66,18 @@ func (c *Client) Mount(h jsonrpc.Middleware) {
 }
 
 func (c *Client) listen() error {
-	var msg json.RawMessage
 	defer func() {
 		_ = c.Close()
 	}()
-	dec := json.NewDecoder(bufio.NewReader(c.rd))
+	jd := jx.GetDecoder()
+	defer jx.PutDecoder(jd)
+	jd.Reset(c.rd)
 	for {
-		err := dec.Decode(&msg)
+		msg, err := jd.RawAppend(nil)
 		if err != nil {
 			return err
 		}
-		msgs, _ := jsonrpc.ParseMessage(msg)
+		msgs, _ := jsonrpc.ParseMessage(json.RawMessage(msg))
 		for i := range msgs {
 			v := msgs[i]
 			if v == nil {
