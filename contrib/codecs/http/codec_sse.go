@@ -99,10 +99,15 @@ func (c *SseCodec) Write(p []byte) (n int, err error) {
 }
 
 func (c *SseCodec) Flush() error {
-	c.sink.Encode(&sse.Event{
+	bts := c.cur.Bytes()
+	err := c.sink.Encode(&sse.Event{
 		Event: []byte("object"),
-		Data:  &c.cur,
+		Data:  bts,
 	})
+	c.cur.Reset()
+	if err != nil {
+		return err
+	}
 	if c.f != nil {
 		c.f.Flush()
 	}
