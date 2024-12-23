@@ -30,6 +30,7 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 
 	errCh := make(chan error, 1)
 	// a poor man's ringbuffer :)
+	// i think this is probably a bottleneck. there should proably be a real ringbuffer here.
 	batches := make(chan jsonrpc.Bundle, 1)
 	go func() {
 		defer func() {
