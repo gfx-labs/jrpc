@@ -37,10 +37,8 @@ func NewStream(w io.Writer) *MessageStream {
 
 // sends a flush in order to send an empty payload
 func (m *MessageStream) Flush(ctx context.Context) error {
-	if m.mu != nil {
-		m.mu.Lock()
-		defer m.mu.Unlock()
-	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return flushIfFlusher(m.w)
 }
 
@@ -149,7 +147,7 @@ func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 	_, err := m.w.Write([]byte("["))
 	if err != nil {
 		if m.mu != nil {
-			defer m.mu.Unlock()
+			m.mu.Unlock()
 		}
 		return nil, err
 	}
