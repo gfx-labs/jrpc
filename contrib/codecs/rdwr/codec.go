@@ -42,7 +42,7 @@ func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 	}
 }
 
-func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, error) {
+func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.SimpleBundle, error) {
 	c.decLock.Lock()
 	defer c.decLock.Unlock()
 	decBuf := make(json.RawMessage, 0)
@@ -53,12 +53,12 @@ func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.Bundle, er
 	return serverutil.ParseBundle(decBuf), nil
 }
 
-func (c *Codec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
+func (c *Codec) ReadBatch(ctx context.Context) (jsonrpc.Bundle, error) {
 	ans, err := c.decodeSingleMessage(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
-	return ans.Messages, ans.Batch, nil
+	return ans, nil
 }
 
 // closes the connection

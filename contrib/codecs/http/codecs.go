@@ -27,7 +27,7 @@ type HttpCodec struct {
 
 	f http.Flusher
 
-	msgs *serverutil.Bundle
+	msgs jsonrpc.Bundle
 }
 
 func NewCodec(w http.ResponseWriter, r *http.Request) (jsonrpc.ReaderWriter, error) {
@@ -75,8 +75,8 @@ func NewGetCodec(w http.ResponseWriter, r *http.Request) *HttpCodec {
 	if id == "" {
 		id = "1"
 	}
-	c.msgs = &serverutil.Bundle{
-		Messages: []*jsonrpc.Message{{
+	c.msgs = &serverutil.SimpleBundle{
+		Msgs: []*jsonrpc.Message{{
 			ID:     jsonrpc.NewId(id),
 			Method: method_up,
 			Params: param,
@@ -106,15 +106,16 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.msgs = serverutil.ParseBundle(data)
 
-	for _, v := range c.msgs.Messages {
+	bundle := serverutil.ParseBundle(data)
+	for _, v := range bundle.Msgs {
 		if v != nil {
 			if v.ID == nil {
 				v.ID = jsonrpc.NewId(1)
 			}
 		}
 	}
+	c.msgs = bundle
 	return c, nil
 }
 
@@ -123,14 +124,14 @@ func (c *HttpCodec) PeerInfo() jsonrpc.PeerInfo {
 	return c.i
 }
 
-func (c *HttpCodec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
+func (c *HttpCodec) ReadBatch(ctx context.Context) (jsonrpc.Bundle, error) {
 	if c.msgs == nil {
-		return nil, false, jsonrpc.ErrNoMoreBatches
+		return nil, jsonrpc.ErrNoMoreBatches
 	}
 	defer func() {
 		c.msgs = nil
 	}()
-	return c.msgs.Messages, c.msgs.Batch, nil
+	return c.msgs, nil
 }
 
 // closes the connection

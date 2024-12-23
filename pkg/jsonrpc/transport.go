@@ -22,13 +22,18 @@ type ReaderWriter interface {
 	Writer
 }
 
+type Bundle interface {
+	Messages() []*Message
+	IsBatch() bool
+}
+
 // Reader can write JSON messages to its underlying connection
 // Implementations must be safe for concurrent use
 type Reader interface {
 	// gets the peer info
 	PeerInfo() PeerInfo
-	// reads a batch of messages
-	ReadBatch(ctx context.Context) (msgs []*Message, batch bool, err error)
+	// reads a batch of messages, or a single message
+	ReadBatch(ctx context.Context) (bundle Bundle, err error)
 	// closes the connection
 	Close() error
 }

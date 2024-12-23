@@ -6,15 +6,23 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
-type Bundle struct {
-	Messages []*jsonrpc.Message
-	Batch    bool
+type SimpleBundle struct {
+	Msgs  []*jsonrpc.Message
+	Batch bool
 }
 
-func ParseBundle(raw json.RawMessage) *Bundle {
+func ParseBundle(raw json.RawMessage) *SimpleBundle {
 	a, b := jsonrpc.ParseMessage(raw)
-	return &Bundle{
-		Messages: a,
-		Batch:    b,
+	return &SimpleBundle{
+		Msgs:  a,
+		Batch: b,
 	}
+}
+
+func (b *SimpleBundle) Messages() []*jsonrpc.Message {
+	return b.Msgs
+}
+
+func (b *SimpleBundle) IsBatch() bool {
+	return b.Batch
 }

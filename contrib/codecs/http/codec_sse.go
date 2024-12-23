@@ -28,7 +28,7 @@ type SseCodec struct {
 	sink *sse.EventSink
 	f    http.Flusher
 
-	msgs *serverutil.Bundle
+	msgs jsonrpc.Bundle
 
 	cur bytes.Buffer
 }
@@ -67,8 +67,8 @@ func NewSseCodec(w http.ResponseWriter, r *http.Request) (*SseCodec, error) {
 	if id == "" {
 		id = "1"
 	}
-	c.msgs = &serverutil.Bundle{
-		Messages: []*jsonrpc.Message{{
+	c.msgs = &serverutil.SimpleBundle{
+		Msgs: []*jsonrpc.Message{{
 			ID:     jsonrpc.NewId(id),
 			Method: method_up,
 			Params: param,
@@ -83,14 +83,14 @@ func (c *SseCodec) PeerInfo() jsonrpc.PeerInfo {
 	return c.i
 }
 
-func (c *SseCodec) ReadBatch(ctx context.Context) ([]*jsonrpc.Message, bool, error) {
+func (c *SseCodec) ReadBatch(ctx context.Context) (jsonrpc.Bundle, error) {
 	if c.msgs == nil {
-		return nil, false, context.Canceled
+		return nil, context.Canceled
 	}
 	defer func() {
 		c.msgs = nil
 	}()
-	return c.msgs.Messages, c.msgs.Batch, nil
+	return c.msgs, nil
 }
 
 // closes the connection

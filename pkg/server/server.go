@@ -7,7 +7,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/serverutil"
 )
 
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
@@ -30,14 +29,14 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 	defer cn()
 
 	errCh := make(chan error, 1)
-	batches := make(chan serverutil.Bundle, 1)
+	batches := make(chan jsonrpc.Bundle, 1)
 	go func() {
 		defer func() {
 			close(batches)
 		}()
 		for {
 			// read messages from the stream synchronously
-			incoming, batch, err := remote.ReadBatch(ctx)
+			bundle, err := remote.ReadBatch(ctx)
 			if err != nil {
 				if errors.Is(err, jsonrpc.ErrNoMoreBatches) || errors.Is(err, context.Canceled) {
 					return
@@ -49,10 +48,7 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 				return
 			}
 			select {
-			case batches <- serverutil.Bundle{
-				Messages: incoming,
-				Batch:    batch,
-			}:
+			case batches <- bundle:
 			case <-ctx.Done():
 				return
 			}
@@ -60,7 +56,7 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 	}()
 	// this errgroup controls the max concurrent requests per codec
 	for batch := range batches {
-		incoming, batch := batch.Messages, batch.Batch
+		incoming, batch := batch.Messages(), batch.IsBatch()
 		responder := &callResponder{
 			peerinfo: remote.PeerInfo(),
 			batch:    batch,
