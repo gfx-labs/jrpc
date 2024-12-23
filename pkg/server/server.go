@@ -29,6 +29,7 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 	defer cn()
 
 	errCh := make(chan error, 1)
+	// a poor man's ringbuffer :)
 	batches := make(chan jsonrpc.Bundle, 1)
 	go func() {
 		defer func() {
