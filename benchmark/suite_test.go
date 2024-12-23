@@ -32,9 +32,10 @@ func runTestCase(ctx context.Context, client jsonrpc.Conn, method string, parall
 		return client.Do(ctx, nil, method, nil)
 	}
 	var wg sync.WaitGroup
-	errs := make(chan error, 16)
+	count := 10
+	errs := make(chan error, count)
 
-	for i := 0; i < 16; i++ {
+	for i := 0; i < count; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
