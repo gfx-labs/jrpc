@@ -12,7 +12,9 @@ var LegacyUnderscoreReplacer = MethodReplacer(strings.NewReplacer("_", "/"))
 func MethodReplacer(replacer *strings.Replacer) jsonrpc.Middleware {
 	return func(next jsonrpc.Handler) jsonrpc.Handler {
 		return jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-			r.Method = replacer.Replace(r.Method)
+			if strings.Contains(r.Method, "_") {
+				r.Method = replacer.Replace(r.Method)
+			}
 			next.ServeRPC(w, r)
 		})
 	}

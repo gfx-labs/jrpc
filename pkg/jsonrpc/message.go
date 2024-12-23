@@ -3,9 +3,9 @@ package jsonrpc
 import (
 	"encoding/json"
 	"io"
+	"sync"
 
 	"golang.org/x/net/context"
-	"golang.org/x/sync/semaphore"
 )
 
 type MessageStreamer interface {
@@ -25,34 +25,32 @@ func flushIfFlusher(w io.Writer) error {
 // MessageStream is a writer used to write jsonrpc message to a stream
 type MessageStream struct {
 	w  io.Writer
-	mu *semaphore.Weighted
+	mu *sync.Mutex
 }
 
 func NewStream(w io.Writer) *MessageStream {
 	return &MessageStream{
 		w:  w,
-		mu: semaphore.NewWeighted(1),
+		mu: &sync.Mutex{},
 	}
 }
 
 // sends a flush in order to send an empty payload
 func (m *MessageStream) Flush(ctx context.Context) error {
-	err := m.mu.Acquire(ctx, 1)
-	if err != nil {
-		return err
+	if m.mu != nil {
+		m.mu.Lock()
+		defer m.mu.Unlock()
 	}
-	defer m.mu.Release(1)
 	return flushIfFlusher(m.w)
 }
 
 // ReadFrom calls io.Copy within the semaphore, then calls flush
 func (m *MessageStream) ReadFrom(ctx context.Context, r io.Reader) error {
-	err := m.mu.Acquire(ctx, 1)
-	if err != nil {
-		return err
+	if m.mu != nil {
+		m.mu.Lock()
+		defer m.mu.Unlock()
 	}
-	defer m.mu.Release(1)
-	_, err = io.Copy(m.w, r)
+	_, err := io.Copy(m.w, r)
 	if err != nil {
 		return err
 	}
@@ -61,7 +59,7 @@ func (m *MessageStream) ReadFrom(ctx context.Context, r io.Reader) error {
 
 type MessageWriter struct {
 	w  io.Writer
-	mu *semaphore.Weighted
+	mu *sync.Mutex
 }
 
 // NewMessage starts a new message and acquires the write lock.
@@ -69,15 +67,12 @@ type MessageWriter struct {
 // the lock MUST be closed if and only if err == nil
 func (m *MessageStream) NewMessage(ctx context.Context) (*MessageWriter, error) {
 	if m.mu != nil {
-		err := m.mu.Acquire(ctx, 1)
-		if err != nil {
-			return nil, err
-		}
+		m.mu.Lock()
 	}
 	_, err := m.w.Write([]byte(`{"jsonrpc":"2.0"`))
 	if err != nil {
 		if m.mu != nil {
-			m.mu.Release(1)
+			m.mu.Unlock()
 		}
 		return nil, err
 	}
@@ -91,7 +86,7 @@ func (m *MessageStream) NewMessage(ctx context.Context) (*MessageWriter, error) 
 // it releases the write lock
 func (m *MessageWriter) Close() error {
 	if m.mu != nil {
-		defer m.mu.Release(1)
+		defer m.mu.Unlock()
 	}
 	_, err := m.w.Write([]byte("}"))
 	if err != nil {
@@ -132,7 +127,7 @@ func (m *MessageWriter) Params() (io.WriteCloser, error) {
 
 type BatchWriter struct {
 	w          io.Writer
-	mu         *semaphore.Weighted
+	mu         *sync.Mutex
 	ms         *MessageStream
 	isNotFirst bool
 }
@@ -149,15 +144,12 @@ func (w *writer) Write(p []byte) (n int, err error) {
 // caller MUST call Close() on the BatchWriter iff err == nil
 func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 	if m.mu != nil {
-		err := m.mu.Acquire(ctx, 1)
-		if err != nil {
-			return nil, err
-		}
+		m.mu.Lock()
 	}
 	_, err := m.w.Write([]byte("["))
 	if err != nil {
 		if m.mu != nil {
-			m.mu.Release(1)
+			defer m.mu.Unlock()
 		}
 		return nil, err
 	}
@@ -168,6 +160,8 @@ func (m *MessageStream) NewBatch(ctx context.Context) (*BatchWriter, error) {
 			// when the messagestream creates its subwrites, they won't pass the interface check for Flush
 			// so they wont flush when they close.
 			w: &writer{m.w},
+			// the mutex is nil because we are going to use the mutex from the message stream.
+			mu: nil,
 		},
 		mu: m.mu,
 	}, nil
@@ -191,7 +185,7 @@ func (m *BatchWriter) NewMessage(ctx context.Context) (*MessageWriter, error) {
 // it releases the write lock
 func (m *BatchWriter) Close() error {
 	if m.mu != nil {
-		defer m.mu.Release(1)
+		defer m.mu.Unlock()
 	}
 	_, err := m.w.Write([]byte("]"))
 	if err != nil {

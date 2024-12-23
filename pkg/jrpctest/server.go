@@ -1,6 +1,7 @@
 package jrpctest
 
 import (
+	"encoding/json"
 	"strings"
 
 	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
@@ -40,9 +41,9 @@ func NewRouter() *jmux2.Mux {
 }
 
 func largeResp(length int) jsonrpc.HandlerFunc {
-	str := []byte(strings.Repeat("x", length))
+	str := json.RawMessage(`"` + strings.Repeat("x", length) + `"`)
 	return func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
-		w.Send(string(str), nil)
+		w.Send(str, nil)
 	}
 }
 func NewRouterWithMaxSize(size int) *jmux2.Mux {

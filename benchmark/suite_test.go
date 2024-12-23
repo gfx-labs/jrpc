@@ -19,12 +19,12 @@ type testCase struct {
 }
 
 var testCases = []testCase{
-	{"SingleClient", "small_largeResp", false},
-	{"SingleClientMedium", "medium_largeResp", false},
-	{"SingleClientLarge", "large_largeResp", false},
-	{"ParallelClient", "small_largeResp", true},
-	{"ParallelClientMedium", "medium_largeResp", true},
-	{"ParallelClientLarge", "large_largeResp", true},
+	{"SingleClient", "/small/largeResp", false},
+	{"SingleClientMedium", "/medium/largeResp", false},
+	{"SingleClientLarge", "/large/largeResp", false},
+	{"ParallelClient", "/small/largeResp", true},
+	{"ParallelClientMedium", "/medium/largeResp", true},
+	{"ParallelClientLarge", "/large/largeResp", true},
 }
 
 func runTestCase(ctx context.Context, client jsonrpc.Conn, method string, parallel bool) error {
@@ -32,9 +32,9 @@ func runTestCase(ctx context.Context, client jsonrpc.Conn, method string, parall
 		return client.Do(ctx, nil, method, nil)
 	}
 	var wg sync.WaitGroup
-	errs := make(chan error, 10)
+	errs := make(chan error, 16)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 16; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
