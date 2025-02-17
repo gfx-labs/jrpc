@@ -35,7 +35,7 @@ var (
 	// ErrNotificationNotFound is returned when the notification for the given id is not found
 	ErrSubscriptionNotFound = errors.New("subscription not found")
 	// ErrNotificationNotFound is returned when the notification for the given id is not found
-	ErrSubscriptionClosed = errors.New("subscription not found")
+	ErrSubscriptionClosed = errors.New("subscription closed. not found")
 )
 
 var globalInc = atomic.Int64{}
@@ -110,6 +110,11 @@ func (n *Notifier) Err() <-chan error {
 
 func (n *Notifier) send(data json.RawMessage) error {
 	params, _ := jjson.Marshal(&subscriptionResult{ID: string(n.id), Result: data})
+	// try to send the id back. this will just fail with errAlreadySent if its already been sent.
+	// so it is safe-ish to just ignore this error
+	// technically we should check for jsonrpc.ErrSendAlreadyCalled and then error earlier otherwise... but is that really right?
+	_ = n.h.Send(n.id, nil)
+
 	err := n.h.Notify(
 		n.namespace+
 			serviceMethodSeparator+

@@ -55,10 +55,9 @@ func (e *Engine) Middleware() func(jsonrpc.Handler) jsonrpc.Handler {
 				e.mu.Lock()
 				e.subscriptions[n.id] = n
 				e.mu.Unlock()
-				// now send the subscription id back
-				w.Send(n.id, nil)
 				// then inject the notifier
 				r = r.WithContext(context.WithValue(r.Context(), notifierKey{}, n))
+				// start serving the request/sub
 				h.ServeRPC(w, r)
 			case strings.HasSuffix(r.Method, serviceMethodSeparator+unsubscribeMethodSuffix):
 				// read the subscription id to close
