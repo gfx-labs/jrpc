@@ -90,6 +90,8 @@ type Notifier struct {
 
 	id  SubID
 	err chan error
+
+	sentId bool
 }
 
 func (n *Notifier) ID() SubID {
@@ -117,7 +119,10 @@ func (n *Notifier) send(data json.RawMessage) error {
 	// try to send the id back. this will just fail with errAlreadySent if its already been sent.
 	// so it is safe-ish to just ignore this error
 	// technically we should check for jsonrpc.ErrSendAlreadyCalled and then error earlier otherwise... but is that really right?
-	_ = n.h.Send(n.id, nil)
+	if n.sentId == false {
+		_ = n.h.Send(n.id, nil)
+		n.sentId = true
+	}
 
 	err := n.h.Notify(
 		n.namespace+
