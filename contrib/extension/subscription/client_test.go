@@ -38,19 +38,17 @@ func newRouter(t *testing.T) jmux.Router {
 		}
 		var count int
 		_ = json.Unmarshal(r.Params, &count)
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			for idx := 0; count == 0 || idx < count; idx++ {
-				select {
-				case <-r.Context().Done():
-					return
-				case <-notifier.Err():
-					return
-				default:
-				}
-				_ = notifier.Notify(idx)
+		time.Sleep(10 * time.Millisecond)
+		for idx := 0; count == 0 || idx < count; idx++ {
+			select {
+			case <-r.Context().Done():
+				return
+			case <-notifier.Err():
+				return
+			default:
 			}
-		}()
+			_ = notifier.Notify(idx)
+		}
 	})
 
 	return r
