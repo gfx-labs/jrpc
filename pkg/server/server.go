@@ -86,7 +86,8 @@ type callResponder struct {
 	batch    bool
 }
 
-func serve(ctx context.Context,
+func serve(
+	ctx context.Context,
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 	handler jsonrpc.Handler,
@@ -98,7 +99,8 @@ func serve(ctx context.Context,
 	}
 }
 
-func serveSingle(ctx context.Context,
+func serveSingle(
+	ctx context.Context,
 	incoming *jsonrpc.Message,
 	r *callResponder,
 	handler jsonrpc.Handler,
@@ -126,6 +128,7 @@ func serveSingle(ctx context.Context,
 		}
 	}
 	handler.ServeRPC(rw, req)
+	// if send was never called, and the id is not nil, send a resonse
 	if rw.sendCalled == false && rw.id != nil {
 		rw.Send(jsonrpc.Null, nil)
 	}
