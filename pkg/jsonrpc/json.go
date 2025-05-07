@@ -232,7 +232,10 @@ func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 	msgs := []*Message{{}}
 	switch dec.Next() {
 	case jx.Object:
-		_ = UnmarshalMessage(msgs[0], dec)
+		err := UnmarshalMessage(msgs[0], dec)
+		if err != nil {
+			msgs[0] = &Message{}
+		}
 		return msgs, false
 	default:
 		return msgs, false

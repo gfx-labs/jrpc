@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 	"gfx.cafe/open/jrpc/pkg/serverutil"
+	"github.com/go-faster/jx"
 )
 
 var _ jsonrpc.ReaderWriter = (*HttpCodec)(nil)
@@ -106,16 +108,23 @@ func NewPostCodec(w http.ResponseWriter, r *http.Request) (*HttpCodec, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	bundle := serverutil.ParseBundle(data)
-	for _, v := range bundle.Msgs {
-		if v != nil {
-			if v.ID == nil {
-				v.ID = jsonrpc.NewId(1)
+	if jx.Valid(data) {
+		bundle := serverutil.ParseBundle(data)
+		for _, v := range bundle.Msgs {
+			if v != nil {
+				if v.ID == nil {
+					v.ID = jsonrpc.NewId(1)
+				}
 			}
 		}
+		c.msgs = bundle
+	} else {
+		response := jsonrpc.Message{
+			Error: jsonrpc.NewInvalidRequestError("invalid json"),
+		}
+		json.NewEncoder(w).Encode(response)
+		return nil, errors.New("invalid json")
 	}
-	c.msgs = bundle
 	return c, nil
 }
 
