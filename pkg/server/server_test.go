@@ -23,7 +23,11 @@ func TestGoEthereumTestScripts(t *testing.T) {
 			readbuf := bufio.NewReader(rd)
 			srv := jrpctest.NewRouter()
 			c := rdwr.NewCodec(wr, wr)
-			go server.ServeCodec(context.TODO(), c, srv)
+			jsrv := &server.Server{
+				BatchParallel: true,
+				BatchLimit:    250,
+			}
+			go jsrv.ServeCodec(context.TODO(), c, srv)
 			for _, act := range tf.Action {
 				switch act.Direction {
 				case jrpctest.DirectionRecv:

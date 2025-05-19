@@ -9,12 +9,24 @@ import (
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
+type Server struct {
+	// allow concurrent batch requests
+	BatchParallel bool
+	BatchLimit    int
+}
+
+var DefaultServer = &Server{}
+
+func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrpc.Handler) error {
+	return DefaultServer.ServeCodec(ctx, remote, handler)
+}
+
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed.
 // the codec will return if either of these conditions are met
 // 1. every request read from ReadBatch until ReadBatch returns context.Canceled is processed.
 // 2. there is a server related error (failed encoding, broken conn) that was received while processing/reading messages.
-func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrpc.Handler) error {
+func (s *Server) ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrpc.Handler) error {
 	// close the remote after handling it
 	defer remote.Close()
 	stream := jsonrpc.NewStream(remote)
@@ -65,7 +77,7 @@ func ServeCodec(ctx context.Context, remote jsonrpc.ReaderWriter, handler jsonrp
 			stream:   stream,
 		}
 		egg.Go(func() error {
-			return serve(ctx, incoming, responder, handler)
+			return s.serve(ctx, incoming, responder, handler)
 		})
 	}
 	err := egg.Wait()
@@ -86,26 +98,26 @@ type callResponder struct {
 	batch    bool
 }
 
-func serve(
+func (s *Server) serve(
 	ctx context.Context,
 	incoming []*jsonrpc.Message,
 	r *callResponder,
 	handler jsonrpc.Handler,
 ) error {
 	if r.batch {
-		return serveBatch(ctx, incoming, r, handler)
+		return s.serveBatch(ctx, incoming, r, handler)
 	} else {
-		return serveSingle(ctx, incoming[0], r, handler)
+		return s.serveSingle(ctx, incoming[0], r, handler)
 	}
 }
 
-func serveSingle(
+func (s *Server) serveSingle(
 	ctx context.Context,
 	incoming *jsonrpc.Message,
 	r *callResponder,
 	handler jsonrpc.Handler,
 ) error {
-	om, omerr := produceOutputMessage(incoming)
+	om, omerr := s.produceOutputMessage(incoming)
 	rw := &streamingRespWriter{
 		ctx:          ctx,
 		sendStream:   r.stream,
@@ -135,7 +147,7 @@ func serveSingle(
 	return nil
 }
 
-func produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, err error) {
+func (s *Server) produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonrpc.Message, err error) {
 	// a nil incoming message means return an invalid request.
 	if inputMessage == nil {
 		inputMessage = &jsonrpc.Message{ID: jsonrpc.NewNullIDPtr()}

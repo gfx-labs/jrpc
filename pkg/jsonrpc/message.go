@@ -42,7 +42,7 @@ func (m *MessageStream) Flush(ctx context.Context) error {
 	return flushIfFlusher(m.w)
 }
 
-// ReadFrom calls io.Copy within the semaphore, then calls flush
+// ReadFrom calls io.Copy within the semaphore
 func (m *MessageStream) ReadFrom(ctx context.Context, r io.Reader) error {
 	if m.mu != nil {
 		m.mu.Lock()
@@ -52,7 +52,7 @@ func (m *MessageStream) ReadFrom(ctx context.Context, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	return flushIfFlusher(m.w)
+	return nil
 }
 
 type MessageWriter struct {
@@ -177,6 +177,24 @@ func (m *BatchWriter) NewMessage(ctx context.Context) (*MessageWriter, error) {
 		}
 	}
 	return m.ms.NewMessage(ctx)
+}
+
+// write json from the reader as a message
+func (m *BatchWriter) WriteMessage(ctx context.Context, buf json.RawMessage) error {
+	if m.isNotFirst == false {
+		m.isNotFirst = true
+	} else {
+		// write comma if not the first element
+		_, err := m.w.Write([]byte(","))
+		if err != nil {
+			return err
+		}
+	}
+	_, err := m.w.Write(buf)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // close must be called when you are done writing the batch.

@@ -17,6 +17,10 @@ func JrpcToHttp(h jsonrpc.Handler) http.Handler {
 }
 
 func HttpHandler(h jsonrpc.Handler) http.Handler {
+	srv := &server.Server{
+		BatchParallel: true,
+		BatchLimit:    250,
+	}
 	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if h == nil {
 			http.Error(w, "no server set", http.StatusInternalServerError)
@@ -27,7 +31,7 @@ func HttpHandler(h jsonrpc.Handler) http.Handler {
 			return
 		}
 		w.Header().Set("content-type", contentType)
-		err = server.ServeCodec(r.Context(), c, h)
+		err = srv.ServeCodec(r.Context(), c, h)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			//  slog.Error("codec err", "err", err)
 			http.Error(w, "Internal Error", http.StatusInternalServerError)
