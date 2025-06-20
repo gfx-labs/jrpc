@@ -250,7 +250,8 @@ func TestResponseWriterExtension(t *testing.T) {
 			// Try to add an unmarshalable value
 			err := w.Extension("bad", unmarshalable{Ch: make(chan int)})
 			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "json")
+			// jjson/jsoniter has different error message than standard json
+			assert.Contains(t, err.Error(), "unsupported type")
 
 			// Can still send response
 			err = w.Send("ok", nil)

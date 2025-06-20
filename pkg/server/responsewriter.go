@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
@@ -117,7 +118,7 @@ func (c *streamingRespWriter) Extension(key string, v any) error {
 	if c.extensions == nil {
 		c.extensions = make(map[string]json.RawMessage)
 	}
-	data, err := json.Marshal(v)
+	data, err := jjson.Marshal(v)
 	if err != nil {
 		return err
 	}
