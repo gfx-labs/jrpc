@@ -27,8 +27,8 @@ type streamingRespWriter struct {
 	sendCalled bool
 	// marks whether or not hijack was called
 	hijackCalled bool
-	// extensions to add to the response
-	extensions map[string]json.RawMessage
+	// extra fields to add to the response
+	extraFields jsonrpc.ExtraFields
 }
 
 func (c *streamingRespWriter) Hijack() (sender jsonrpc.MessageStreamer, notify jsonrpc.MessageStreamer, err error) {
@@ -64,11 +64,17 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	if c.id != nil {
 		msg.Field("id", c.id.RawMessage())
 	}
-	// Write extensions before result/error
-	for key, val := range c.extensions {
-		err = msg.Field(key, val)
-		if err != nil {
-			return err
+	// Write extra fields before result/error
+	if c.extraFields != nil {
+		for key, val := range c.extraFields {
+			data, err := jjson.Marshal(val)
+			if err != nil {
+				return err
+			}
+			err = msg.Field(key, json.RawMessage(data))
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if sentErr != nil {
@@ -108,20 +114,9 @@ func (c *streamingRespWriter) Notify(method string, v any) error {
 	return jsonrpc.EncodeObject(wr, dat)
 }
 
-func (c *streamingRespWriter) Extension(key string, v any) error {
-	if c.sendCalled {
-		return jsonrpc.ErrSendAlreadyCalled
+func (c *streamingRespWriter) ExtraFields() jsonrpc.ExtraFields {
+	if c.extraFields == nil {
+		c.extraFields = make(jsonrpc.ExtraFields)
 	}
-	if c.hijackCalled {
-		return jsonrpc.ErrHijackAlreadyCalled
-	}
-	if c.extensions == nil {
-		c.extensions = make(map[string]json.RawMessage)
-	}
-	data, err := jjson.Marshal(v)
-	if err != nil {
-		return err
-	}
-	c.extensions[key] = json.RawMessage(data)
-	return nil
+	return c.extraFields
 }

@@ -11,15 +11,15 @@ import (
 type ResponseWriter interface {
 	Send(v any, err error) error
 	Notify(method string, v any) error
-	Extension(key string, v any) error
+	ExtraFields() ExtraFields
 }
 
 type Request struct {
 	ID         *ID                        `json:"id,omitempty"`
 	Method     string                     `json:"method,omitempty"`
-	Params     json.RawMessage            `json:"params,omitempty"`
-	Peer       PeerInfo                   `json:"-"`
-	Extensions map[string]json.RawMessage `json:"-"`
+	Params      json.RawMessage            `json:"params,omitempty"`
+	Peer        PeerInfo                   `json:"-"`
+	ExtraFields map[string]json.RawMessage `json:"-"`
 
 	ctx context.Context
 }
@@ -82,8 +82,8 @@ func (r Request) MarshalJSON() ([]byte, error) {
 			e.FieldStart("params")
 			e.Raw(r.Params)
 		}
-		if r.Extensions != nil {
-			for k, v := range r.Extensions {
+		if r.ExtraFields != nil {
+			for k, v := range r.ExtraFields {
 				e.FieldStart(k)
 				e.Raw(v)
 			}
