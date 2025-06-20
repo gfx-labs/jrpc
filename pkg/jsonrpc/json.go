@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -220,7 +221,7 @@ func IsBatchMessage(raw json.RawMessage) bool {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // Message.
 func ParseMessage(in json.RawMessage) ([]*Message, bool) {
-	inCopy := append([]byte(nil), in...)
+	inCopy := slices.Clone(in)
 	return ReadMessage(jx.DecodeBytes(inCopy))
 }
 

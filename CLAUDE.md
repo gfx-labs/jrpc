@@ -16,7 +16,7 @@ The codebase follows a modular architecture with clear separation between core f
   - `clientutil/`: Client-side utilities
   - `jrpctest/`: Comprehensive test suite for protocol compliance
 
-- **Extensions (`contrib/`)**: Optional functionality as middleware
+- **Extensions (`contrib/`)**:
   - `codecs/`: Transport implementations (HTTP, WebSocket, Reader/Writer)
   - `jmux/`: Chi-style router for method routing
   - `handlers/argreflect/`: Struct reflection for method mounting
@@ -69,20 +69,3 @@ go run example/echo/main.go
 - Test fixtures for JSON-RPC edge cases
 - Transport-specific test makers for different codecs
 - Benchmark suite for performance validation
-
-## Common Tasks
-
-### Adding a New RPC Method
-1. Define handler function with signature `func(w jsonrpc.ResponseWriter, r *jsonrpc.Request)`
-2. Register with router: `router.HandleFunc("methodName", handler)`
-3. Or mount struct methods: `router.RegisterStruct("namespace", structInstance)`
-
-### Implementing Middleware
-1. Create function that wraps `jsonrpc.Handler`
-2. Access request/response through the handler parameters
-3. Call `next.ServeJSONRPC(w, r)` to continue chain
-
-### Adding Transport Support
-1. Implement `codec.ReaderWriter` interface
-2. Use with `server.NewServer()` or client connections
-3. See `contrib/codecs/` for examples
