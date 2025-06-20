@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
@@ -25,6 +26,8 @@ type streamingRespWriter struct {
 	sendCalled bool
 	// marks whether or not hijack was called
 	hijackCalled bool
+	// extensions to add to the response
+	extensions map[string]json.RawMessage
 }
 
 func (c *streamingRespWriter) Hijack() (sender jsonrpc.MessageStreamer, notify jsonrpc.MessageStreamer, err error) {
@@ -59,6 +62,13 @@ func (c *streamingRespWriter) Send(v any, e error) (err error) {
 	defer msg.Close()
 	if c.id != nil {
 		msg.Field("id", c.id.RawMessage())
+	}
+	// Write extensions before result/error
+	for key, val := range c.extensions {
+		err = msg.Field(key, val)
+		if err != nil {
+			return err
+		}
 	}
 	if sentErr != nil {
 		msg.Field("error", jsonrpc.MarshalError(sentErr))
@@ -95,4 +105,22 @@ func (c *streamingRespWriter) Notify(method string, v any) error {
 	}
 	defer wr.Close()
 	return jsonrpc.EncodeObject(wr, dat)
+}
+
+func (c *streamingRespWriter) Extension(key string, v any) error {
+	if c.sendCalled {
+		return jsonrpc.ErrSendAlreadyCalled
+	}
+	if c.hijackCalled {
+		return jsonrpc.ErrHijackAlreadyCalled
+	}
+	if c.extensions == nil {
+		c.extensions = make(map[string]json.RawMessage)
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	c.extensions[key] = json.RawMessage(data)
+	return nil
 }

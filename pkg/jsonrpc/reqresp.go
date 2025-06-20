@@ -11,6 +11,7 @@ import (
 type ResponseWriter interface {
 	Send(v any, err error) error
 	Notify(method string, v any) error
+	Extension(key string, v any) error
 }
 
 type Request struct {
