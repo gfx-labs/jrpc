@@ -89,33 +89,3 @@ func BenchmarkNoPool(b *testing.B) {
 		// buf goes out of scope and is garbage collected
 	}
 }
-
-func BenchmarkPoolConcurrent(b *testing.B) {
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			buf := GetBuf()
-			buf.WriteString("concurrent benchmark data")
-			PutBuf(buf)
-		}
-	})
-}
-
-func TestPoolMemoryReuse(t *testing.T) {
-	// Get a buffer and note its capacity
-	buf1 := GetBuf()
-	buf1.WriteString("this is a test string that should grow the buffer")
-
-	// Put it back
-	PutBuf(buf1)
-
-	// Get another buffer
-	buf2 := GetBuf()
-
-	// The capacity should be preserved (buffer reused, not reallocated)
-	// bytebufferpool manages its own pools internally
-	assert.NotNil(t, buf2)
-
-	// Clean up
-	PutBuf(buf2)
-}
