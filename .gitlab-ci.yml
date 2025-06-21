@@ -11,7 +11,7 @@ stages:
   - test
 
 test:
-  image: golang:1.21-alpine
+  image: golang:1.24-alpine
   stage: test
   extends: .go-cache
   script:
@@ -38,7 +38,7 @@ lint:
 
 coverage:
   stage: test
-  image: golang:1.21-alpine
+  image: golang:1.24-alpine
   coverage: '/\(statements\)(?:\s+)?(\d+(?:\.\d+)?%)/'
   extends: .go-cache
   script:
