@@ -9,8 +9,6 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
-var encPool = NewPool()
-
 var jConfig = jsoniter.Config{
 	ValidateJsonRawMessage: false,
 	EscapeHTML:             false,

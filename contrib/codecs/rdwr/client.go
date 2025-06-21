@@ -126,7 +126,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	if err != nil {
 		return err
 	}
-	err = c.writeContext(req.Context(), buf.Bytes())
+	err = c.writeContext(req.Context(), buf.B)
 	if err != nil {
 		return err
 	}

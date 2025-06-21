@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -145,12 +146,11 @@ func (c *Client) post(req *jsonrpc.Request) (*http.Response, error) {
 	// TODO: use buffer for this
 	buf := jjson.GetBuf()
 	defer jjson.PutBuf(buf)
-	buf.Reset()
 	err := json.NewEncoder(buf).Encode(req)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.postBuf(req.Context(), buf)
+	resp, err := c.postBuf(req.Context(), bytes.NewBuffer(buf.B))
 	if err != nil {
 		return nil, err
 	}
