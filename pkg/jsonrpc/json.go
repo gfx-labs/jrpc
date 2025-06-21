@@ -157,7 +157,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 func (m *Message) UnmarshalJSON(xs []byte) error {
 	dec := jx.GetDecoder()
 	defer jx.PutDecoder(dec)
-	xsCopy := append([]byte(nil), xs...)
+	xsCopy := slices.Clone(xs)
 	dec.ResetBytes(xsCopy)
 	return UnmarshalMessage(m, dec)
 }
