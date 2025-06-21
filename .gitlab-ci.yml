@@ -42,7 +42,7 @@ coverage:
   coverage: '/\(statements\)(?:\s+)?(\d+(?:\.\d+)?%)/'
   extends: .go-cache
   script:
-    - go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname -- -coverprofile=coverage.txt -covermode count ./...
+    - go run gotest.tools/gotestsum@latest --packages './contrib/...,./pkg/...' --junitfile report.xml --format testname -- -coverprofile=coverage.txt -covermode count ./...
     - sed -i '/jrpctest/d' coverage.txt
     - go tool cover -func=coverage.txt
     - go run github.com/boumenot/gocover-cobertura@master < coverage.txt > coverage.xml
