@@ -27,6 +27,7 @@ it is currently being used in the oku.trade api in proxy, client, and server app
  - jmux, which allows for http-like routing, implemented like `go-chi/v5`, except for jsonrpc2 paths
  - argreflect, which allows mounting methods on structs to the rpc engine, like go-ethereum/rpc
  - allows for streaming over eventsource - means subscriptions without websockets
+ - ExtraFields, which allows setting arbitrary fields on the parent object, with an api similar to http.Headers
 
 
 ## batch requests
