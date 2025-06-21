@@ -90,6 +90,94 @@ func MarshalMessage(m *Message, enc *jx.Encoder) (err error) {
 	return nil
 }
 
+// parseID parses an ID from the decoder and returns a properly typed ID pointer
+func parseID(d *jx.Decoder) (*ID, error) {
+	switch d.Next() {
+	case jx.Null:
+		if err := d.Null(); err != nil {
+			return nil, err
+		}
+		return NewNullIDPtr(), nil
+	case jx.Number:
+		num, err := d.Num()
+		if err != nil {
+			return nil, err
+		}
+		// Convert to int64 and create ID
+		val, err := num.Int64()
+		if err != nil {
+			return nil, err
+		}
+		return NewNumberIDPtr(val), nil
+	case jx.String:
+		str, err := d.Str()
+		if err != nil {
+			return nil, err
+		}
+		return NewStringIDPtr(str), nil
+	default:
+		return nil, fmt.Errorf("invalid id type")
+	}
+}
+
+// ParseIDBytes parses an ID from raw JSON bytes using jx decoder
+func ParseIDBytes(data []byte) (*ID, error) {
+	dec := jx.GetDecoder()
+	defer jx.PutDecoder(dec)
+	dec.ResetBytes(data)
+	return parseID(dec)
+}
+
+// parseError parses a JSON-RPC error from the decoder
+func parseError(d *jx.Decoder) (*JsonError, error) {
+	je := &JsonError{}
+	err := d.Obj(func(ed *jx.Decoder, key string) error {
+		switch key {
+		case "code":
+			code, err := ed.Int()
+			if err != nil {
+				return err
+			}
+			je.Code = code
+		case "message":
+			msg, err := ed.Str()
+			if err != nil {
+				return err
+			}
+			je.Message = msg
+		case "data":
+			// For data, we need to keep it as raw for flexibility
+			raw, err := ed.Raw()
+			if err != nil {
+				return err
+			}
+			// Unmarshal to any type
+			err = json.Unmarshal(raw, &je.Data)
+			if err != nil {
+				return err
+			}
+		default:
+			// Skip unknown fields
+			if err := ed.Skip(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return je, nil
+}
+
+// ParseErrorBytes parses a JSON-RPC error from raw JSON bytes using jx decoder
+func ParseErrorBytes(data []byte) (*JsonError, error) {
+	dec := jx.GetDecoder()
+	defer jx.PutDecoder(dec)
+	dec.ResetBytes(data)
+	return parseError(dec)
+}
+
 func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 	err := dec.Obj(func(d *jx.Decoder, key string) (err error) {
 		switch key {
@@ -101,7 +189,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 			if m.ExtraFields == nil {
 				m.ExtraFields = make(map[string]json.RawMessage)
 			}
-			m.ExtraFields[key] = json.RawMessage(raw)
+			m.ExtraFields[key] = json.RawMessage(slices.Clone(raw))
 		case "jsonrpc":
 			value, err := d.Str()
 			if err != nil {
@@ -111,16 +199,11 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 				return NewInvalidRequestError("Invalid Version")
 			}
 		case "id":
-			raw, err := d.Raw()
+			id, err := parseID(d)
 			if err != nil {
 				return err
 			}
-			id := &ID{}
-			err = id.UnmarshalJSON(raw)
 			m.ID = id
-			if err != nil {
-				return err
-			}
 		case "method":
 			m.Method, err = d.Str()
 		case "params":
@@ -128,23 +211,20 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 			if err != nil {
 				return err
 			}
-			m.Params = json.RawMessage(val)
+			m.Params = json.RawMessage(slices.Clone(val))
 		case "result":
 			val, err := d.Raw()
 			if err != nil {
 				return err
 			}
-			m.Result = io.NopCloser(bytes.NewBuffer(val))
+			m.Result = io.NopCloser(bytes.NewBuffer(slices.Clone(val)))
 		case "error":
-			val, err := d.Raw()
+			// Use the parseError helper function
+			je, err := parseError(d)
 			if err != nil {
 				return err
 			}
-			m.Error = &JsonError{}
-			err = json.Unmarshal(val, m.Error)
-			if err != nil {
-				return err
-			}
+			m.Error = je
 		}
 		return err
 	})
@@ -157,8 +237,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 func (m *Message) UnmarshalJSON(xs []byte) error {
 	dec := jx.GetDecoder()
 	defer jx.PutDecoder(dec)
-	xsCopy := slices.Clone(xs)
-	dec.ResetBytes(xsCopy)
+	dec.ResetBytes(xs)
 	return UnmarshalMessage(m, dec)
 }
 
@@ -221,8 +300,7 @@ func IsBatchMessage(raw json.RawMessage) bool {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // Message.
 func ParseMessage(in json.RawMessage) ([]*Message, bool) {
-	inCopy := slices.Clone(in)
-	return ReadMessage(jx.DecodeBytes(inCopy))
+	return ReadMessage(jx.DecodeBytes(in))
 }
 
 // parseMessage parses raw bytes as a (batch of) JSON-RPC message(s). There are no error
@@ -230,32 +308,45 @@ func ParseMessage(in json.RawMessage) ([]*Message, bool) {
 // is called. Any non-JSON-RPC messages in the input return the zero value of
 // Message.
 func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
-	msgs := []*Message{{}}
 	switch dec.Next() {
 	case jx.Object:
-		err := UnmarshalMessage(msgs[0], dec)
+		msg := new(Message)
+		err := UnmarshalMessage(msg, dec)
 		if err != nil {
-			msgs[0] = &Message{}
+			msg = &Message{}
 		}
-		return msgs, false
-	default:
-		return msgs, false
+		return []*Message{msg}, false
 	case jx.Array:
-		msgs = []*Message{}
-		dec.Arr(func(d *jx.Decoder) error {
+		// Pre-allocate with a reasonable capacity
+		msgs := make([]*Message, 0, 4)
+		err := dec.Arr(func(d *jx.Decoder) error {
+			// Check what type of value we have
+			next := d.Next()
 			msg := new(Message)
-			raw, err := d.Raw()
-			if err != nil {
-				msg = nil
-			} else {
-				err := UnmarshalMessage(msg, jx.DecodeBytes(raw))
-				if err != nil {
-					msg = nil
+			
+			// If it's not an object, it's an invalid message
+			if next != jx.Object {
+				// Skip the invalid value
+				if err := d.Skip(); err != nil {
+					return err
 				}
+				// Add an empty message to represent the invalid entry
+				msgs = append(msgs, msg)
+				return nil
 			}
+			
+			// It's an object, try to unmarshal it
+			UnmarshalMessage(msg, d)
+			// Always append the message, even if there was an error
+			// The server will handle generating the appropriate error response
 			msgs = append(msgs, msg)
 			return nil
 		})
+		if err != nil {
+			return nil, true
+		}
 		return msgs, true
+	default:
+		return []*Message{{}}, false
 	}
 }

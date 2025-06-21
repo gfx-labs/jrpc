@@ -549,6 +549,167 @@ func TestMessageString(t *testing.T) {
 	assert.Contains(t, str, `"method":"testMethod"`)
 }
 
+func TestMessageImmutability(t *testing.T) {
+	t.Run("modifying source bytes doesn't affect parsed message", func(t *testing.T) {
+		// Create source data
+		sourceData := []byte(`{"jsonrpc":"2.0","id":"test","method":"original","params":{"key":"value"}}`)
+
+		// Parse the message
+		var msg Message
+		err := msg.UnmarshalJSON(sourceData)
+		require.NoError(t, err)
+
+		// Verify initial values
+		assert.Equal(t, "original", msg.Method)
+		assert.JSONEq(t, `{"key":"value"}`, string(msg.Params))
+
+		// Modify the source data
+		copy(sourceData[40:], []byte("modified"))
+
+		// Message should remain unchanged
+		assert.Equal(t, "original", msg.Method)
+		assert.JSONEq(t, `{"key":"value"}`, string(msg.Params))
+	})
+
+	t.Run("modifying message fields doesn't affect other messages", func(t *testing.T) {
+		// Parse a batch of messages
+		batchData := json.RawMessage(`[
+			{"jsonrpc":"2.0","id":"1","method":"test1","params":{"shared":"data"}},
+			{"jsonrpc":"2.0","id":"2","method":"test2","params":{"shared":"data"}}
+		]`)
+
+		msgs, isBatch := ParseMessage(batchData)
+		require.True(t, isBatch)
+		require.Len(t, msgs, 2)
+
+		// Get params from first message
+		params1 := msgs[0].Params
+		params2 := msgs[1].Params
+
+		// Both should have the same content initially
+		assert.JSONEq(t, string(params1), string(params2))
+
+		// Modify the first message's params
+		if len(params1) > 10 {
+			params1[10] = 'X'
+		}
+
+		// Second message's params should be unchanged
+		assert.JSONEq(t, `{"shared":"data"}`, string(params2))
+	})
+
+	t.Run("extra fields are independent between messages", func(t *testing.T) {
+		// Create a message with extra fields
+		sourceData := []byte(`{"jsonrpc":"2.0","method":"test","extra":"original"}`)
+
+		var msg1 Message
+		err := msg1.UnmarshalJSON(sourceData)
+		require.NoError(t, err)
+
+		// Parse the same data again
+		var msg2 Message
+		err = msg2.UnmarshalJSON(sourceData)
+		require.NoError(t, err)
+
+		// Both should have the extra field
+		assert.Contains(t, msg1.ExtraFields, "extra")
+		assert.Contains(t, msg2.ExtraFields, "extra")
+
+		// Modify one message's extra field
+		msg1.ExtraFields["extra"] = json.RawMessage(`"modified"`)
+
+		// The other message should be unchanged
+		assert.JSONEq(t, `"original"`, string(msg2.ExtraFields["extra"]))
+	})
+}
+
+func TestParseError(t *testing.T) {
+	t.Run("parse complete error", func(t *testing.T) {
+		data := []byte(`{"code":-32700,"message":"Parse error","data":"Additional info"}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, -32700, err.Code)
+		assert.Equal(t, "Parse error", err.Message)
+		assert.Equal(t, "Additional info", err.Data)
+	})
+
+	t.Run("parse error without data", func(t *testing.T) {
+		data := []byte(`{"code":-32600,"message":"Invalid Request"}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, -32600, err.Code)
+		assert.Equal(t, "Invalid Request", err.Message)
+		assert.Nil(t, err.Data)
+	})
+
+	t.Run("parse error with complex data", func(t *testing.T) {
+		data := []byte(`{"code":-32000,"message":"Server error","data":{"reason":"timeout","retry":true}}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, -32000, err.Code)
+		assert.Equal(t, "Server error", err.Message)
+
+		// Check data is properly unmarshaled
+		dataMap, ok := err.Data.(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "timeout", dataMap["reason"])
+		assert.Equal(t, true, dataMap["retry"])
+	})
+
+	t.Run("parse error with array data", func(t *testing.T) {
+		data := []byte(`{"code":-32001,"message":"Multiple errors","data":["error1","error2","error3"]}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, -32001, err.Code)
+		assert.Equal(t, "Multiple errors", err.Message)
+
+		// Check data is properly unmarshaled as array
+		dataArray, ok := err.Data.([]interface{})
+		require.True(t, ok)
+		assert.Len(t, dataArray, 3)
+		assert.Equal(t, "error1", dataArray[0])
+		assert.Equal(t, "error2", dataArray[1])
+		assert.Equal(t, "error3", dataArray[2])
+	})
+
+	t.Run("parse error with unknown fields", func(t *testing.T) {
+		data := []byte(`{"code":-32700,"message":"Parse error","unknown":"field","data":"test"}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, -32700, err.Code)
+		assert.Equal(t, "Parse error", err.Message)
+		assert.Equal(t, "test", err.Data)
+		// Unknown fields should be ignored
+	})
+
+	t.Run("parse invalid error", func(t *testing.T) {
+		data := []byte(`{"invalid":"json"`)
+
+		_, parseErr := ParseErrorBytes(data)
+		assert.Error(t, parseErr)
+	})
+
+	t.Run("parse error missing code", func(t *testing.T) {
+		data := []byte(`{"message":"Missing code"}`)
+
+		err, parseErr := ParseErrorBytes(data)
+		require.NoError(t, parseErr)
+		assert.NotNil(t, err)
+		assert.Equal(t, 0, err.Code) // Default value
+		assert.Equal(t, "Missing code", err.Message)
+	})
+}
+
 func TestMarshalError(t *testing.T) {
 	// Test various error scenarios
 	t.Run("marshal json error", func(t *testing.T) {
@@ -633,6 +794,72 @@ func BenchmarkIsBatchMessage(b *testing.B) {
 	})
 }
 
+func BenchmarkUnmarshalMessage(b *testing.B) {
+	singleData := []byte(`{"jsonrpc":"2.0","id":"1","method":"test","params":{"key":"value"}}`)
+
+	b.Run("UnmarshalJSON", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var msg Message
+			msg.UnmarshalJSON(singleData)
+		}
+	})
+
+	b.Run("direct-UnmarshalMessage", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var msg Message
+			dec := jx.GetDecoder()
+			dec.ResetBytes(singleData)
+			UnmarshalMessage(&msg, dec)
+			jx.PutDecoder(dec)
+		}
+	})
+}
+
+func BenchmarkBatchParsingComparison(b *testing.B) {
+	batch := []byte(`[
+		{"jsonrpc":"2.0","id":"1","method":"test1","params":{"key":"value1"}},
+		{"jsonrpc":"2.0","id":"2","method":"test2","params":{"key":"value2"}},
+		{"jsonrpc":"2.0","id":"3","method":"test3","params":{"key":"value3"}}
+	]`)
+
+	b.Run("ParseMessage", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ParseMessage(batch)
+		}
+	})
+
+	b.Run("json.Unmarshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var msgs []Message
+			json.Unmarshal(batch, &msgs)
+		}
+	})
+
+	b.Run("json.Unmarshal-with-pointers", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var msgs []*Message
+			json.Unmarshal(batch, &msgs)
+		}
+	})
+}
+
+func BenchmarkParseError(b *testing.B) {
+	errorData := []byte(`{"code":-32700,"message":"Parse error","data":{"details":"Something went wrong","line":42}}`)
+
+	b.Run("ParseErrorBytes", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = ParseErrorBytes(errorData)
+		}
+	})
+
+	b.Run("json.Unmarshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var err JsonError
+			json.Unmarshal(errorData, &err)
+		}
+	})
+}
+
 func BenchmarkParseMessage(b *testing.B) {
 	single := json.RawMessage(`{"jsonrpc":"2.0","id":"1","method":"test","params":{"key":"value"}}`)
 	batch := json.RawMessage(`[
@@ -653,4 +880,3 @@ func BenchmarkParseMessage(b *testing.B) {
 		}
 	})
 }
-
