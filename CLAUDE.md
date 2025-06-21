@@ -37,6 +37,9 @@ go test ./...
 # Run tests with coverage
 go test -cover ./...
 
+# Run tests with race detector (CI default)
+go test -race ./...
+
 # Run benchmarks
 go test -bench=. ./benchmark/
 
@@ -48,6 +51,9 @@ go test -v ./pkg/jsonrpc -run TestRequestParsing
 
 # Run echo server example
 go run example/echo/main.go
+
+# Run linter (requires golangci-lint)
+golangci-lint run
 ```
 
 ## Key Design Patterns
@@ -66,6 +72,14 @@ go run example/echo/main.go
 ## Testing Approach
 
 - Protocol compliance tests in `pkg/jrpctest/`
-- Test fixtures for JSON-RPC edge cases
+- Test fixtures for JSON-RPC edge cases in `pkg/jrpctest/testdata/`
 - Transport-specific test makers for different codecs
+- Table-driven tests using `testify` assertions
 - Benchmark suite for performance validation
+
+## CI/CD Pipeline
+
+GitLab CI runs three stages:
+1. **test**: Executes tests with race detection
+2. **lint**: Runs golangci-lint with project configuration
+3. **coverage**: Generates coverage reports (text, XML, Cobertura)

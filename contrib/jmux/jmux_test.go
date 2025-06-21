@@ -701,3 +701,192 @@ func TestNestedGroups(t *testing.T) {
 	assert.NoError(t, w.err)
 	assert.Equal(t, []string{"group1", "group2", "handler"}, middlewares)
 }
+
+// Test method not allowed handler
+func TestMethodNotAllowed(t *testing.T) {
+	mx := NewMux()
+	
+	// Set custom method not allowed handler
+	var customHandlerCalled bool
+	mx.MethodNotAllowed(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		customHandlerCalled = true
+		w.Send(nil, errors.New("custom method not allowed"))
+	})
+	
+	// In jmux, methodNotAllowed is triggered when a route pattern matches but has no handler
+	// This is a bit tricky to trigger directly, but we can test the handler is set correctly
+	
+	// First, let's verify the custom handler is set
+	assert.NotNil(t, mx.MethodNotAllowedHandler())
+	
+	// Test default method not allowed handler
+	mx2 := NewMux()
+	defaultHandler := mx2.MethodNotAllowedHandler()
+	w := &mockResponseWriter{}
+	r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), "/test", nil)
+	defaultHandler.ServeRPC(w, r)
+	assert.Error(t, w.err)
+	assert.Equal(t, "forbidden", w.err.Error())
+	
+	// Test custom method not allowed handler
+	customHandler := mx.MethodNotAllowedHandler()
+	w2 := &mockResponseWriter{}
+	customHandler.ServeRPC(w2, r)
+	assert.Error(t, w2.err)
+	assert.Equal(t, "custom method not allowed", w2.err.Error())
+	assert.True(t, customHandlerCalled)
+}
+
+// Test fetching non-existent route parameters
+func TestNonExistentRouteParams(t *testing.T) {
+	mx := NewMux()
+	
+	mx.HandleFunc("/users/{id}", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		// Try to fetch existing param
+		id := MethodParam(r, "id")
+		assert.Equal(t, "123", id)
+		
+		// Try to fetch non-existent params
+		nonExistent := MethodParam(r, "nonexistent")
+		assert.Equal(t, "", nonExistent)
+		
+		// Also test with context
+		nonExistentFromCtx := MethodParamFromCtx(r.Context(), "doesnotexist")
+		assert.Equal(t, "", nonExistentFromCtx)
+		
+		w.Send("ok", nil)
+	})
+	
+	w := &mockResponseWriter{}
+	r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), "/users/123", nil)
+	mx.ServeRPC(w, r)
+	
+	assert.NoError(t, w.err)
+}
+
+// Test RouteContext when it doesn't exist
+func TestRouteContextNotExists(t *testing.T) {
+	// Create a request without going through the mux
+	r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), "/test", nil)
+	
+	// These should return empty values when no route context exists
+	param := MethodParam(r, "any")
+	assert.Equal(t, "", param)
+	
+	paramFromCtx := MethodParamFromCtx(r.Context(), "any")
+	assert.Equal(t, "", paramFromCtx)
+	
+	rctx := RouteContext(r.Context())
+	assert.Nil(t, rctx)
+}
+
+// Test multiple parameters with same name (last one wins)
+func TestDuplicateParamNames(t *testing.T) {
+	mx := NewMux()
+	
+	// Mount a sub-router that might have conflicting param names
+	sub := NewRouter()
+	sub.HandleFunc("/{id}/details", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		// The last 'id' in the path should win
+		id := MethodParam(r, "id")
+		w.Send(fmt.Sprintf("id=%s", id), nil)
+	})
+	
+	mx.Mount("/users/{id}", sub)
+	
+	w := &mockResponseWriter{}
+	r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), "/users/user123/456/details", nil)
+	mx.ServeRPC(w, r)
+	
+	assert.NoError(t, w.err)
+	// Should get the last id value (456)
+	assert.Equal(t, "id=456", w.result)
+}
+
+// Test method not allowed with sub-routers
+func TestMethodNotAllowedWithSubRouter(t *testing.T) {
+	mx := NewMux()
+	
+	mx.MethodNotAllowed(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		w.Send(nil, errors.New("main method not allowed"))
+	})
+	
+	sub := NewRouter()
+	// Sub-router should inherit the parent's method not allowed handler
+	mx.Mount("/api", sub)
+	
+	// Verify sub inherits the handler
+	assert.NotNil(t, sub.MethodNotAllowedHandler())
+	
+	// Create a new sub-router to test setting method not allowed after mounting
+	sub2 := NewRouter()
+	sub2.MethodNotAllowed(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		w.Send(nil, errors.New("sub method not allowed"))
+	})
+	mx.Mount("/api2", sub2)
+	
+	// Test that handlers are properly set
+	assert.NotNil(t, mx.MethodNotAllowedHandler())
+	assert.NotNil(t, sub2.MethodNotAllowedHandler())
+	
+	// Verify sub2 has its own handler
+	w := &mockResponseWriter{}
+	r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), "/test", nil)
+	sub2.MethodNotAllowedHandler().ServeRPC(w, r)
+	assert.Error(t, w.err)
+	assert.Equal(t, "sub method not allowed", w.err.Error())
+}
+
+// Test edge cases for route parameters
+func TestRouteParamEdgeCases(t *testing.T) {
+	mx := NewMux()
+	
+	// Test empty parameter value
+	mx.HandleFunc("/test/{param}", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		param := MethodParam(r, "param")
+		w.Send(fmt.Sprintf("param='%s'", param), nil)
+	})
+	
+	// Test with empty segment (consecutive slashes)
+	mx.HandleFunc("/double//slash", func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
+		w.Send("double slash", nil)
+	})
+	
+	tests := []struct {
+		name           string
+		path           string
+		expectedResult any
+		shouldError    bool
+	}{
+		{
+			name:           "normal param",
+			path:           "/test/value",
+			expectedResult: "param='value'",
+		},
+		{
+			name:           "param with special chars",
+			path:           "/test/hello%20world",
+			expectedResult: "param='hello%20world'",
+		},
+		{
+			name:           "param with slashes encoded",
+			path:           "/test/a%2Fb%2Fc",
+			expectedResult: "param='a%2Fb%2Fc'",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &mockResponseWriter{}
+			r := jsonrpc.NewRawRequest(context.Background(), jsonrpc.NewStringIDPtr("1"), tt.path, nil)
+			mx.ServeRPC(w, r)
+			
+			if tt.shouldError {
+				assert.Error(t, w.err)
+			} else {
+				assert.NoError(t, w.err)
+				assert.Equal(t, tt.expectedResult, w.result)
+			}
+		})
+	}
+}
