@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/internal/jrpctest"
 	"gfx.cafe/open/jrpc/pkg/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

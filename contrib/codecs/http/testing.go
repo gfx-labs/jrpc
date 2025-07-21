@@ -3,7 +3,7 @@ package http
 import (
 	"net/http/httptest"
 
-	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/internal/jrpctest"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 

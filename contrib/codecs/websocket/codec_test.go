@@ -3,7 +3,7 @@ package websocket
 import (
 	"testing"
 
-	"gfx.cafe/open/jrpc/pkg/jrpctest"
+	"gfx.cafe/open/jrpc/internal/jrpctest"
 )
 
 func TestBasicSuite(t *testing.T) {

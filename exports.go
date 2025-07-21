@@ -8,8 +8,6 @@ import (
 	"gfx.cafe/open/jrpc/pkg/server"
 )
 
-// to make the repo cleaner, we export everything here. this way the packages dont need to ever import this
-
 // Conn is used to make requests to jsonrpc2 servers
 type Conn = jsonrpc.Conn
 

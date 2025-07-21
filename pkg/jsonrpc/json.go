@@ -189,6 +189,7 @@ func UnmarshalMessage(m *Message, dec *jx.Decoder) error {
 			if m.ExtraFields == nil {
 				m.ExtraFields = make(map[string]json.RawMessage)
 			}
+			// NOTE: we clone these.
 			m.ExtraFields[key] = json.RawMessage(slices.Clone(raw))
 		case "jsonrpc":
 			value, err := d.Str()
@@ -323,7 +324,7 @@ func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 			// Check what type of value we have
 			next := d.Next()
 			msg := new(Message)
-			
+
 			// If it's not an object, it's an invalid message
 			if next != jx.Object {
 				// Skip the invalid value
@@ -334,7 +335,7 @@ func ReadMessage(dec *jx.Decoder) ([]*Message, bool) {
 				msgs = append(msgs, msg)
 				return nil
 			}
-			
+
 			// It's an object, try to unmarshal it
 			UnmarshalMessage(msg, d)
 			// Always append the message, even if there was an error

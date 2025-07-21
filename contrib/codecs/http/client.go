@@ -65,10 +65,10 @@ func (c *Client) Mount(h jsonrpc.Middleware) {
 }
 
 func DialHTTP(target string) (*Client, error) {
-	return Dial(nil, http.DefaultClient, target)
+	return Dial(context.Background(), http.DefaultClient, target)
 }
 func DialH2C(target string) (*Client, error) {
-	return Dial(nil, DefaultH2CClient, target)
+	return Dial(context.Background(), DefaultH2CClient, target)
 }
 func Dial(ctx context.Context, client *http.Client, target string) (*Client, error) {
 	if client == nil {
