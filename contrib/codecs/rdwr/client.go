@@ -49,6 +49,8 @@ func NewClient(rd io.Reader, wr io.Writer) *Client {
 }
 
 func (c *Client) SetHandlerPeer(pi jsonrpc.PeerInfo) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.handlerPeer = pi
 }
 
@@ -100,7 +102,9 @@ func (c *Client) listen() error {
 					v.Method,
 					v.Params,
 				)
+				c.mu.RLock()
 				req.Peer = c.handlerPeer
+				c.mu.RUnlock()
 				handler.ServeRPC(nil, req)
 				continue
 			}
@@ -163,6 +167,14 @@ func (c *Client) SetHeader(key string, value string) {
 
 func (c *Client) Close() error {
 	c.cn()
+	// Close reader if it implements io.Closer to unblock jd.Raw()
+	if closer, ok := c.rd.(io.Closer); ok {
+		closer.Close()
+	}
+	// Close writer if it implements io.Closer  
+	if closer, ok := c.wr.(io.Closer); ok {
+		closer.Close()
+	}
 	return c.p.Close()
 }
 
