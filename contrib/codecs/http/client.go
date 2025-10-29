@@ -13,6 +13,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/bytedance/sonic"
 	"golang.org/x/net/http2"
 
 	"gfx.cafe/open/jrpc/pkg/jjson"
@@ -105,7 +106,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 	}
 	msg := &jsonrpc.Message{}
 
-	err = json.NewDecoder(resp.Body).Decode(&msg)
+	err = sonic.ConfigStd.NewDecoder(resp.Body).Decode(&msg)
 	if err != nil {
 		return fmt.Errorf("decode json: %w", err)
 	}
@@ -113,7 +114,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return msg.Error
 	}
 	if result != nil && msg.Result != nil {
-		err = json.NewDecoder(msg.Result).Decode(result)
+		err = sonic.ConfigStd.NewDecoder(msg.Result).Decode(result)
 		if err != nil {
 			return err
 		}

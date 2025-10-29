@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/bytedance/sonic"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
 )
 
@@ -39,7 +40,7 @@ func (c *WrapClient) Middleware(h jsonrpc.Handler) jsonrpc.Handler {
 		}
 		var params subscriptionResult
 		// NOTE: this error is ignored because notifications ignore errors
-		err := json.Unmarshal(r.Params, &params)
+		err := sonic.ConfigStd.Unmarshal(r.Params, &params)
 		_ = err
 		if params.ID == "" {
 			// probably some malformed packet, ignore it
@@ -151,7 +152,7 @@ func (c *clientSub) err(err error) {
 
 func (c *clientSub) notify(result json.RawMessage) {
 	val := reflect.New(c.channel.Type().Elem())
-	err := json.Unmarshal(result, val.Interface())
+	err := sonic.ConfigStd.Unmarshal(result, val.Interface())
 	if err != nil {
 		c.err(err)
 		return

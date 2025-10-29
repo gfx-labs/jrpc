@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/bytedance/sonic"
 	"gfx.cafe/open/jrpc/pkg/clientutil"
 	"gfx.cafe/open/jrpc/pkg/jjson"
 	"gfx.cafe/open/jrpc/pkg/jsonrpc"
@@ -139,7 +140,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return err
 	}
 	if result != nil {
-		err = json.NewDecoder(ans).Decode(result)
+		err = sonic.ConfigStd.NewDecoder(ans).Decode(result)
 		if err != nil {
 			return err
 		}
