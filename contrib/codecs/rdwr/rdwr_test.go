@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/contrib/codecs/rdwr"
+	"github.com/gfx-labs/jrpc/contrib/jmux"
+	"github.com/gfx-labs/jrpc/pkg/server"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -1,7 +1,7 @@
 package jmux
 
 import (
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 // NewRouter returns a new Mux object that implements the Router interface.

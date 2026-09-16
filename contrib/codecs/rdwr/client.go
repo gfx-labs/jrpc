@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/bytedance/sonic"
-	"gfx.cafe/open/jrpc/pkg/clientutil"
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/clientutil"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 	"github.com/go-faster/jx"
 )
 

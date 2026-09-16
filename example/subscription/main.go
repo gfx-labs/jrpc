@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"gfx.cafe/open/jrpc/contrib/codecs"
-	"gfx.cafe/open/jrpc/contrib/extension/subscription"
-	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/contrib/codecs"
+	"github.com/gfx-labs/jrpc/contrib/extension/subscription"
+	"github.com/gfx-labs/jrpc/contrib/jmux"
+	"github.com/gfx-labs/jrpc/contrib/middleware"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
-	"gfx.cafe/open/jrpc"
+	"github.com/gfx-labs/jrpc"
 )
 
 func main() {

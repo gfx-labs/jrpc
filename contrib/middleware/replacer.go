@@ -3,7 +3,7 @@ package middleware
 import (
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var LegacyUnderscoreReplacer = MethodReplacer(strings.NewReplacer("_", "/"))

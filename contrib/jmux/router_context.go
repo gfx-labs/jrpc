@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 // MethodParam returns the url parameter from a Request object.

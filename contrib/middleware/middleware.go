@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 // New will create a new middleware handler from a jrpc.Handler.

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 func EmptyMethodInvalid(next jsonrpc.Handler) jsonrpc.Handler {

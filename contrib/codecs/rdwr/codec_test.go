@@ -3,8 +3,8 @@ package rdwr_test
 import (
 	"testing"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/contrib/codecs/rdwr"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
 )
 
 func TestBasicSuite(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type nodeTyp uint8

@@ -1,7 +1,7 @@
 package jmux
 
 import (
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 // ChainHandler is a Handler with support for handler composition and

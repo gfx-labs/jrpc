@@ -3,7 +3,7 @@ package subscription
 import (
 	"context"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type Conn interface {

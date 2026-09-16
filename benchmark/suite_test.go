@@ -5,11 +5,11 @@ import (
 	"sync"
 	"testing"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/http"
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/internal/jrpctest"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/contrib/codecs/http"
+	"github.com/gfx-labs/jrpc/contrib/codecs/rdwr"
+	"github.com/gfx-labs/jrpc/contrib/codecs/websocket"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type testCase struct {

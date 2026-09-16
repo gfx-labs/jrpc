@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	jmux2 "gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/contrib/middleware"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	jmux2 "github.com/gfx-labs/jrpc/contrib/jmux"
+	"github.com/gfx-labs/jrpc/contrib/middleware"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 func NewRouter() *jmux2.Mux {

@@ -16,8 +16,8 @@ import (
 	"github.com/bytedance/sonic"
 	"golang.org/x/net/http2"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var (

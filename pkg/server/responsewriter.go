@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var _ jsonrpc.ResponseWriter = (*streamingRespWriter)(nil)

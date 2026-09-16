@@ -1,6 +1,6 @@
 package jrpcutil
 
-import "gfx.cafe/open/jrpc/pkg/jsonrpc"
+import "github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
 type ErrorRecorder struct {
 	jsonrpc.ResponseWriter

@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"gfx.cafe/open/jrpc"
+	"github.com/gfx-labs/jrpc"
 )
 
 func main() {

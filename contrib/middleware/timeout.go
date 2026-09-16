@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 func Timeout(dur time.Duration) func(h jsonrpc.Handler) jsonrpc.Handler {

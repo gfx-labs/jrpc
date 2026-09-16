@@ -3,9 +3,9 @@ package jrpc
 import (
 	"context"
 
-	"gfx.cafe/open/jrpc/contrib/codecs"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/contrib/codecs"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/server"
 )
 
 // Conn is used to make requests to jsonrpc2 servers

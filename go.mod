@@ -1,4 +1,4 @@
-module gfx.cafe/open/jrpc
+module github.com/gfx-labs/jrpc
 
 go 1.21
 

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var serviceMethodSeparator = "/"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
 	"log/slog"
 )

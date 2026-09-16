@@ -3,9 +3,9 @@ package codecs
 import (
 	"fmt"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/http"
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/contrib/codecs/http"
+	"github.com/gfx-labs/jrpc/contrib/codecs/websocket"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
 	gohttp "net/http"
 	"net/url"

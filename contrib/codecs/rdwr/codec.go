@@ -7,9 +7,9 @@ import (
 	"io"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/serverutil"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/serverutil"
 )
 
 type Codec struct {

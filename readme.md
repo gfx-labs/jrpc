@@ -1,8 +1,8 @@
 ## jrpc
 
-[![coverage report](https://gfx.cafe/open/jrpc/badges/master/coverage.svg)](https://gfx.cafe/open/jrpc/-/commits/master)
+[![coverage report](https://github.com/gfx-labs/jrpc/badges/master/coverage.svg)](https://github.com/gfx-labs/jrpc/-/commits/master)
 
-```go get gfx.cafe/open/jrpc```
+```go get github.com/gfx-labs/jrpc```
 
 this is a bottom up implementation of jsonrpc2, primarily made for hosting eth-like jsonrpc requests.
 

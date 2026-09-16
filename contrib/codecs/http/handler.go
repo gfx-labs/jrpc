@@ -8,8 +8,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/server"
 )
 
 func JrpcToHttp(h jsonrpc.Handler) http.Handler {

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 	"github.com/stretchr/testify/require"
 )
 

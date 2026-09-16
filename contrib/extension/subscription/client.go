@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/bytedance/sonic"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var _ jsonrpc.Conn = (*WrapClient)(nil)

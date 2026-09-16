@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type handlerFunc = func(bind *url.URL, h jsonrpc.Handler, opts map[string]any) error

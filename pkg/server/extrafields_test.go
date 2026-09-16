@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/contrib/codecs/rdwr"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

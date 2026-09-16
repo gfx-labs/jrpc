@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"gfx.cafe/open/jrpc"
-	"gfx.cafe/open/jrpc/contrib/codecs"
-	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc"
+	"github.com/gfx-labs/jrpc/contrib/codecs"
+	"github.com/gfx-labs/jrpc/contrib/jmux"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 func newRouter(t *testing.T) jmux.Router {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 	"github.com/go-faster/jx"
 )
 

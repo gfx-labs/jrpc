@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
 )
 
 // Version represents a JSON-RPC version.

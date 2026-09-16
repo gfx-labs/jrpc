@@ -3,7 +3,7 @@ package http
 import (
 	"testing"
 
-	"gfx.cafe/open/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
 )
 
 func TestBasicSuite(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"gfx.cafe/open/jrpc/internal/jrpctest"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/server"
 )
 
 func ServerMaker() (jsonrpc.Handler, jrpctest.ClientMaker, func()) {

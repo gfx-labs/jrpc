@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"gfx.cafe/open/jrpc/contrib/codecs/websocket"
-	"gfx.cafe/open/jrpc/contrib/jmux"
-	"gfx.cafe/open/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/contrib/codecs/websocket"
+	"github.com/gfx-labs/jrpc/contrib/jmux"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
 )
 
 func TestWebsocketClientHeaders(t *testing.T) {

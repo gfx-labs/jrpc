@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unicode"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var (

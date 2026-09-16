@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"gfx.cafe/open/jrpc/pkg/jjson"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
 )
 
 func EncodeObject(wr io.Writer, dat any) error {

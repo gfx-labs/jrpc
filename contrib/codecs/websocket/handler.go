@@ -5,8 +5,8 @@ import (
 
 	"gfx.cafe/open/websocket"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/server"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/server"
 )
 
 type Server struct {

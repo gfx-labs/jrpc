@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type peerInfoContextKey struct{}

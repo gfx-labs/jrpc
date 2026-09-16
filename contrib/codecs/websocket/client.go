@@ -1,8 +1,8 @@
 package websocket
 
 import (
-	"gfx.cafe/open/jrpc/contrib/codecs/rdwr"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/contrib/codecs/rdwr"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
 	"context"
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"gfx.cafe/open/jrpc/internal/jrpctest"
+	"github.com/gfx-labs/jrpc/internal/jrpctest"
 )
 
 func TestLoadTestData(t *testing.T) {

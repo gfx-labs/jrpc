@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
-	"gfx.cafe/open/jrpc/pkg/serverutil"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/serverutil"
 	"github.com/gfx-labs/sse"
 )
 

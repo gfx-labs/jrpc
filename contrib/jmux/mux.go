@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"gfx.cafe/open/jrpc/contrib/handlers/argreflect"
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/contrib/handlers/argreflect"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 var _ Router = &Mux{}

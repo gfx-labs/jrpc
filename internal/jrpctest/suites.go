@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -3,7 +3,7 @@ package middleware
 import (
 	"path"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 func HttpPathMethod(h jsonrpc.Handler) jsonrpc.Handler {

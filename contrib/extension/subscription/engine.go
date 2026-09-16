@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"gfx.cafe/open/jrpc/pkg/jsonrpc"
+	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 )
 
 type Engine struct {
