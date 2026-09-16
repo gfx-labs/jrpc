@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"gfx.cafe/open/websocket"
+	"github.com/coder/websocket"
 )
 
 type Client struct {

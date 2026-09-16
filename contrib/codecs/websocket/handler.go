@@ -3,7 +3,7 @@ package websocket
 import (
 	"net/http"
 
-	"gfx.cafe/open/websocket"
+	"github.com/coder/websocket"
 
 	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 	"github.com/gfx-labs/jrpc/pkg/server"

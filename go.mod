@@ -1,9 +1,10 @@
 module github.com/gfx-labs/jrpc
 
-go 1.21
+go 1.23
 
 require (
-	gfx.cafe/open/websocket v1.10.0
+	github.com/bytedance/sonic v1.15.4
+	github.com/coder/websocket v1.8.15
 	github.com/gfx-labs/sse v0.0.0-20241016074208-406bd1302230
 	github.com/go-faster/jx v1.1.0
 	github.com/json-iterator/go v1.1.12
@@ -16,8 +17,7 @@ require (
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic v1.14.2 // indirect
-	github.com/bytedance/sonic/loader v0.4.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gfx.cafe/open/websocket"
+	"github.com/coder/websocket"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/gfx-labs/jrpc/pkg/jjson"
