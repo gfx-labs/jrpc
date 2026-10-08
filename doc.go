@@ -72,7 +72,7 @@
 //   - Context propagation throughout the stack
 //
 // Performance:
-//   - Efficient JSON handling with go-faster/jx
+//   - JSON handling with encoding/json/v2 and jsontext, parsed in a single pass
 //   - Buffer pooling to reduce allocations
 //   - Streaming response support
 //   - Configurable parallel batch processing

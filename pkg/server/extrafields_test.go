@@ -59,7 +59,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 		responseBytes = responseBytes[:n]
 
 		// Parse using JSON-RPC decoder
-		msgs, isBatch := jsonrpc.ParseMessage(responseBytes)
+		msgs, isBatch, _ := jsonrpc.ParseMessage(responseBytes)
 		require.False(t, isBatch)
 		require.Len(t, msgs, 1)
 
@@ -174,7 +174,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 		responseBytes = responseBytes[:n]
 
 		// Parse using JSON-RPC decoder
-		msgs, isBatch := jsonrpc.ParseMessage(responseBytes)
+		msgs, isBatch, _ := jsonrpc.ParseMessage(responseBytes)
 		require.False(t, isBatch)
 		require.Len(t, msgs, 1)
 
@@ -204,7 +204,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 		handler := jsonrpc.HandlerFunc(func(w jsonrpc.ResponseWriter, r *jsonrpc.Request) {
 			// Get reference to extra fields
 			extraFields := w.ExtraFields()
-			
+
 			// Send response first
 			err := w.Send("result", nil)
 			require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 			// Send will fail due to marshaling error
 			err := w.Send("ok", nil)
 			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "unsupported type")
+			assert.Contains(t, err.Error(), "cannot marshal")
 		})
 
 		// Process request
@@ -300,7 +300,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 			w.ExtraFields().Set("params", []string{"test"})
 			w.ExtraFields().Set("result", "fake-result")
 			w.ExtraFields().Set("error", "fake-error")
-			
+
 			// Set a valid extra field
 			w.ExtraFields().Set("custom", "allowed")
 
@@ -333,17 +333,17 @@ func TestResponseWriterExtraFields(t *testing.T) {
 		responseBytes = responseBytes[:n]
 
 		// Parse using JSON-RPC decoder
-		msgs, isBatch := jsonrpc.ParseMessage(responseBytes)
+		msgs, isBatch, _ := jsonrpc.ParseMessage(responseBytes)
 		require.False(t, isBatch)
 		require.Len(t, msgs, 1)
 
 		msg := msgs[0]
 		require.NotNil(t, msg)
-		
+
 		// Verify that reserved fields were not overridden
 		require.NotNil(t, msg.ID)
 		assert.Equal(t, 1, msg.ID.Number())
-		
+
 		// Result should be the real result, not the fake one
 		resultBytes, err := io.ReadAll(msg.Result)
 		require.NoError(t, err)
@@ -351,12 +351,12 @@ func TestResponseWriterExtraFields(t *testing.T) {
 		err = json.Unmarshal(resultBytes, &result)
 		require.NoError(t, err)
 		assert.Equal(t, "real-result", result)
-		
+
 		// Only the custom field should be present in extra fields
 		require.NotNil(t, msg.ExtraFields)
 		assert.Contains(t, msg.ExtraFields, "custom")
 		assert.Len(t, msg.ExtraFields, 1)
-		
+
 		var custom string
 		err = json.Unmarshal(msg.ExtraFields["custom"], &custom)
 		require.NoError(t, err)

@@ -1,11 +1,12 @@
 package jsonrpc
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 
-	"github.com/go-faster/jx"
+	"github.com/gfx-labs/jrpc/pkg/jjson"
 )
 
 var (
@@ -46,32 +47,30 @@ type DataError interface {
 }
 
 func MarshalError(err error) []byte {
-	enc := jx.GetEncoder()
-	enc.Obj(func(e *jx.Encoder) {
-		switch er := err.(type) {
-		case DataError:
-			e.Field("code", func(e *jx.Encoder) { e.Int(er.ErrorCode()) })
-			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
-			if dat := er.ErrorData(); dat != nil {
-				data, err := json.Marshal(er.ErrorData())
-				if err != nil {
-					data = []byte(`"failed to marshal error data"`)
-				}
-				e.Field("data", func(e *jx.Encoder) {
-					e.Raw(data)
-				})
-			}
-		case Error:
-			e.FieldStart("code")
-			e.Int(er.ErrorCode())
-			e.FieldStart("message")
-			e.Str(er.Error())
-		default:
-			e.Field("code", func(e *jx.Encoder) { e.Int(-32000) })
-			e.Field("message", func(e *jx.Encoder) { e.Str(er.Error()) })
+	code := ErrorCodeDefault
+	var data any
+	switch er := err.(type) {
+	case DataError:
+		code = er.ErrorCode()
+		data = er.ErrorData()
+	case Error:
+		code = er.ErrorCode()
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, 64))
+	buf.WriteString(`{"code":`)
+	buf.Write(strconv.AppendInt(buf.AvailableBuffer(), int64(code), 10))
+	buf.WriteString(`,"message":`)
+	appendQuote(buf, err.Error())
+	if data != nil {
+		raw, err := jjson.Marshal(data)
+		if err != nil {
+			raw = []byte(`"failed to marshal error data"`)
 		}
-	})
-	return enc.Bytes()
+		buf.WriteString(`,"data":`)
+		buf.Write(raw)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes()
 }
 
 func WrapErr(data any, code int, err error) error {
@@ -122,6 +121,10 @@ func (e *ErrorSubscriptionNotFound) Error() string {
 
 // Invalid JSON was received by the server.
 type ErrorParse struct{ message string }
+
+func NewParseError(message string) *ErrorParse {
+	return &ErrorParse{message: message}
+}
 
 func (e *ErrorParse) ErrorCode() int { return -32700 }
 func (e *ErrorParse) Error() string  { return e.message }

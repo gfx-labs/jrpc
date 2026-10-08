@@ -2,18 +2,50 @@ package jjson
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"io"
+	"sync"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/valyala/bytebufferpool"
 )
 
-var jConfig = jsoniter.Config{
-	ValidateJsonRawMessage: false,
-	EscapeHTML:             false,
-	SortMapKeys:            true,
-}.Froze()
+// Options are the json/v2 options used to encode and decode user values (the v2 defaults).
+var Options = json.JoinOptions()
+
+// decodeOptions are used for raw message scanning. Duplicate names and invalid UTF-8 are passed through unchecked.
+var decodeOptions = json.JoinOptions(
+	jsontext.AllowDuplicateNames(true),
+	jsontext.AllowInvalidUTF8(true),
+)
+
+// NewDecoder returns a streaming jsontext decoder using the package decode options.
+func NewDecoder(r io.Reader) *jsontext.Decoder {
+	return jsontext.NewDecoder(r, decodeOptions)
+}
+
+// Decoder is a pooled jsontext decoder reading directly from a byte slice.
+type Decoder struct {
+	jsontext.Decoder
+	buf bytes.Buffer
+}
+
+var decoderPool = sync.Pool{New: func() any { return new(Decoder) }}
+
+// GetDecoder returns a pooled decoder over data. The decoder does not copy data.
+func GetDecoder(data []byte) *Decoder {
+	d := decoderPool.Get().(*Decoder)
+	d.buf = *bytes.NewBuffer(data)
+	d.Reset(&d.buf, decodeOptions)
+	return d
+}
+
+// PutDecoder returns a decoder to the pool.
+func PutDecoder(d *Decoder) {
+	d.buf = bytes.Buffer{}
+	d.Reset(&d.buf)
+	decoderPool.Put(d)
+}
 
 func MarshalAndEncode(w io.Writer, v any) error {
 	d := bytebufferpool.Get()
@@ -26,53 +58,47 @@ func MarshalAndEncode(w io.Writer, v any) error {
 	return err
 }
 
+// Encode writes v to w. A func(*jsontext.Encoder) error is called with an encoder over w,
+// and an io.Reader is copied as-is.
 func Encode(w io.Writer, v any) error {
-	s := jConfig.BorrowStream(w)
-	defer jConfig.ReturnStream(s)
-	switch cast := (v).(type) {
-	case func(e *jsoniter.Stream):
-		cast(s)
-		return s.Flush()
-	case json.Marshaler:
-		s.WriteVal(v)
-		return s.Flush()
+	switch cast := v.(type) {
+	case func(e *jsontext.Encoder) error:
+		enc := jsontext.NewEncoder(w, Options)
+		return cast(enc)
 	case io.Reader:
 		_, err := io.Copy(w, cast)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	default:
-		s.WriteVal(v)
-		return s.Flush()
+		return json.MarshalWrite(w, v, Options)
 	}
 }
 
+// Decode reads a single JSON value from r until EOF into v. An io.Writer target receives the raw bytes.
 func Decode(r io.Reader, v any) error {
-	d := jConfig.NewDecoder(r)
-	switch cast := (v).(type) {
-	case json.Unmarshaler:
-		return d.Decode(v)
-	case io.Writer:
+	if cast, ok := v.(io.Writer); ok {
 		_, err := io.Copy(cast, r)
-		if err != nil {
-			return err
-		}
-		return nil
-	default:
-		return d.Decode(v)
+		return err
 	}
+	return json.UnmarshalRead(r, v, Options)
 }
 
 func Unmarshal(xs []byte, v any) error {
-	return Decode(bytes.NewBuffer(xs), v)
+	if cast, ok := v.(io.Writer); ok {
+		_, err := cast.Write(xs)
+		return err
+	}
+	return json.Unmarshal(xs, v, Options)
 }
 
 func Marshal(v any) ([]byte, error) {
-	out := &bytes.Buffer{}
-	err := Encode(out, v)
-	if err != nil {
-		return nil, err
+	switch v.(type) {
+	case func(e *jsontext.Encoder) error, io.Reader:
+		out := &bytes.Buffer{}
+		if err := Encode(out, v); err != nil {
+			return nil, err
+		}
+		return out.Bytes(), nil
+	default:
+		return json.Marshal(v, Options)
 	}
-	return out.Bytes(), nil
 }

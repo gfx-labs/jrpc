@@ -154,6 +154,10 @@ func (s *Server) produceOutputMessage(inputMessage *jsonrpc.Message) (out *jsonr
 		err = jsonrpc.NewInvalidRequestError("invalid request")
 	}
 	out = inputMessage
+	// parse errors are produced by codecs for malformed JSON, never by decoding a message
+	if pe, ok := out.Error.(*jsonrpc.ErrorParse); ok {
+		err = pe
+	}
 	out.Error = nil
 	// NOTE: in the past, a zero length method was an invalid request
 	// now that is no longer the case

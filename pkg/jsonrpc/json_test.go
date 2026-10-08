@@ -7,7 +7,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/go-faster/jx"
+	"encoding/json/jsontext"
+
+	"github.com/gfx-labs/jrpc/pkg/jjson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -303,16 +305,13 @@ func TestMarshalMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			enc := jx.NewStreamingEncoder(buf, 1024)
 
-			err := MarshalMessage(tt.msg, enc)
+			err := MarshalMessage(tt.msg, buf)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
 
-			require.NoError(t, err)
-			err = enc.Close()
 			require.NoError(t, err)
 
 			// Verify it's valid JSON
@@ -356,7 +355,7 @@ func TestUnmarshalMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dec := jx.DecodeBytes([]byte(tt.input))
+			dec := jsontext.NewDecoder(bytes.NewReader([]byte(tt.input)))
 			msg := &Message{}
 
 			err := UnmarshalMessage(msg, dec)
@@ -452,7 +451,7 @@ func TestIsBatchMessage(t *testing.T) {
 func TestParseMessage(t *testing.T) {
 	t.Run("single message", func(t *testing.T) {
 		input := json.RawMessage(`{"jsonrpc":"2.0","id":"1","method":"test"}`)
-		msgs, isBatch := ParseMessage(input)
+		msgs, isBatch, _ := ParseMessage(input)
 
 		assert.False(t, isBatch)
 		assert.Len(t, msgs, 1)
@@ -466,7 +465,7 @@ func TestParseMessage(t *testing.T) {
 			{"jsonrpc":"2.0","id":"1","method":"test1"},
 			{"jsonrpc":"2.0","id":"2","method":"test2"}
 		]`)
-		msgs, isBatch := ParseMessage(input)
+		msgs, isBatch, _ := ParseMessage(input)
 
 		assert.True(t, isBatch)
 		assert.Len(t, msgs, 2)
@@ -481,7 +480,7 @@ func TestParseMessage(t *testing.T) {
 			{"invalid":"message"},
 			{"jsonrpc":"2.0","id":"3","method":"test3"}
 		]`)
-		msgs, isBatch := ParseMessage(input)
+		msgs, isBatch, _ := ParseMessage(input)
 
 		assert.True(t, isBatch)
 		assert.Len(t, msgs, 3)
@@ -494,23 +493,19 @@ func TestParseMessage(t *testing.T) {
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
-		input := json.RawMessage(`{invalid}`)
-		msgs, isBatch := ParseMessage(input)
-
-		assert.False(t, isBatch)
-		assert.Len(t, msgs, 1)
-		// Invalid message results in empty Message struct
-		assert.Equal(t, "", msgs[0].Method)
-		assert.Nil(t, msgs[0].ID)
+		for _, input := range []string{`{invalid}`, `[{"jsonrpc":"2.0"},`, `{"a":1} x`, ``} {
+			_, _, err := ParseMessage(json.RawMessage(input))
+			assert.Error(t, err, input)
+		}
 	})
 }
 
 func TestReadMessage(t *testing.T) {
 	t.Run("object message", func(t *testing.T) {
 		input := `{"jsonrpc":"2.0","id":"1","method":"test"}`
-		dec := jx.DecodeBytes([]byte(input))
+		dec := jsontext.NewDecoder(bytes.NewReader([]byte(input)))
 
-		msgs, isBatch := ReadMessage(dec)
+		msgs, isBatch, _ := ReadMessage(dec)
 		assert.False(t, isBatch)
 		assert.Len(t, msgs, 1)
 		assert.Equal(t, "test", msgs[0].Method)
@@ -518,9 +513,9 @@ func TestReadMessage(t *testing.T) {
 
 	t.Run("array message", func(t *testing.T) {
 		input := `[{"jsonrpc":"2.0","id":"1","method":"test"}]`
-		dec := jx.DecodeBytes([]byte(input))
+		dec := jsontext.NewDecoder(bytes.NewReader([]byte(input)))
 
-		msgs, isBatch := ReadMessage(dec)
+		msgs, isBatch, _ := ReadMessage(dec)
 		assert.True(t, isBatch)
 		assert.Len(t, msgs, 1)
 		assert.Equal(t, "test", msgs[0].Method)
@@ -528,9 +523,9 @@ func TestReadMessage(t *testing.T) {
 
 	t.Run("neither object nor array", func(t *testing.T) {
 		input := `"string"`
-		dec := jx.DecodeBytes([]byte(input))
+		dec := jsontext.NewDecoder(bytes.NewReader([]byte(input)))
 
-		msgs, isBatch := ReadMessage(dec)
+		msgs, isBatch, _ := ReadMessage(dec)
 		assert.False(t, isBatch)
 		assert.Len(t, msgs, 1)
 		assert.Equal(t, &Message{}, msgs[0])
@@ -578,7 +573,7 @@ func TestMessageImmutability(t *testing.T) {
 			{"jsonrpc":"2.0","id":"2","method":"test2","params":{"shared":"data"}}
 		]`)
 
-		msgs, isBatch := ParseMessage(batchData)
+		msgs, isBatch, _ := ParseMessage(batchData)
 		require.True(t, isBatch)
 		require.Len(t, msgs, 2)
 
@@ -807,10 +802,9 @@ func BenchmarkUnmarshalMessage(b *testing.B) {
 	b.Run("direct-UnmarshalMessage", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var msg Message
-			dec := jx.GetDecoder()
-			dec.ResetBytes(singleData)
-			UnmarshalMessage(&msg, dec)
-			jx.PutDecoder(dec)
+			d := jjson.GetDecoder(singleData)
+			UnmarshalMessage(&msg, &d.Decoder)
+			jjson.PutDecoder(d)
 		}
 	})
 }
@@ -870,13 +864,13 @@ func BenchmarkParseMessage(b *testing.B) {
 
 	b.Run("single", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = ParseMessage(single)
+			_, _, _ = ParseMessage(single)
 		}
 	})
 
 	b.Run("batch", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = ParseMessage(batch)
+			_, _, _ = ParseMessage(batch)
 		}
 	})
 }

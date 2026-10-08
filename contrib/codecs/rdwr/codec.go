@@ -3,7 +3,8 @@ package rdwr
 import (
 	"bufio"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"errors"
 	"io"
 	"sync"
 
@@ -20,6 +21,8 @@ type Codec struct {
 	wr *bufio.Writer
 
 	decLock sync.Mutex
+	dec     *jsontext.Decoder
+	decErr  error
 }
 
 func NewCodec(rd io.Reader, wr io.Writer) *Codec {
@@ -30,6 +33,7 @@ func NewCodec(rd io.Reader, wr io.Writer) *Codec {
 		rd:  bufio.NewReader(rd),
 		wr:  bufio.NewWriter(wr),
 	}
+	c.dec = jjson.NewDecoder(c.rd)
 	return c
 }
 
@@ -45,12 +49,20 @@ func (c *Codec) PeerInfo() jsonrpc.PeerInfo {
 func (c *Codec) decodeSingleMessage(ctx context.Context) (*serverutil.SimpleBundle, error) {
 	c.decLock.Lock()
 	defer c.decLock.Unlock()
-	decBuf := make(json.RawMessage, 0)
-	err := jjson.Decode(c.rd, &decBuf)
+	if c.decErr != nil {
+		return nil, c.decErr
+	}
+	val, err := c.dec.ReadValue()
 	if err != nil {
+		// a syntax error leaves the stream unrecoverable: answer with a parse error, then close
+		var se *jsontext.SyntacticError
+		if errors.As(err, &se) {
+			c.decErr = err
+			return serverutil.ParseErrorBundle(err), nil
+		}
 		return nil, err
 	}
-	return serverutil.ParseBundle(decBuf), nil
+	return serverutil.ParseBundle(val), nil
 }
 
 func (c *Codec) ReadBatch(ctx context.Context) (jsonrpc.Bundle, error) {
