@@ -1,8 +1,8 @@
 package websocket
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,7 +12,6 @@ import (
 	"github.com/coder/websocket"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/gfx-labs/jrpc/pkg/jjson"
 	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
 	"github.com/gfx-labs/jrpc/pkg/serverutil"
 )
@@ -26,7 +25,7 @@ type Codec struct {
 	currentFrame io.WriteCloser
 	wrLock       sync.Mutex
 
-	decBuf  json.RawMessage
+	decBuf  bytes.Buffer
 	decLock *semaphore.Weighted
 
 	i jsonrpc.PeerInfo
@@ -75,18 +74,16 @@ func (c *Codec) ReadBatch(ctx context.Context) (jsonrpc.Bundle, error) {
 		return nil, err
 	}
 	defer c.decLock.Release(1)
-	c.decBuf = c.decBuf[:0]
+	c.decBuf.Reset()
 	_, r, err := c.conn.Reader(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer io.Copy(io.Discard, r)
-	err = jjson.Decode(r, &c.decBuf)
-	if err != nil {
+	if _, err := c.decBuf.ReadFrom(r); err != nil {
 		return nil, err
 	}
-	msg := serverutil.ParseBundle(c.decBuf)
-	return msg, nil
+	// ParseBundle copies everything it keeps, so decBuf can be reused
+	return serverutil.ParseBundle(c.decBuf.Bytes()), nil
 }
 
 func (c *Codec) Write(p []byte) (n int, err error) {

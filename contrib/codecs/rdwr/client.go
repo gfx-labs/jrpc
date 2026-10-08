@@ -7,11 +7,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/bytedance/sonic"
 	"github.com/gfx-labs/jrpc/pkg/clientutil"
 	"github.com/gfx-labs/jrpc/pkg/jjson"
 	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
-	"github.com/go-faster/jx"
 )
 
 type Client struct {
@@ -72,13 +70,14 @@ func (c *Client) listen() error {
 	defer func() {
 		_ = c.Close()
 	}()
-	jd := jx.Decode(c.rd, 4096*4)
+	jd := jjson.NewDecoder(c.rd)
 	for {
-		msg, err := jd.Raw()
+		msg, err := jd.ReadValue()
 		if err != nil {
 			return err
 		}
-		msgs, _ := jsonrpc.ParseMessage(json.RawMessage(msg))
+		// msg is only valid until the next read; ParseMessage copies what it keeps
+		msgs, _, _ := jsonrpc.ParseMessage(json.RawMessage(msg))
 		for i := range msgs {
 			v := msgs[i]
 			if v == nil {
@@ -140,7 +139,7 @@ func (c *Client) Do(ctx context.Context, result any, method string, params any) 
 		return err
 	}
 	if result != nil {
-		err = sonic.ConfigStd.NewDecoder(ans).Decode(result)
+		err = jjson.Decode(ans, result)
 		if err != nil {
 			return err
 		}
@@ -172,7 +171,7 @@ func (c *Client) Close() error {
 	if closer, ok := c.rd.(io.Closer); ok {
 		closer.Close()
 	}
-	// Close writer if it implements io.Closer  
+	// Close writer if it implements io.Closer
 	if closer, ok := c.wr.(io.Closer); ok {
 		closer.Close()
 	}

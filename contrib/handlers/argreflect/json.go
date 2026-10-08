@@ -2,12 +2,12 @@ package argreflect
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"reflect"
 
 	"github.com/gfx-labs/jrpc/pkg/jjson"
 	"github.com/gfx-labs/jrpc/pkg/jsonrpc"
-	"github.com/go-faster/jx"
 )
 
 // parsePositionalArguments tries to parse the given args to an array of values with the
@@ -39,24 +39,20 @@ func parsePositionalArguments(rawArgs json.RawMessage, types []reflect.Type) ([]
 }
 
 func parseArgumentArray(p json.RawMessage, types []reflect.Type) ([]reflect.Value, error) {
-	dec := jx.GetDecoder()
-	defer jx.PutDecoder(dec)
-	dec.ResetBytes(p)
+	d := jjson.GetDecoder(p)
+	defer jjson.PutDecoder(d)
+	dec := &d.Decoder
 	args := make([]reflect.Value, 0, len(types))
-	iter, err := dec.ArrIter()
-	if err != nil {
+	if tok, err := dec.ReadToken(); err != nil || tok.Kind() != jsontext.KindBeginArray {
 		return args, jsonrpc.NewInvalidParamsError("expected array")
 	}
 	i := 0
-	for iter.Next() {
-		if err := iter.Err(); err != nil {
-			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("iterator err %d: %v", i, err))
-		}
+	for dec.PeekKind() != jsontext.KindEndArray {
 		if i >= len(types) {
 			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("too many arguments, want at most %d", len(types)))
 		}
 		argval := reflect.New(types[i])
-		raw, err := dec.Raw()
+		raw, err := dec.ReadValue()
 		if err != nil {
 			return args, jsonrpc.NewInvalidParamsError(fmt.Sprintf("invalid raw argument %d: %v", i, err))
 		}

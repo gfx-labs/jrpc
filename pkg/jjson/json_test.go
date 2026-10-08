@@ -8,17 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"encoding/json/jsontext"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Test structs
 type testStruct struct {
-	Name    string                 `json:"name"`
-	Age     int                    `json:"age"`
-	Active  bool                   `json:"active"`
-	Tags    []string               `json:"tags"`
+	Name     string                 `json:"name"`
+	Age      int                    `json:"age"`
+	Active   bool                   `json:"active"`
+	Tags     []string               `json:"tags"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
@@ -187,7 +188,7 @@ func TestUnmarshal(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			
+
 			// Dereference pointer targets for comparison
 			switch v := tt.target.(type) {
 			case *string:
@@ -230,11 +231,8 @@ func TestEncode(t *testing.T) {
 
 	t.Run("with function encoder", func(t *testing.T) {
 		var buf bytes.Buffer
-		err := Encode(&buf, func(s *jsoniter.Stream) {
-			s.WriteObjectStart()
-			s.WriteObjectField("custom")
-			s.WriteString("function")
-			s.WriteObjectEnd()
+		err := Encode(&buf, func(e *jsontext.Encoder) error {
+			return e.WriteValue(jsontext.Value(`{"custom":"function"}`))
 		})
 		require.NoError(t, err)
 		assert.JSONEq(t, `{"custom":"function"}`, buf.String())
@@ -306,14 +304,14 @@ func TestConfiguration(t *testing.T) {
 	t.Run("SortMapKeys is enabled", func(t *testing.T) {
 		// Create a map with keys that would have different order
 		m := map[string]int{
-			"zebra": 1,
-			"apple": 2,
+			"zebra":  1,
+			"apple":  2,
 			"banana": 3,
 		}
-		
+
 		data, err := Marshal(m)
 		require.NoError(t, err)
-		
+
 		// Keys should be sorted alphabetically
 		expected := `{"apple":2,"banana":3,"zebra":1}`
 		assert.Equal(t, expected, string(data))
@@ -327,14 +325,14 @@ func TestConcurrency(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			go func(n int) {
 				defer func() { done <- true }()
-				
+
 				data := map[string]int{"value": n}
 				result, err := Marshal(data)
 				assert.NoError(t, err)
 				assert.Contains(t, string(result), strconv.Itoa(n))
 			}(i)
 		}
-		
+
 		for i := 0; i < 10; i++ {
 			<-done
 		}
@@ -365,7 +363,7 @@ func BenchmarkMarshal(b *testing.B) {
 
 func BenchmarkUnmarshal(b *testing.B) {
 	data := `{"name":"Benchmark","age":25,"active":true,"tags":["test","benchmark","json"],"metadata":{"level":"expert","score":100}}`
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var result testStruct
@@ -378,7 +376,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 
 func BenchmarkEncode(b *testing.B) {
 	data := map[string]string{"key": "value", "test": "benchmark"}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var buf bytes.Buffer
@@ -391,7 +389,7 @@ func BenchmarkEncode(b *testing.B) {
 
 func BenchmarkDecode(b *testing.B) {
 	data := `{"key":"value","test":"benchmark"}`
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		reader := strings.NewReader(data)
