@@ -2,7 +2,6 @@ package jjson
 
 import (
 	"bytes"
-	jsonv1 "encoding/json"
 	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"io"
@@ -11,14 +10,8 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
-// Options are the json/v2 options used to encode and decode user values.
-// They keep v1 semantics (including sorted map keys) so existing types serialize the same way,
-// without HTML escaping.
-var Options = json.JoinOptions(
-	jsonv1.DefaultOptionsV1(),
-	jsontext.EscapeForHTML(false),
-	jsontext.EscapeForJS(false),
-)
+// Options are the json/v2 options used to encode and decode user values (the v2 defaults).
+var Options = json.JoinOptions()
 
 // decodeOptions are used for raw message scanning. Duplicate names and invalid UTF-8 are passed through unchecked.
 var decodeOptions = json.JoinOptions(

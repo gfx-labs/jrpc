@@ -300,22 +300,6 @@ func TestConfiguration(t *testing.T) {
 		// Should not escape HTML
 		assert.Equal(t, `"<script>alert('xss')</script>"`, string(data))
 	})
-
-	t.Run("SortMapKeys is enabled", func(t *testing.T) {
-		// Create a map with keys that would have different order
-		m := map[string]int{
-			"zebra":  1,
-			"apple":  2,
-			"banana": 3,
-		}
-
-		data, err := Marshal(m)
-		require.NoError(t, err)
-
-		// Keys should be sorted alphabetically
-		expected := `{"apple":2,"banana":3,"zebra":1}`
-		assert.Equal(t, expected, string(data))
-	})
 }
 
 func TestConcurrency(t *testing.T) {

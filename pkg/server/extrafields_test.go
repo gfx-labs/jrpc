@@ -254,7 +254,7 @@ func TestResponseWriterExtraFields(t *testing.T) {
 			// Send will fail due to marshaling error
 			err := w.Send("ok", nil)
 			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "unsupported type")
+			assert.Contains(t, err.Error(), "cannot marshal")
 		})
 
 		// Process request
